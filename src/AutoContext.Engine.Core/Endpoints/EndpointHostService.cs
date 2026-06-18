@@ -1,27 +1,16 @@
 namespace AutoContext.Engine.Core.Endpoints;
 
-using System.Text.Json;
-
 using AutoContext.Engine.Core.Features.Instructions;
 using AutoContext.Engine.Core.Features.McpTools;
 using AutoContext.Engine.Core.Infrastructure;
-using AutoContext.Engine.Core.Infrastructure.Events;
 using AutoContext.Engine.Core.Infrastructure.Storage;
 using AutoContext.Engine.Core.Lifecycle;
-using AutoContext.Engine.Core.Logging;
 using AutoContext.Engine.Core.Registry;
-using AutoContext.Engine.Core.Rpc;
-using AutoContext.Engine.Core.Rpc.Policies;
-using AutoContext.Engine.Core.Watchdogs;
 using AutoContext.Engine.Core.Workspace.Config;
 using AutoContext.Engine.Core.Workspace.Context;
 using AutoContext.Engine.Protocol;
-using AutoContext.Engine.Protocol.JsonRpc;
 using AutoContext.Engine.Protocol.Messages.Config;
 using AutoContext.Engine.Protocol.Messages.Instructions;
-using AutoContext.Engine.Protocol.Messages.Lifecycle;
-using AutoContext.Engine.Protocol.Messages.Logs;
-using AutoContext.Engine.Protocol.Serialization;
 using AutoContext.Framework.Pipes;
 
 using Microsoft.Extensions.Hosting;
@@ -42,17 +31,15 @@ using Microsoft.Extensions.Options;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <c>rpc</c> connections are delegated whole to
-/// <see cref="RpcEndpointHandler"/>, which performs the
-/// <c>Engine.Hello</c> handshake and then runs the post-handshake
-/// JSON-RPC dispatch loop. <c>events</c> connections are handled
-/// inline: the service performs the handshake, then runs the
-/// subscription pump (enrolling the connection with the
-/// <see cref="LifecycleEventStream"/> and serialising each
-/// fanned-out <see cref="JsonLifecycleEvent"/> into an
-/// <c>Engine.Lifecycle</c> JSON-RPC notification frame).
-/// <c>health</c> and <c>logs</c> are passive observer surfaces
-/// the service binds but does not author payloads for.
+/// Each accepted connection is delegated whole to a per-kind
+/// handler: <see cref="RpcEndpointHandler"/> for <c>rpc</c>,
+/// <see cref="EventsEndpointHandler"/> for <c>events</c>, and
+/// <see cref="LogsEndpointHandler"/> for <c>logs</c>. <c>health</c>
+/// is a passive observer surface the service binds but does not
+/// author payloads for. The service itself owns only listener
+/// orchestration — the four-pipe bind, the accept loops, and the
+/// graceful-stop sequence that publishes the terminal lifecycle
+/// event and arms the shared <see cref="ShutdownDrainDeadline"/>.
 /// </para>
 /// <para>
 /// The OS pipe name is the canonical <see cref="Endpoint"/> wire
@@ -85,19 +72,16 @@ internal sealed partial class EndpointHostService : IHostedService, IAsyncDispos
     ];
 
     private int _disposed;
-    private readonly RpcEndpointHandler _rpcEndpointHandler;
-    private CancellationTokenSource? _drainCts;
-    private readonly LifecycleEventStream _eventStream;
-    private readonly LifecycleFrameStream _eventFrameStream = new();
-    private readonly IdleTimeoutWatchdog _idleTimeoutWatchdog;
+    private readonly ShutdownDrainDeadline _drainDeadline;
+    private readonly EventsEndpointHandler _eventsEndpointHandler;
     private readonly IUniqueInstanceGuard _instanceGuard;
     private readonly LifecycleNotifier _lifecycleNotifier;
     private readonly Dictionary<EndpointKind, BoundPipeListener> _listeners = new(AllKinds.Length);
     private readonly ILogger<EndpointHostService> _logger;
     private readonly ILoggerFactory _loggerFactory;
-    private readonly Broadcaster<JsonLogRecord> _logsBroadcaster;
-    private readonly LogFrameStream _logFrameStream = new();
+    private readonly LogsEndpointHandler _logsEndpointHandler;
     private readonly EngineOptions _options;
+    private readonly RpcEndpointHandler _rpcEndpointHandler;
     private readonly List<Task> _runTasks = new(AllKinds.Length);
     private int _started;
     private int _stopped;
@@ -110,66 +94,60 @@ internal sealed partial class EndpointHostService : IHostedService, IAsyncDispos
     /// host's options pipeline.</param>
     /// <param name="loggerFactory">Logger factory used to create
     /// loggers for this service and the underlying pipe listeners.</param>
-    /// <param name="eventStream">Fan-out stream backing
-    /// <c>Engine.Lifecycle.Subscribe</c>; every <c>events</c>-pipe
-    /// connection enrolls a subscriber here.</param>
     /// <param name="lifecycleNotifier">Notifier that stamps engine
     /// identity onto lifecycle events; <see cref="StopAsync"/>
     /// invokes <see cref="LifecycleNotifier.NotifyShutdown"/> ahead
     /// of pipe teardown so subscribers see the terminal frame.</param>
-    /// <param name="idleTimeoutWatchdog">Watchdog the service
-    /// acquires a keep-alive token from for every accepted
-    /// <c>rpc</c> and <c>events</c> connection (the only two
-    /// endpoint kinds that pin the engine alive against the
-    /// idle-timeout gate per
-    /// <c>design § Lifecycle &gt; Idle shutdown</c>).</param>
     /// <param name="instanceGuard">Pre-bind probe asserting no
     /// other engine currently owns this engine's would-be
     /// endpoint address. Invoked at the top of
     /// <see cref="StartAsync"/> before the four-pipe bind so
     /// the launcher-bug case (fresh-UUID violation) surfaces
     /// as a clear diagnostic instead of an opaque bind error.</param>
-    /// <param name="logsBroadcaster">Fan-out broadcaster backing the
-    /// <c>logs</c> pipe; every accepted <c>logs</c>-pipe connection
-    /// enrolls a subscriber here and pumps drained
-    /// <see cref="JsonLogStreamFrame"/> values to the wire.</param>
     /// <param name="rpcEndpointHandler">Handler that drives each
     /// accepted <c>rpc</c> connection end-to-end — handshake, idle
-    /// keep-alive, and the post-handshake JSON-RPC dispatch loop
-    /// that answers <c>Registry.*</c>, <c>Logs.*</c>, <c>Config.*</c>,
-    /// <c>Workspace.*</c>, <c>Instructions.*</c>, and <c>McpTools.*</c>
-    /// requests.</param>
+    /// keep-alive, and the post-handshake JSON-RPC dispatch loop.</param>
+    /// <param name="eventsEndpointHandler">Handler that drives each
+    /// accepted <c>events</c> connection end-to-end — handshake, idle
+    /// keep-alive, and the lifecycle-event subscription pump.</param>
+    /// <param name="logsEndpointHandler">Handler that drives each
+    /// accepted <c>logs</c> connection — the broadcaster subscription
+    /// pump (no handshake, no keep-alive).</param>
+    /// <param name="drainDeadline">Shared shutdown-drain deadline the
+    /// host arms during <see cref="StopAsync"/> and the events/logs
+    /// pumps observe so a peer that stops reading mid-shutdown cannot
+    /// wedge teardown.</param>
     /// <exception cref="ArgumentNullException">
     /// Any constructor argument is <see langword="null"/>.
     /// </exception>
     public EndpointHostService(
         IOptions<EngineOptions> options,
         ILoggerFactory loggerFactory,
-        LifecycleEventStream eventStream,
         LifecycleNotifier lifecycleNotifier,
-        IdleTimeoutWatchdog idleTimeoutWatchdog,
         IUniqueInstanceGuard instanceGuard,
-        Broadcaster<JsonLogRecord> logsBroadcaster,
-        RpcEndpointHandler rpcEndpointHandler)
+        RpcEndpointHandler rpcEndpointHandler,
+        EventsEndpointHandler eventsEndpointHandler,
+        LogsEndpointHandler logsEndpointHandler,
+        ShutdownDrainDeadline drainDeadline)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(loggerFactory);
-        ArgumentNullException.ThrowIfNull(eventStream);
         ArgumentNullException.ThrowIfNull(lifecycleNotifier);
-        ArgumentNullException.ThrowIfNull(idleTimeoutWatchdog);
         ArgumentNullException.ThrowIfNull(instanceGuard);
-        ArgumentNullException.ThrowIfNull(logsBroadcaster);
         ArgumentNullException.ThrowIfNull(rpcEndpointHandler);
+        ArgumentNullException.ThrowIfNull(eventsEndpointHandler);
+        ArgumentNullException.ThrowIfNull(logsEndpointHandler);
+        ArgumentNullException.ThrowIfNull(drainDeadline);
 
         _options = options.Value;
         _loggerFactory = loggerFactory;
         _logger = loggerFactory.CreateLogger<EndpointHostService>();
-        _eventStream = eventStream;
         _lifecycleNotifier = lifecycleNotifier;
-        _idleTimeoutWatchdog = idleTimeoutWatchdog;
         _instanceGuard = instanceGuard;
-        _logsBroadcaster = logsBroadcaster;
         _rpcEndpointHandler = rpcEndpointHandler;
+        _eventsEndpointHandler = eventsEndpointHandler;
+        _logsEndpointHandler = logsEndpointHandler;
+        _drainDeadline = drainDeadline;
     }
 
     /// <inheritdoc/>
@@ -188,8 +166,7 @@ internal sealed partial class EndpointHostService : IHostedService, IAsyncDispos
         {
             _stoppingCts?.Dispose();
             _stoppingCts = null;
-            _drainCts?.Dispose();
-            _drainCts = null;
+            _drainDeadline.Release();
         }
     }
 
@@ -210,7 +187,7 @@ internal sealed partial class EndpointHostService : IHostedService, IAsyncDispos
         var instanceId = _options.InstanceId;
 
         _stoppingCts = new CancellationTokenSource();
-        _drainCts = new CancellationTokenSource();
+        _drainDeadline.Reset();
 
         try
         {
@@ -224,8 +201,7 @@ internal sealed partial class EndpointHostService : IHostedService, IAsyncDispos
             await DisposeListenersAsync().ConfigureAwait(false);
             _stoppingCts.Dispose();
             _stoppingCts = null;
-            _drainCts.Dispose();
-            _drainCts = null;
+            _drainDeadline.Release();
             throw;
         }
 
@@ -250,8 +226,8 @@ internal sealed partial class EndpointHostService : IHostedService, IAsyncDispos
     /// gets a chance to read it. The writer loops that flush the
     /// frame do not observe the accept-loop stop token (cancelling
     /// it would tear the connection down before the terminal frame
-    /// reached the wire); instead they observe an internal
-    /// drain-deadline token that fires after
+    /// reached the wire); instead they observe the shared
+    /// <see cref="ShutdownDrainDeadline"/> that fires after
     /// <see cref="EngineOptions.ShutdownDrainTimeout"/>. A peer
     /// that fails to read the frame within that window has its
     /// pending write cancelled and the connection closed, so this
@@ -260,8 +236,9 @@ internal sealed partial class EndpointHostService : IHostedService, IAsyncDispos
     /// followed by EOF as usual.
     /// </remarks>
     /// <param name="cancellationToken">Token observed by accept
-    /// loops and listener disposal. The events-pipe writer loops
-    /// observe an internal drain-deadline token instead.</param>
+    /// loops and listener disposal. The events and logs pump loops
+    /// observe the shared <see cref="ShutdownDrainDeadline"/>
+    /// instead.</param>
     public async Task StopAsync(CancellationToken cancellationToken)
     {
         if (Interlocked.Exchange(ref _stopped, 1) != 0)
@@ -281,18 +258,7 @@ internal sealed partial class EndpointHostService : IHostedService, IAsyncDispos
         // frame before this fires complete the pump naturally;
         // peers that don't have their pending WriteAsync cancelled,
         // which lets listener teardown proceed.
-        if (_drainCts is { } drainCts)
-        {
-            var drainTimeout = _options.ShutdownDrainTimeout;
-            if (drainTimeout <= TimeSpan.Zero)
-            {
-                await drainCts.CancelAsync().ConfigureAwait(false);
-            }
-            else
-            {
-                drainCts.CancelAfter(drainTimeout);
-            }
-        }
+        await _drainDeadline.StartDeadlineAsync(_options.ShutdownDrainTimeout).ConfigureAwait(false);
 
         if (_stoppingCts is { } cts)
         {
@@ -320,8 +286,7 @@ internal sealed partial class EndpointHostService : IHostedService, IAsyncDispos
         _runTasks.Clear();
         _stoppingCts?.Dispose();
         _stoppingCts = null;
-        _drainCts?.Dispose();
-        _drainCts = null;
+        _drainDeadline.Release();
 
         LogStopped(_logger);
     }
@@ -354,14 +319,6 @@ internal sealed partial class EndpointHostService : IHostedService, IAsyncDispos
     [LoggerMessage(EventId = 3, Level = LogLevel.Debug,
         Message = "Accepted connection on '{Kind}' endpoint.")]
     private static partial void LogConnectionAccepted(ILogger logger, EndpointKind kind);
-
-    [LoggerMessage(EventId = 5, Level = LogLevel.Debug,
-        Message = "Events-pipe write faulted; closing subscriber connection.")]
-    private static partial void LogEventsPipeWriteFaulted(ILogger logger, Exception exception);
-
-    [LoggerMessage(EventId = 6, Level = LogLevel.Debug,
-        Message = "Logs-pipe write faulted; closing subscriber connection.")]
-    private static partial void LogLogsPipeWriteFaulted(ILogger logger, Exception exception);
 
     [LoggerMessage(EventId = 1, Level = LogLevel.Information,
         Message = "EndpointHostService bound four pipes for workspace '{WorkspaceHash}' instance {InstanceId:D}.")]
@@ -419,7 +376,7 @@ internal sealed partial class EndpointHostService : IHostedService, IAsyncDispos
         // reading during shutdown).
         if (kind is EndpointKind.Logs)
         {
-            await PumpLogsConnectionAsync(stream).ConfigureAwait(false);
+            await _logsEndpointHandler.HandleAsync(stream).ConfigureAwait(false);
             return;
         }
 
@@ -432,128 +389,10 @@ internal sealed partial class EndpointHostService : IHostedService, IAsyncDispos
             return;
         }
 
-        // events: handshake, then the keep-alive-guarded subscription
-        // pump. (Extraction of an EventsEndpointHandler is a later
-        // step; the pump still lives on the host for now.)
-        await HandleEventsConnectionAsync(stream, cancellationToken).ConfigureAwait(false);
-    }
-
-    private async Task HandleEventsConnectionAsync(
-        Stream stream,
-        CancellationToken cancellationToken)
-    {
-        var accepted = await RpcConnectionProcessor
-            .RunAsync(stream, new HandshakePolicy(EndpointKind.Events, _logger), _logger, cancellationToken)
-            .ConfigureAwait(false);
-
-        if (!accepted)
-        {
-            // Handshake refused; the listener disposes the stream
-            // when this method returns, closing the connection.
-            return;
-        }
-
-        // Keep-alive accounting per design § Lifecycle > Idle
-        // shutdown: a post-handshake events connection pins the
-        // engine alive against the idle-timeout gate. health and logs
-        // short-circuit before reaching this point.
-        var keepAlive = await _idleTimeoutWatchdog
-            .AcquireKeepAliveAsync()
-            .ConfigureAwait(false);
-
-        await using (keepAlive.ConfigureAwait(false))
-        {
-            // Events: post-handshake subscription loop. Enrol with the
-            // stream (which seeds the started event into our bounded
-            // buffer), then pump every event the stream hands us onto
-            // the wire as an Engine.Lifecycle notification until the
-            // channel completes (graceful shutdown or unsubscribe), the
-            // pipe write faults (client disconnected), or the drain
-            // deadline fires (peer stopped reading during shutdown).
-            //
-            // The pump intentionally does NOT observe cancellationToken
-            // (the accept-loop stop token). StopAsync drives shutdown
-            // by publishing shutting-down via the notifier and arming
-            // the drain deadline BEFORE cancelling the stop CTS, so the
-            // pump exits cleanly after flushing the terminal frame or
-            // after the deadline elapses — whichever comes first.
-            await PumpEventsConnectionAsync(stream).ConfigureAwait(false);
-        }
-    }
-
-    private async Task PumpEventsConnectionAsync(Stream stream)
-    {
-        var drainToken = _drainCts?.Token ?? CancellationToken.None;
-        using var subscription = _eventStream.Subscribe();
-        var codec = new LengthPrefixedFrameCodec(stream);
-
-        try
-        {
-            await foreach (var evt in _eventFrameStream
-                .StreamAsync(subscription, drainToken)
-                .ConfigureAwait(false))
-            {
-                var paramsElement = JsonSerializer.SerializeToElement(
-                    evt, ProtocolJsonContext.Default.JsonLifecycleEvent);
-                var notification = new JsonRpcNotification
-                {
-                    Method = LifecycleMethods.Notification,
-                    Params = paramsElement,
-                };
-                var bytes = JsonSerializer.SerializeToUtf8Bytes(
-                    notification, ProtocolJsonContext.Default.JsonRpcNotification);
-
-                await codec.WriteAsync(bytes, drainToken).ConfigureAwait(false);
-            }
-        }
-        catch (OperationCanceledException) when (drainToken.IsCancellationRequested)
-        {
-            // Drain deadline elapsed before the peer read the
-            // terminal frame. The connection will be torn down
-            // when the listener disposes; nothing to report.
-        }
-        catch (IOException ex)
-        {
-            LogEventsPipeWriteFaulted(_logger, ex);
-        }
-        catch (ObjectDisposedException ex)
-        {
-            LogEventsPipeWriteFaulted(_logger, ex);
-        }
-    }
-
-    private async Task PumpLogsConnectionAsync(Stream stream)
-    {
-        var drainToken = _drainCts?.Token ?? CancellationToken.None;
-        using var subscription = _logsBroadcaster.Subscribe();
-        var codec = new LengthPrefixedFrameCodec(stream);
-
-        try
-        {
-            await foreach (var frame in _logFrameStream
-                .StreamAsync(subscription, drainToken)
-                .ConfigureAwait(false))
-            {
-                var bytes = JsonSerializer.SerializeToUtf8Bytes(
-                    frame, ProtocolJsonContext.Default.JsonLogStreamFrame);
-
-                await codec.WriteAsync(bytes, drainToken).ConfigureAwait(false);
-            }
-        }
-        catch (OperationCanceledException) when (drainToken.IsCancellationRequested)
-        {
-            // Drain deadline elapsed before the peer drained the
-            // pending frames. The listener tears the connection
-            // down when this method returns; nothing to report.
-        }
-        catch (IOException ex)
-        {
-            LogLogsPipeWriteFaulted(_logger, ex);
-        }
-        catch (ObjectDisposedException ex)
-        {
-            LogLogsPipeWriteFaulted(_logger, ex);
-        }
+        // events owns its full connection lifecycle — handshake, idle
+        // keep-alive, and the lifecycle-event subscription pump —
+        // inside EventsEndpointHandler.
+        await _eventsEndpointHandler.HandleAsync(stream, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task RunAcceptLoopAsync(

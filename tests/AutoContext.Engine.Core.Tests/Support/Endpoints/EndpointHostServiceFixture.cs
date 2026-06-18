@@ -65,19 +65,29 @@ public sealed class EndpointHostServiceFixture : IAsyncDisposable
             EngineCacheLayoutTestFactory.Create(resolvedOptions));
         var dispatchPolicyFactory = CreateDispatchPolicyFactory(
             lifetime, reader, logFileReader, logsBroadcaster);
+        var drainDeadline = new ShutdownDrainDeadline();
         var rpcEndpointHandler = new RpcEndpointHandler(
             dispatchPolicyFactory,
             watchdog,
             NullLogger<RpcEndpointHandler>.Instance);
+        var eventsEndpointHandler = new EventsEndpointHandler(
+            stream,
+            watchdog,
+            drainDeadline,
+            NullLogger<EventsEndpointHandler>.Instance);
+        var logsEndpointHandler = new LogsEndpointHandler(
+            logsBroadcaster,
+            drainDeadline,
+            NullLogger<LogsEndpointHandler>.Instance);
         var service = new EndpointHostService(
             Options.Create(resolvedOptions),
             NullLoggerFactory.Instance,
-            stream,
             notifier,
-            watchdog,
             instanceGuard,
-            logsBroadcaster,
-            rpcEndpointHandler);
+            rpcEndpointHandler,
+            eventsEndpointHandler,
+            logsEndpointHandler,
+            drainDeadline);
 
         // Track in reverse dependency order so Dispose tears the
         // service down first, then the watchdog, then the lifetime.
@@ -133,6 +143,26 @@ public sealed class EndpointHostServiceFixture : IAsyncDisposable
             CreateDispatchPolicyFactory(lifetime),
             CreateWatchdog(CreateOptions(), lifetime),
             NullLogger<RpcEndpointHandler>.Instance);
+
+    [SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "The idle-timeout watchdog created here is disabled (IdleTimeout=Zero), so it holds no timer or unmanaged resources; the throwaway handler built for the host's constructor-guard tests intentionally does not dispose it.")]
+    internal static EventsEndpointHandler CreateEventsEndpointHandler(
+        IHostApplicationLifetime lifetime) =>
+        new(
+            CreateEventStream(),
+            CreateWatchdog(CreateOptions(), lifetime),
+            new ShutdownDrainDeadline(),
+            NullLogger<EventsEndpointHandler>.Instance);
+
+    internal static LogsEndpointHandler CreateLogsEndpointHandler() =>
+        new(
+            CreateLogsBroadcaster(),
+            new ShutdownDrainDeadline(),
+            NullLogger<LogsEndpointHandler>.Instance);
+
+    internal static ShutdownDrainDeadline CreateDrainDeadline() => new();
 
     internal static IConfigSnapshotAccessor CreateConfigAccessor() =>
         new FakeConfigSnapshotAccessor();

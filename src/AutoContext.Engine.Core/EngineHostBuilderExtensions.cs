@@ -537,6 +537,13 @@ public static class EngineHostBuilderExtensions
 
         builder.Services.TryAddSingleton<DispatchPolicyFactory>();
         builder.Services.TryAddSingleton<RpcEndpointHandler>();
+        builder.Services.TryAddSingleton<EventsEndpointHandler>();
+        builder.Services.TryAddSingleton<LogsEndpointHandler>();
+
+        // Shared shutdown-drain deadline: the host arms it during
+        // StopAsync and the events/logs handlers observe its token so a
+        // peer that stops reading mid-shutdown cannot wedge teardown.
+        builder.Services.TryAddSingleton<ShutdownDrainDeadline>();
 
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, EndpointHostService>());

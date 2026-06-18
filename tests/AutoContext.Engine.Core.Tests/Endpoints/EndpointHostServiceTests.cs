@@ -97,79 +97,41 @@ public sealed class EndpointHostServiceTests(
     }
 
     [Fact]
-    public async Task Should_throw_when_constructed_with_null_options()
+    public void Should_throw_when_constructed_with_null_options()
     {
         using var lifetime = new FakeHostApplicationLifetime();
-        await using var watchdog = EndpointHostServiceFixture.CreateWatchdog(EndpointHostServiceFixture.CreateOptions(), lifetime);
 
         Assert.Throws<ArgumentNullException>(() =>
             new EndpointHostService(
                 null!,
                 NullLoggerFactory.Instance,
-                EndpointHostServiceFixture.CreateEventStream(),
                 EndpointHostServiceFixture.CreateNotifier(),
-                watchdog,
                 new FakeUniqueInstanceGuard(),
-                EndpointHostServiceFixture.CreateLogsBroadcaster(),
-                EndpointHostServiceFixture.CreateRpcEndpointHandler(lifetime)));
+                EndpointHostServiceFixture.CreateRpcEndpointHandler(lifetime),
+                EndpointHostServiceFixture.CreateEventsEndpointHandler(lifetime),
+                EndpointHostServiceFixture.CreateLogsEndpointHandler(),
+                EndpointHostServiceFixture.CreateDrainDeadline()));
     }
 
     [Fact]
-    public async Task Should_throw_when_constructed_with_null_logger_factory()
+    public void Should_throw_when_constructed_with_null_logger_factory()
     {
         using var lifetime = new FakeHostApplicationLifetime();
-        await using var watchdog = EndpointHostServiceFixture.CreateWatchdog(EndpointHostServiceFixture.CreateOptions(), lifetime);
 
         Assert.Throws<ArgumentNullException>(() =>
             new EndpointHostService(
                 Options.Create(EndpointHostServiceFixture.CreateOptions()),
                 null!,
-                EndpointHostServiceFixture.CreateEventStream(),
                 EndpointHostServiceFixture.CreateNotifier(),
-                watchdog,
                 new FakeUniqueInstanceGuard(),
-                EndpointHostServiceFixture.CreateLogsBroadcaster(),
-                EndpointHostServiceFixture.CreateRpcEndpointHandler(lifetime)));
+                EndpointHostServiceFixture.CreateRpcEndpointHandler(lifetime),
+                EndpointHostServiceFixture.CreateEventsEndpointHandler(lifetime),
+                EndpointHostServiceFixture.CreateLogsEndpointHandler(),
+                EndpointHostServiceFixture.CreateDrainDeadline()));
     }
 
     [Fact]
-    public async Task Should_throw_when_constructed_with_null_event_stream()
-    {
-        using var lifetime = new FakeHostApplicationLifetime();
-        await using var watchdog = EndpointHostServiceFixture.CreateWatchdog(EndpointHostServiceFixture.CreateOptions(), lifetime);
-
-        Assert.Throws<ArgumentNullException>(() =>
-            new EndpointHostService(
-                Options.Create(EndpointHostServiceFixture.CreateOptions()),
-                NullLoggerFactory.Instance,
-                null!,
-                EndpointHostServiceFixture.CreateNotifier(),
-                watchdog,
-                new FakeUniqueInstanceGuard(),
-                EndpointHostServiceFixture.CreateLogsBroadcaster(),
-                EndpointHostServiceFixture.CreateRpcEndpointHandler(lifetime)));
-    }
-
-    [Fact]
-    public async Task Should_throw_when_constructed_with_null_lifecycle_notifier()
-    {
-        using var lifetime = new FakeHostApplicationLifetime();
-        await using var watchdog = EndpointHostServiceFixture.CreateWatchdog(EndpointHostServiceFixture.CreateOptions(), lifetime);
-
-        Assert.Throws<ArgumentNullException>(() =>
-            new EndpointHostService(
-                Options.Create(EndpointHostServiceFixture.CreateOptions()),
-                NullLoggerFactory.Instance,
-                EndpointHostServiceFixture.CreateEventStream(),
-                null!,
-                watchdog,
-                new FakeUniqueInstanceGuard(),
-                EndpointHostServiceFixture.CreateLogsBroadcaster(),
-                EndpointHostServiceFixture.CreateRpcEndpointHandler(lifetime)));
-    }
-
-    [Fact]
-    public void Should_throw_when_constructed_with_null_idle_timeout_watchdog()
+    public void Should_throw_when_constructed_with_null_lifecycle_notifier()
     {
         using var lifetime = new FakeHostApplicationLifetime();
 
@@ -177,65 +139,96 @@ public sealed class EndpointHostServiceTests(
             new EndpointHostService(
                 Options.Create(EndpointHostServiceFixture.CreateOptions()),
                 NullLoggerFactory.Instance,
-                EndpointHostServiceFixture.CreateEventStream(),
-                EndpointHostServiceFixture.CreateNotifier(),
                 null!,
                 new FakeUniqueInstanceGuard(),
-                EndpointHostServiceFixture.CreateLogsBroadcaster(),
-                EndpointHostServiceFixture.CreateRpcEndpointHandler(lifetime)));
+                EndpointHostServiceFixture.CreateRpcEndpointHandler(lifetime),
+                EndpointHostServiceFixture.CreateEventsEndpointHandler(lifetime),
+                EndpointHostServiceFixture.CreateLogsEndpointHandler(),
+                EndpointHostServiceFixture.CreateDrainDeadline()));
     }
 
     [Fact]
-    public async Task Should_throw_when_constructed_with_null_instance_guard()
+    public void Should_throw_when_constructed_with_null_instance_guard()
     {
         using var lifetime = new FakeHostApplicationLifetime();
-        await using var watchdog = EndpointHostServiceFixture.CreateWatchdog(EndpointHostServiceFixture.CreateOptions(), lifetime);
 
         Assert.Throws<ArgumentNullException>(() =>
             new EndpointHostService(
                 Options.Create(EndpointHostServiceFixture.CreateOptions()),
                 NullLoggerFactory.Instance,
-                EndpointHostServiceFixture.CreateEventStream(),
                 EndpointHostServiceFixture.CreateNotifier(),
-                watchdog,
                 null!,
-                EndpointHostServiceFixture.CreateLogsBroadcaster(),
-                EndpointHostServiceFixture.CreateRpcEndpointHandler(lifetime)));
+                EndpointHostServiceFixture.CreateRpcEndpointHandler(lifetime),
+                EndpointHostServiceFixture.CreateEventsEndpointHandler(lifetime),
+                EndpointHostServiceFixture.CreateLogsEndpointHandler(),
+                EndpointHostServiceFixture.CreateDrainDeadline()));
     }
 
     [Fact]
-    public async Task Should_throw_when_constructed_with_null_logs_broadcaster()
+    public void Should_throw_when_constructed_with_null_rpc_endpoint_handler()
     {
         using var lifetime = new FakeHostApplicationLifetime();
-        await using var watchdog = EndpointHostServiceFixture.CreateWatchdog(EndpointHostServiceFixture.CreateOptions(), lifetime);
 
         Assert.Throws<ArgumentNullException>(() =>
             new EndpointHostService(
                 Options.Create(EndpointHostServiceFixture.CreateOptions()),
                 NullLoggerFactory.Instance,
-                EndpointHostServiceFixture.CreateEventStream(),
                 EndpointHostServiceFixture.CreateNotifier(),
-                watchdog,
                 new FakeUniqueInstanceGuard(),
                 null!,
-                EndpointHostServiceFixture.CreateRpcEndpointHandler(lifetime)));
+                EndpointHostServiceFixture.CreateEventsEndpointHandler(lifetime),
+                EndpointHostServiceFixture.CreateLogsEndpointHandler(),
+                EndpointHostServiceFixture.CreateDrainDeadline()));
     }
 
     [Fact]
-    public async Task Should_throw_when_constructed_with_null_rpc_endpoint_handler()
+    public void Should_throw_when_constructed_with_null_events_endpoint_handler()
     {
         using var lifetime = new FakeHostApplicationLifetime();
-        await using var watchdog = EndpointHostServiceFixture.CreateWatchdog(EndpointHostServiceFixture.CreateOptions(), lifetime);
 
         Assert.Throws<ArgumentNullException>(() =>
             new EndpointHostService(
                 Options.Create(EndpointHostServiceFixture.CreateOptions()),
                 NullLoggerFactory.Instance,
-                EndpointHostServiceFixture.CreateEventStream(),
                 EndpointHostServiceFixture.CreateNotifier(),
-                watchdog,
                 new FakeUniqueInstanceGuard(),
-                EndpointHostServiceFixture.CreateLogsBroadcaster(),
+                EndpointHostServiceFixture.CreateRpcEndpointHandler(lifetime),
+                null!,
+                EndpointHostServiceFixture.CreateLogsEndpointHandler(),
+                EndpointHostServiceFixture.CreateDrainDeadline()));
+    }
+
+    [Fact]
+    public void Should_throw_when_constructed_with_null_logs_endpoint_handler()
+    {
+        using var lifetime = new FakeHostApplicationLifetime();
+
+        Assert.Throws<ArgumentNullException>(() =>
+            new EndpointHostService(
+                Options.Create(EndpointHostServiceFixture.CreateOptions()),
+                NullLoggerFactory.Instance,
+                EndpointHostServiceFixture.CreateNotifier(),
+                new FakeUniqueInstanceGuard(),
+                EndpointHostServiceFixture.CreateRpcEndpointHandler(lifetime),
+                EndpointHostServiceFixture.CreateEventsEndpointHandler(lifetime),
+                null!,
+                EndpointHostServiceFixture.CreateDrainDeadline()));
+    }
+
+    [Fact]
+    public void Should_throw_when_constructed_with_null_drain_deadline()
+    {
+        using var lifetime = new FakeHostApplicationLifetime();
+
+        Assert.Throws<ArgumentNullException>(() =>
+            new EndpointHostService(
+                Options.Create(EndpointHostServiceFixture.CreateOptions()),
+                NullLoggerFactory.Instance,
+                EndpointHostServiceFixture.CreateNotifier(),
+                new FakeUniqueInstanceGuard(),
+                EndpointHostServiceFixture.CreateRpcEndpointHandler(lifetime),
+                EndpointHostServiceFixture.CreateEventsEndpointHandler(lifetime),
+                EndpointHostServiceFixture.CreateLogsEndpointHandler(),
                 null!));
     }
 
