@@ -1,5 +1,6 @@
 namespace AutoContext.Engine.Core;
 
+using AutoContext.Engine.Core.Endpoints;
 using AutoContext.Engine.Core.Features.Instructions;
 using AutoContext.Engine.Core.Features.McpTools;
 using AutoContext.Engine.Core.Features.McpTools.EditorConfig;
@@ -12,6 +13,7 @@ using AutoContext.Engine.Core.Logging;
 using AutoContext.Engine.Core.Machine;
 using AutoContext.Engine.Core.Machine.Housekeeping;
 using AutoContext.Engine.Core.Registry;
+using AutoContext.Engine.Core.Rpc.Policies;
 using AutoContext.Engine.Core.Watchdogs;
 using AutoContext.Engine.Core.Workers;
 using AutoContext.Engine.Core.Workspace.Config;
@@ -143,7 +145,7 @@ public static class EngineHostBuilderExtensions
         // broadcaster receive each record symmetrically. Per-
         // subscriber bounded buffers and slow-subscriber drop
         // shield the file sink from a stalled pipe consumer.
-        // Registered as a singleton so LifecycleService's logs-pipe
+        // Registered as a singleton so EndpointHostService's logs-pipe
         // pump and the file sink share the same instance.
         builder.Services.TryAddSingleton(sp => new Broadcaster<JsonLogRecord>(
             sp.GetRequiredService<ILogger<Broadcaster<JsonLogRecord>>>(),
@@ -219,11 +221,11 @@ public static class EngineHostBuilderExtensions
         // engine that runs work in StopAsync only (no startup
         // sweep — every spawn gets a fresh <instanceId>).
         // Registered AFTER RegistryFileService and BEFORE
-        // LifecycleService so the host stops it BEFORE the
+        // EndpointHostService so the host stops it BEFORE the
         // registry file service tears down — the sweep observes
         // the on-disk registry in its post-pipe-close shape
         // while RegistryFileService's channel is still live —
-        // and AFTER LifecycleService closes the four pipes.
+        // and AFTER EndpointHostService closes the four pipes.
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, HousekeepingService>());
 
@@ -231,11 +233,11 @@ public static class EngineHostBuilderExtensions
         builder.Services.TryAddSingleton<LifecycleNotifier>();
 
         // Idle-timeout watchdog: registered as a singleton (so
-        // LifecycleService can inject it directly for keep-alive
+        // EndpointHostService can inject it directly for keep-alive
         // accounting) and as an IHostedService (so it arms its
         // countdown on host start and disarms on host stop).
-        // Registered BEFORE LifecycleService so it stops AFTER it
-        // — LifecycleService's StopAsync tears down accept loops
+        // Registered BEFORE EndpointHostService so it stops AFTER it
+        // — EndpointHostService's StopAsync tears down accept loops
         // first, then the watchdog cancels its timer.
         builder.Services.TryAddSingleton<IdleTimeoutWatchdog>();
         builder.Services.TryAddEnumerable(
@@ -246,13 +248,13 @@ public static class EngineHostBuilderExtensions
         // no per-connection coupling — clamps engine lifetime to
         // the spawner's lifetime when --parent-pid is set, no-op
         // otherwise. Registered after the idle watchdog so it
-        // stops in the same window and before LifecycleService so
+        // stops in the same window and before EndpointHostService so
         // its StopAsync runs after the dispatcher tears down.
         builder.Services.TryAddSingleton<IProcessLookup, SystemProcessLookup>();
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, HostWatchdog>());
 
-        // Pre-bind unique-instance guard: LifecycleService
+        // Pre-bind unique-instance guard: EndpointHostService
         // resolves this and invokes EnsureUniqueAsync at the top
         // of StartAsync, before any pipe bind, so a launcher-bug
         // instance-id collision surfaces as a clear diagnostic
@@ -270,7 +272,7 @@ public static class EngineHostBuilderExtensions
         // IConfigSnapshotAccessor read seam) and future config writers
         // resolve. ConfigFileService loads the snapshot from disk
         // and arms the file watcher at startup. Registered BEFORE
-        // LifecycleService so it starts first — the snapshot is
+        // EndpointHostService so it starts first — the snapshot is
         // populated before the first rpc connection can issue
         // Config.Get — and stops after the pipes are torn down. The
         // manager is an IDisposable singleton the container disposes
@@ -299,7 +301,7 @@ public static class EngineHostBuilderExtensions
         // an immutable snapshot at start and holds it for the
         // Instructions.* RPC handlers, which read it through the
         // IInstructionsManifestAccessor seam. Registered BEFORE
-        // LifecycleService so the snapshot is populated before the first
+        // EndpointHostService so the snapshot is populated before the first
         // rpc connection can issue an Instructions.* request. The corpus
         // is read-only with no watcher, so the service only loads on
         // start and tears nothing down on stop.
@@ -317,7 +319,7 @@ public static class EngineHostBuilderExtensions
         // (mcp-tools-registry.json + mcp-tools-catalog.json, each with its
         // schema) into an immutable snapshot at start and holds it for the
         // McpTools.* RPC handlers, which read it through the
-        // IMcpToolsRegistryAccessor seam. Registered BEFORE LifecycleService
+        // IMcpToolsRegistryAccessor seam. Registered BEFORE EndpointHostService
         // so the snapshot is populated before the first rpc connection can
         // issue a McpTools.* request. The registry is read-only with no
         // watcher, so the service only loads on start and tears nothing
@@ -343,7 +345,7 @@ public static class EngineHostBuilderExtensions
         // construction — keeps the manifest read off the DI resolution path,
         // so a missing or malformed side-car fails host start loudly rather
         // than the first dispatch, mirroring the instructions and registry
-        // services. Registered as an IHostedService BEFORE LifecycleService so
+        // services. Registered as an IHostedService BEFORE EndpointHostService so
         // its hosts are populated before the first rpc connection can dispatch
         // a tool. The launcher (process creation) and connection probe
         // (readiness dial over the shared PipeTransport) are the seams the
@@ -376,7 +378,7 @@ public static class EngineHostBuilderExtensions
         // the editorconfig resolver is the engine's single editorconfig hop
         // (resolution lives in Worker.Workspace, never in-process). Both are
         // built from the already-registered WorkerProcessService +
-        // PipeTransport singletons plus the engine instance id. LifecycleService
+        // PipeTransport singletons plus the engine instance id. EndpointHostService
         // injects IMcpToolsInvoker directly: WorkerProcessService now resolves
         // its manifest at StartAsync, so constructing the invoker (and the
         // worker service it depends on) at host startup is side-effect-free.
@@ -500,7 +502,7 @@ public static class EngineHostBuilderExtensions
         // Workspace.Info RPC handlers resolve via the
         // IWorkspaceContextAccessor read seam. WorkspaceDetectionService
         // runs the initial scan and arms the filesystem watcher at
-        // startup. Registered BEFORE LifecycleService so it starts first —
+        // startup. Registered BEFORE EndpointHostService so it starts first —
         // the result is populated before the first rpc connection can
         // issue Workspace.Detect — and the detector is an IDisposable
         // singleton the container disposes on host stop, tearing down its
@@ -525,7 +527,7 @@ public static class EngineHostBuilderExtensions
         // Instructions snapshot priming. Hosted lifetime registered AFTER
         // WorkspaceDetectionService so the manifest, override, config, and
         // workspace accessors it projects are fully populated, and BEFORE
-        // LifecycleService so the snapshot seed is primed before the first
+        // EndpointHostService so the snapshot seed is primed before the first
         // events-pipe connection can enroll an Instructions.Subscribe
         // subscriber. The service also bridges config changes into the
         // broadcaster, republishing the re-projected listing on each
@@ -533,8 +535,10 @@ public static class EngineHostBuilderExtensions
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, InstructionsSubscriptionService>());
 
+        builder.Services.TryAddSingleton<DispatchPolicyFactory>();
+
         builder.Services.TryAddEnumerable(
-            ServiceDescriptor.Singleton<IHostedService, LifecycleService>());
+            ServiceDescriptor.Singleton<IHostedService, EndpointHostService>());
 
         return builder;
     }

@@ -1,8 +1,8 @@
 namespace AutoContext.Engine.Core.Tests.Features.Instructions;
 
 using AutoContext.Engine.Core.Features.Instructions;
+using AutoContext.Engine.Core.Tests.Support.Endpoints;
 using AutoContext.Engine.Core.Tests.Support.Features.Instructions;
-using AutoContext.Engine.Core.Tests.Support.Lifecycle;
 using AutoContext.Engine.Core.Tests.Support.Workspace.Config;
 using AutoContext.Engine.Core.Workspace.Config.Snapshot;
 using AutoContext.Engine.Protocol.Messages.Instructions;
@@ -13,8 +13,8 @@ public sealed class InstructionsSubscriptionServiceTests
     public void Should_throw_when_constructed_with_null_projector()
     {
         // Arrange
-        var broadcaster = LifecycleServiceFixture.CreateInstructionsBroadcaster();
-        var configChanges = LifecycleServiceFixture.CreateConfigChangeNotifier();
+        var broadcaster = EndpointHostServiceFixture.CreateInstructionsBroadcaster();
+        var configChanges = EndpointHostServiceFixture.CreateConfigChangeNotifier();
 
         // Act + Assert
         Assert.Throws<ArgumentNullException>(
@@ -25,8 +25,8 @@ public sealed class InstructionsSubscriptionServiceTests
     public void Should_throw_when_constructed_with_null_broadcaster()
     {
         // Arrange
-        var projector = LifecycleServiceFixture.CreateInstructionsListProjector();
-        var configChanges = LifecycleServiceFixture.CreateConfigChangeNotifier();
+        var projector = EndpointHostServiceFixture.CreateInstructionsListProjector();
+        var configChanges = EndpointHostServiceFixture.CreateConfigChangeNotifier();
 
         // Act + Assert
         Assert.Throws<ArgumentNullException>(
@@ -37,8 +37,8 @@ public sealed class InstructionsSubscriptionServiceTests
     public void Should_throw_when_constructed_with_null_config_change_notifier()
     {
         // Arrange
-        var projector = LifecycleServiceFixture.CreateInstructionsListProjector();
-        var broadcaster = LifecycleServiceFixture.CreateInstructionsBroadcaster();
+        var projector = EndpointHostServiceFixture.CreateInstructionsListProjector();
+        var broadcaster = EndpointHostServiceFixture.CreateInstructionsBroadcaster();
 
         // Act + Assert
         Assert.Throws<ArgumentNullException>(
@@ -52,9 +52,9 @@ public sealed class InstructionsSubscriptionServiceTests
         var manifest = new FakeInstructionsManifestAccessor(
             InstructionsFileManifestEntryTestFactory.Create("testing"),
             InstructionsFileManifestEntryTestFactory.Create("design"));
-        var projector = LifecycleServiceFixture.CreateInstructionsListProjector(manifest: manifest);
-        var broadcaster = LifecycleServiceFixture.CreateInstructionsBroadcaster();
-        var configChanges = LifecycleServiceFixture.CreateConfigChangeNotifier();
+        var projector = EndpointHostServiceFixture.CreateInstructionsListProjector(manifest: manifest);
+        var broadcaster = EndpointHostServiceFixture.CreateInstructionsBroadcaster();
+        var configChanges = EndpointHostServiceFixture.CreateConfigChangeNotifier();
         var service = new InstructionsSubscriptionService(projector, broadcaster, configChanges);
 
         // Act — start primes, then a fresh subscriber sees the
@@ -75,9 +75,9 @@ public sealed class InstructionsSubscriptionServiceTests
     public async Task Should_complete_broadcaster_on_stop()
     {
         // Arrange
-        var projector = LifecycleServiceFixture.CreateInstructionsListProjector();
-        var broadcaster = LifecycleServiceFixture.CreateInstructionsBroadcaster();
-        var configChanges = LifecycleServiceFixture.CreateConfigChangeNotifier();
+        var projector = EndpointHostServiceFixture.CreateInstructionsListProjector();
+        var broadcaster = EndpointHostServiceFixture.CreateInstructionsBroadcaster();
+        var configChanges = EndpointHostServiceFixture.CreateConfigChangeNotifier();
         var service = new InstructionsSubscriptionService(projector, broadcaster, configChanges);
         await service.StartAsync(TestContext.Current.CancellationToken);
         using var subscription = broadcaster.Subscribe();
@@ -100,9 +100,9 @@ public sealed class InstructionsSubscriptionServiceTests
         var manifest = new FakeInstructionsManifestAccessor(
             InstructionsFileManifestEntryTestFactory.Create("testing"));
         var config = new FakeConfigSnapshotAccessor();
-        var projector = LifecycleServiceFixture.CreateInstructionsListProjector(
+        var projector = EndpointHostServiceFixture.CreateInstructionsListProjector(
             manifest: manifest, config: config);
-        var broadcaster = LifecycleServiceFixture.CreateInstructionsBroadcaster();
+        var broadcaster = EndpointHostServiceFixture.CreateInstructionsBroadcaster();
         var service = new InstructionsSubscriptionService(projector, broadcaster, config);
         await service.StartAsync(TestContext.Current.CancellationToken);
         using var subscription = broadcaster.Subscribe();

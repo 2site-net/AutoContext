@@ -7,7 +7,8 @@ using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Rpc;
 using AutoContext.Engine.Core.Rpc.Policies;
 using AutoContext.Engine.Core.Rpc.Results;
-using AutoContext.Engine.Core.Tests.Support.Lifecycle;
+using AutoContext.Engine.Core.Tests.Support;
+using AutoContext.Engine.Core.Tests.Support.Endpoints;
 using AutoContext.Engine.Core.Tests.Support.Registry;
 using AutoContext.Engine.Core.Tests.Support.Rpc;
 using AutoContext.Engine.Core.Tests.Support.Rpc.Policies;
@@ -41,7 +42,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
     {
         // Arrange + Act + Assert
         Assert.Throws<ArgumentNullException>(
-            () => new DispatchPolicy(null!, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), LifecycleServiceFixture.CreateWorkspaceAccessor(), LifecycleServiceFixture.CreateInstructionsManifestAccessor(), LifecycleServiceFixture.CreateInstructionsOverridesAccessor(), LifecycleServiceFixture.CreateInstructionsBodyProjector(), LifecycleServiceFixture.CreateInstructionsFileReader(), LifecycleServiceFixture.CreateInstructionsSearchService(), LifecycleServiceFixture.CreateInstructionsBroadcaster(), LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(), LifecycleServiceFixture.CreateMcpToolsInvoker(), NullLogger.Instance));
+            () => new DispatchPolicy(null!, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), EndpointHostServiceFixture.CreateLogFileReader(), EndpointHostServiceFixture.CreateLogsBroadcaster(), EndpointHostServiceFixture.CreateConfigAccessor(), EndpointHostServiceFixture.CreateConfigUpdater(), EndpointHostServiceFixture.CreateConfigBroadcaster(), EndpointHostServiceFixture.CreateWorkspaceAccessor(), EndpointHostServiceFixture.CreateInstructionsManifestAccessor(), EndpointHostServiceFixture.CreateInstructionsOverridesAccessor(), EndpointHostServiceFixture.CreateInstructionsBodyProjector(), EndpointHostServiceFixture.CreateInstructionsFileReader(), EndpointHostServiceFixture.CreateInstructionsSearchService(), EndpointHostServiceFixture.CreateInstructionsBroadcaster(), EndpointHostServiceFixture.CreateMcpToolsRegistryAccessor(), EndpointHostServiceFixture.CreateMcpToolsInvoker(), NullLogger.Instance));
     }
 
     [Fact]
@@ -52,7 +53,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
 
         // Act + Assert
         Assert.Throws<ArgumentNullException>(
-            () => new DispatchPolicy(lifetime, registryReader: null!, LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), LifecycleServiceFixture.CreateWorkspaceAccessor(), LifecycleServiceFixture.CreateInstructionsManifestAccessor(), LifecycleServiceFixture.CreateInstructionsOverridesAccessor(), LifecycleServiceFixture.CreateInstructionsBodyProjector(), LifecycleServiceFixture.CreateInstructionsFileReader(), LifecycleServiceFixture.CreateInstructionsSearchService(), LifecycleServiceFixture.CreateInstructionsBroadcaster(), LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(), LifecycleServiceFixture.CreateMcpToolsInvoker(), NullLogger.Instance));
+            () => new DispatchPolicy(lifetime, registryReader: null!, EndpointHostServiceFixture.CreateLogFileReader(), EndpointHostServiceFixture.CreateLogsBroadcaster(), EndpointHostServiceFixture.CreateConfigAccessor(), EndpointHostServiceFixture.CreateConfigUpdater(), EndpointHostServiceFixture.CreateConfigBroadcaster(), EndpointHostServiceFixture.CreateWorkspaceAccessor(), EndpointHostServiceFixture.CreateInstructionsManifestAccessor(), EndpointHostServiceFixture.CreateInstructionsOverridesAccessor(), EndpointHostServiceFixture.CreateInstructionsBodyProjector(), EndpointHostServiceFixture.CreateInstructionsFileReader(), EndpointHostServiceFixture.CreateInstructionsSearchService(), EndpointHostServiceFixture.CreateInstructionsBroadcaster(), EndpointHostServiceFixture.CreateMcpToolsRegistryAccessor(), EndpointHostServiceFixture.CreateMcpToolsInvoker(), NullLogger.Instance));
     }
 
     [Fact]
@@ -63,7 +64,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
 
         // Act + Assert
         Assert.Throws<ArgumentNullException>(
-            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), logFileReader: null!, LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), LifecycleServiceFixture.CreateWorkspaceAccessor(), LifecycleServiceFixture.CreateInstructionsManifestAccessor(), LifecycleServiceFixture.CreateInstructionsOverridesAccessor(), LifecycleServiceFixture.CreateInstructionsBodyProjector(), LifecycleServiceFixture.CreateInstructionsFileReader(), LifecycleServiceFixture.CreateInstructionsSearchService(), LifecycleServiceFixture.CreateInstructionsBroadcaster(), LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(), LifecycleServiceFixture.CreateMcpToolsInvoker(), NullLogger.Instance));
+            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), logFileReader: null!, EndpointHostServiceFixture.CreateLogsBroadcaster(), EndpointHostServiceFixture.CreateConfigAccessor(), EndpointHostServiceFixture.CreateConfigUpdater(), EndpointHostServiceFixture.CreateConfigBroadcaster(), EndpointHostServiceFixture.CreateWorkspaceAccessor(), EndpointHostServiceFixture.CreateInstructionsManifestAccessor(), EndpointHostServiceFixture.CreateInstructionsOverridesAccessor(), EndpointHostServiceFixture.CreateInstructionsBodyProjector(), EndpointHostServiceFixture.CreateInstructionsFileReader(), EndpointHostServiceFixture.CreateInstructionsSearchService(), EndpointHostServiceFixture.CreateInstructionsBroadcaster(), EndpointHostServiceFixture.CreateMcpToolsRegistryAccessor(), EndpointHostServiceFixture.CreateMcpToolsInvoker(), NullLogger.Instance));
     }
 
     [Fact]
@@ -74,7 +75,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
 
         // Act + Assert
         Assert.Throws<ArgumentNullException>(
-            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), logsBroadcaster: null!, LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), LifecycleServiceFixture.CreateWorkspaceAccessor(), LifecycleServiceFixture.CreateInstructionsManifestAccessor(), LifecycleServiceFixture.CreateInstructionsOverridesAccessor(), LifecycleServiceFixture.CreateInstructionsBodyProjector(), LifecycleServiceFixture.CreateInstructionsFileReader(), LifecycleServiceFixture.CreateInstructionsSearchService(), LifecycleServiceFixture.CreateInstructionsBroadcaster(), LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(), LifecycleServiceFixture.CreateMcpToolsInvoker(), NullLogger.Instance));
+            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), EndpointHostServiceFixture.CreateLogFileReader(), logsBroadcaster: null!, EndpointHostServiceFixture.CreateConfigAccessor(), EndpointHostServiceFixture.CreateConfigUpdater(), EndpointHostServiceFixture.CreateConfigBroadcaster(), EndpointHostServiceFixture.CreateWorkspaceAccessor(), EndpointHostServiceFixture.CreateInstructionsManifestAccessor(), EndpointHostServiceFixture.CreateInstructionsOverridesAccessor(), EndpointHostServiceFixture.CreateInstructionsBodyProjector(), EndpointHostServiceFixture.CreateInstructionsFileReader(), EndpointHostServiceFixture.CreateInstructionsSearchService(), EndpointHostServiceFixture.CreateInstructionsBroadcaster(), EndpointHostServiceFixture.CreateMcpToolsRegistryAccessor(), EndpointHostServiceFixture.CreateMcpToolsInvoker(), NullLogger.Instance));
     }
 
     [Fact]
@@ -85,7 +86,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
 
         // Act + Assert
         Assert.Throws<ArgumentNullException>(
-            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), LifecycleServiceFixture.CreateWorkspaceAccessor(), LifecycleServiceFixture.CreateInstructionsManifestAccessor(), LifecycleServiceFixture.CreateInstructionsOverridesAccessor(), LifecycleServiceFixture.CreateInstructionsBodyProjector(), LifecycleServiceFixture.CreateInstructionsFileReader(), LifecycleServiceFixture.CreateInstructionsSearchService(), LifecycleServiceFixture.CreateInstructionsBroadcaster(), LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(), LifecycleServiceFixture.CreateMcpToolsInvoker(), logger: null!));
+            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), EndpointHostServiceFixture.CreateLogFileReader(), EndpointHostServiceFixture.CreateLogsBroadcaster(), EndpointHostServiceFixture.CreateConfigAccessor(), EndpointHostServiceFixture.CreateConfigUpdater(), EndpointHostServiceFixture.CreateConfigBroadcaster(), EndpointHostServiceFixture.CreateWorkspaceAccessor(), EndpointHostServiceFixture.CreateInstructionsManifestAccessor(), EndpointHostServiceFixture.CreateInstructionsOverridesAccessor(), EndpointHostServiceFixture.CreateInstructionsBodyProjector(), EndpointHostServiceFixture.CreateInstructionsFileReader(), EndpointHostServiceFixture.CreateInstructionsSearchService(), EndpointHostServiceFixture.CreateInstructionsBroadcaster(), EndpointHostServiceFixture.CreateMcpToolsRegistryAccessor(), EndpointHostServiceFixture.CreateMcpToolsInvoker(), logger: null!));
     }
 
     [Fact]
@@ -96,7 +97,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
 
         // Act + Assert
         Assert.Throws<ArgumentNullException>(
-            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), configAccessor: null!, LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), LifecycleServiceFixture.CreateWorkspaceAccessor(), LifecycleServiceFixture.CreateInstructionsManifestAccessor(), LifecycleServiceFixture.CreateInstructionsOverridesAccessor(), LifecycleServiceFixture.CreateInstructionsBodyProjector(), LifecycleServiceFixture.CreateInstructionsFileReader(), LifecycleServiceFixture.CreateInstructionsSearchService(), LifecycleServiceFixture.CreateInstructionsBroadcaster(), LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(), LifecycleServiceFixture.CreateMcpToolsInvoker(), NullLogger.Instance));
+            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), EndpointHostServiceFixture.CreateLogFileReader(), EndpointHostServiceFixture.CreateLogsBroadcaster(), configAccessor: null!, EndpointHostServiceFixture.CreateConfigUpdater(), EndpointHostServiceFixture.CreateConfigBroadcaster(), EndpointHostServiceFixture.CreateWorkspaceAccessor(), EndpointHostServiceFixture.CreateInstructionsManifestAccessor(), EndpointHostServiceFixture.CreateInstructionsOverridesAccessor(), EndpointHostServiceFixture.CreateInstructionsBodyProjector(), EndpointHostServiceFixture.CreateInstructionsFileReader(), EndpointHostServiceFixture.CreateInstructionsSearchService(), EndpointHostServiceFixture.CreateInstructionsBroadcaster(), EndpointHostServiceFixture.CreateMcpToolsRegistryAccessor(), EndpointHostServiceFixture.CreateMcpToolsInvoker(), NullLogger.Instance));
     }
 
     [Fact]
@@ -107,7 +108,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
 
         // Act + Assert
         Assert.Throws<ArgumentNullException>(
-            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), configUpdater: null!, LifecycleServiceFixture.CreateConfigBroadcaster(), LifecycleServiceFixture.CreateWorkspaceAccessor(), LifecycleServiceFixture.CreateInstructionsManifestAccessor(), LifecycleServiceFixture.CreateInstructionsOverridesAccessor(), LifecycleServiceFixture.CreateInstructionsBodyProjector(), LifecycleServiceFixture.CreateInstructionsFileReader(), LifecycleServiceFixture.CreateInstructionsSearchService(), LifecycleServiceFixture.CreateInstructionsBroadcaster(), LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(), LifecycleServiceFixture.CreateMcpToolsInvoker(), NullLogger.Instance));
+            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), EndpointHostServiceFixture.CreateLogFileReader(), EndpointHostServiceFixture.CreateLogsBroadcaster(), EndpointHostServiceFixture.CreateConfigAccessor(), configUpdater: null!, EndpointHostServiceFixture.CreateConfigBroadcaster(), EndpointHostServiceFixture.CreateWorkspaceAccessor(), EndpointHostServiceFixture.CreateInstructionsManifestAccessor(), EndpointHostServiceFixture.CreateInstructionsOverridesAccessor(), EndpointHostServiceFixture.CreateInstructionsBodyProjector(), EndpointHostServiceFixture.CreateInstructionsFileReader(), EndpointHostServiceFixture.CreateInstructionsSearchService(), EndpointHostServiceFixture.CreateInstructionsBroadcaster(), EndpointHostServiceFixture.CreateMcpToolsRegistryAccessor(), EndpointHostServiceFixture.CreateMcpToolsInvoker(), NullLogger.Instance));
     }
 
     [Fact]
@@ -118,7 +119,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
 
         // Act + Assert
         Assert.Throws<ArgumentNullException>(
-            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), configBroadcaster: null!, LifecycleServiceFixture.CreateWorkspaceAccessor(), LifecycleServiceFixture.CreateInstructionsManifestAccessor(), LifecycleServiceFixture.CreateInstructionsOverridesAccessor(), LifecycleServiceFixture.CreateInstructionsBodyProjector(), LifecycleServiceFixture.CreateInstructionsFileReader(), LifecycleServiceFixture.CreateInstructionsSearchService(), LifecycleServiceFixture.CreateInstructionsBroadcaster(), LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(), LifecycleServiceFixture.CreateMcpToolsInvoker(), NullLogger.Instance));
+            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), EndpointHostServiceFixture.CreateLogFileReader(), EndpointHostServiceFixture.CreateLogsBroadcaster(), EndpointHostServiceFixture.CreateConfigAccessor(), EndpointHostServiceFixture.CreateConfigUpdater(), configBroadcaster: null!, EndpointHostServiceFixture.CreateWorkspaceAccessor(), EndpointHostServiceFixture.CreateInstructionsManifestAccessor(), EndpointHostServiceFixture.CreateInstructionsOverridesAccessor(), EndpointHostServiceFixture.CreateInstructionsBodyProjector(), EndpointHostServiceFixture.CreateInstructionsFileReader(), EndpointHostServiceFixture.CreateInstructionsSearchService(), EndpointHostServiceFixture.CreateInstructionsBroadcaster(), EndpointHostServiceFixture.CreateMcpToolsRegistryAccessor(), EndpointHostServiceFixture.CreateMcpToolsInvoker(), NullLogger.Instance));
     }
 
     [Fact]
@@ -129,7 +130,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
 
         // Act + Assert
         Assert.Throws<ArgumentNullException>(
-            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), workspaceAccessor: null!, LifecycleServiceFixture.CreateInstructionsManifestAccessor(), LifecycleServiceFixture.CreateInstructionsOverridesAccessor(), LifecycleServiceFixture.CreateInstructionsBodyProjector(), LifecycleServiceFixture.CreateInstructionsFileReader(), LifecycleServiceFixture.CreateInstructionsSearchService(), LifecycleServiceFixture.CreateInstructionsBroadcaster(), LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(), LifecycleServiceFixture.CreateMcpToolsInvoker(), NullLogger.Instance));
+            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), EndpointHostServiceFixture.CreateLogFileReader(), EndpointHostServiceFixture.CreateLogsBroadcaster(), EndpointHostServiceFixture.CreateConfigAccessor(), EndpointHostServiceFixture.CreateConfigUpdater(), EndpointHostServiceFixture.CreateConfigBroadcaster(), workspaceAccessor: null!, EndpointHostServiceFixture.CreateInstructionsManifestAccessor(), EndpointHostServiceFixture.CreateInstructionsOverridesAccessor(), EndpointHostServiceFixture.CreateInstructionsBodyProjector(), EndpointHostServiceFixture.CreateInstructionsFileReader(), EndpointHostServiceFixture.CreateInstructionsSearchService(), EndpointHostServiceFixture.CreateInstructionsBroadcaster(), EndpointHostServiceFixture.CreateMcpToolsRegistryAccessor(), EndpointHostServiceFixture.CreateMcpToolsInvoker(), NullLogger.Instance));
     }
 
     [Fact]
@@ -140,7 +141,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
 
         // Act + Assert
         Assert.Throws<ArgumentNullException>(
-            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), LifecycleServiceFixture.CreateWorkspaceAccessor(), instructionsManifestAccessor: null!, LifecycleServiceFixture.CreateInstructionsOverridesAccessor(), LifecycleServiceFixture.CreateInstructionsBodyProjector(), LifecycleServiceFixture.CreateInstructionsFileReader(), LifecycleServiceFixture.CreateInstructionsSearchService(), LifecycleServiceFixture.CreateInstructionsBroadcaster(), LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(), LifecycleServiceFixture.CreateMcpToolsInvoker(), NullLogger.Instance));
+            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), EndpointHostServiceFixture.CreateLogFileReader(), EndpointHostServiceFixture.CreateLogsBroadcaster(), EndpointHostServiceFixture.CreateConfigAccessor(), EndpointHostServiceFixture.CreateConfigUpdater(), EndpointHostServiceFixture.CreateConfigBroadcaster(), EndpointHostServiceFixture.CreateWorkspaceAccessor(), instructionsManifestAccessor: null!, EndpointHostServiceFixture.CreateInstructionsOverridesAccessor(), EndpointHostServiceFixture.CreateInstructionsBodyProjector(), EndpointHostServiceFixture.CreateInstructionsFileReader(), EndpointHostServiceFixture.CreateInstructionsSearchService(), EndpointHostServiceFixture.CreateInstructionsBroadcaster(), EndpointHostServiceFixture.CreateMcpToolsRegistryAccessor(), EndpointHostServiceFixture.CreateMcpToolsInvoker(), NullLogger.Instance));
     }
 
     [Fact]
@@ -151,7 +152,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
 
         // Act + Assert
         Assert.Throws<ArgumentNullException>(
-            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), LifecycleServiceFixture.CreateWorkspaceAccessor(), LifecycleServiceFixture.CreateInstructionsManifestAccessor(), instructionsOverridesAccessor: null!, LifecycleServiceFixture.CreateInstructionsBodyProjector(), LifecycleServiceFixture.CreateInstructionsFileReader(), LifecycleServiceFixture.CreateInstructionsSearchService(), LifecycleServiceFixture.CreateInstructionsBroadcaster(), LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(), LifecycleServiceFixture.CreateMcpToolsInvoker(), NullLogger.Instance));
+            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), EndpointHostServiceFixture.CreateLogFileReader(), EndpointHostServiceFixture.CreateLogsBroadcaster(), EndpointHostServiceFixture.CreateConfigAccessor(), EndpointHostServiceFixture.CreateConfigUpdater(), EndpointHostServiceFixture.CreateConfigBroadcaster(), EndpointHostServiceFixture.CreateWorkspaceAccessor(), EndpointHostServiceFixture.CreateInstructionsManifestAccessor(), instructionsOverridesAccessor: null!, EndpointHostServiceFixture.CreateInstructionsBodyProjector(), EndpointHostServiceFixture.CreateInstructionsFileReader(), EndpointHostServiceFixture.CreateInstructionsSearchService(), EndpointHostServiceFixture.CreateInstructionsBroadcaster(), EndpointHostServiceFixture.CreateMcpToolsRegistryAccessor(), EndpointHostServiceFixture.CreateMcpToolsInvoker(), NullLogger.Instance));
     }
 
     [Fact]
@@ -162,7 +163,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
 
         // Act + Assert
         Assert.Throws<ArgumentNullException>(
-            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), LifecycleServiceFixture.CreateWorkspaceAccessor(), LifecycleServiceFixture.CreateInstructionsManifestAccessor(), LifecycleServiceFixture.CreateInstructionsOverridesAccessor(), instructionsBodyProjector: null!, LifecycleServiceFixture.CreateInstructionsFileReader(), LifecycleServiceFixture.CreateInstructionsSearchService(), LifecycleServiceFixture.CreateInstructionsBroadcaster(), LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(), LifecycleServiceFixture.CreateMcpToolsInvoker(), NullLogger.Instance));
+            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), EndpointHostServiceFixture.CreateLogFileReader(), EndpointHostServiceFixture.CreateLogsBroadcaster(), EndpointHostServiceFixture.CreateConfigAccessor(), EndpointHostServiceFixture.CreateConfigUpdater(), EndpointHostServiceFixture.CreateConfigBroadcaster(), EndpointHostServiceFixture.CreateWorkspaceAccessor(), EndpointHostServiceFixture.CreateInstructionsManifestAccessor(), EndpointHostServiceFixture.CreateInstructionsOverridesAccessor(), instructionsBodyProjector: null!, EndpointHostServiceFixture.CreateInstructionsFileReader(), EndpointHostServiceFixture.CreateInstructionsSearchService(), EndpointHostServiceFixture.CreateInstructionsBroadcaster(), EndpointHostServiceFixture.CreateMcpToolsRegistryAccessor(), EndpointHostServiceFixture.CreateMcpToolsInvoker(), NullLogger.Instance));
     }
 
     [Fact]
@@ -173,7 +174,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
 
         // Act + Assert
         Assert.Throws<ArgumentNullException>(
-            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), LifecycleServiceFixture.CreateWorkspaceAccessor(), LifecycleServiceFixture.CreateInstructionsManifestAccessor(), LifecycleServiceFixture.CreateInstructionsOverridesAccessor(), LifecycleServiceFixture.CreateInstructionsBodyProjector(), instructionsFileReader: null!, LifecycleServiceFixture.CreateInstructionsSearchService(), LifecycleServiceFixture.CreateInstructionsBroadcaster(), LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(), LifecycleServiceFixture.CreateMcpToolsInvoker(), NullLogger.Instance));
+            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), EndpointHostServiceFixture.CreateLogFileReader(), EndpointHostServiceFixture.CreateLogsBroadcaster(), EndpointHostServiceFixture.CreateConfigAccessor(), EndpointHostServiceFixture.CreateConfigUpdater(), EndpointHostServiceFixture.CreateConfigBroadcaster(), EndpointHostServiceFixture.CreateWorkspaceAccessor(), EndpointHostServiceFixture.CreateInstructionsManifestAccessor(), EndpointHostServiceFixture.CreateInstructionsOverridesAccessor(), EndpointHostServiceFixture.CreateInstructionsBodyProjector(), instructionsFileReader: null!, EndpointHostServiceFixture.CreateInstructionsSearchService(), EndpointHostServiceFixture.CreateInstructionsBroadcaster(), EndpointHostServiceFixture.CreateMcpToolsRegistryAccessor(), EndpointHostServiceFixture.CreateMcpToolsInvoker(), NullLogger.Instance));
     }
 
     [Fact]
@@ -184,7 +185,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
 
         // Act + Assert
         Assert.Throws<ArgumentNullException>(
-            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), LifecycleServiceFixture.CreateWorkspaceAccessor(), LifecycleServiceFixture.CreateInstructionsManifestAccessor(), LifecycleServiceFixture.CreateInstructionsOverridesAccessor(), LifecycleServiceFixture.CreateInstructionsBodyProjector(), LifecycleServiceFixture.CreateInstructionsFileReader(), instructionsFullTextSearchService: null!, LifecycleServiceFixture.CreateInstructionsBroadcaster(), LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(), LifecycleServiceFixture.CreateMcpToolsInvoker(), NullLogger.Instance));
+            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), EndpointHostServiceFixture.CreateLogFileReader(), EndpointHostServiceFixture.CreateLogsBroadcaster(), EndpointHostServiceFixture.CreateConfigAccessor(), EndpointHostServiceFixture.CreateConfigUpdater(), EndpointHostServiceFixture.CreateConfigBroadcaster(), EndpointHostServiceFixture.CreateWorkspaceAccessor(), EndpointHostServiceFixture.CreateInstructionsManifestAccessor(), EndpointHostServiceFixture.CreateInstructionsOverridesAccessor(), EndpointHostServiceFixture.CreateInstructionsBodyProjector(), EndpointHostServiceFixture.CreateInstructionsFileReader(), instructionsFullTextSearchService: null!, EndpointHostServiceFixture.CreateInstructionsBroadcaster(), EndpointHostServiceFixture.CreateMcpToolsRegistryAccessor(), EndpointHostServiceFixture.CreateMcpToolsInvoker(), NullLogger.Instance));
     }
 
     [Fact]
@@ -195,7 +196,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
 
         // Act + Assert
         Assert.Throws<ArgumentNullException>(
-            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), LifecycleServiceFixture.CreateWorkspaceAccessor(), LifecycleServiceFixture.CreateInstructionsManifestAccessor(), LifecycleServiceFixture.CreateInstructionsOverridesAccessor(), LifecycleServiceFixture.CreateInstructionsBodyProjector(), LifecycleServiceFixture.CreateInstructionsFileReader(), LifecycleServiceFixture.CreateInstructionsSearchService(), instructionsSnapshotBroadcaster: null!, LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(), LifecycleServiceFixture.CreateMcpToolsInvoker(), NullLogger.Instance));
+            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), EndpointHostServiceFixture.CreateLogFileReader(), EndpointHostServiceFixture.CreateLogsBroadcaster(), EndpointHostServiceFixture.CreateConfigAccessor(), EndpointHostServiceFixture.CreateConfigUpdater(), EndpointHostServiceFixture.CreateConfigBroadcaster(), EndpointHostServiceFixture.CreateWorkspaceAccessor(), EndpointHostServiceFixture.CreateInstructionsManifestAccessor(), EndpointHostServiceFixture.CreateInstructionsOverridesAccessor(), EndpointHostServiceFixture.CreateInstructionsBodyProjector(), EndpointHostServiceFixture.CreateInstructionsFileReader(), EndpointHostServiceFixture.CreateInstructionsSearchService(), instructionsSnapshotBroadcaster: null!, EndpointHostServiceFixture.CreateMcpToolsRegistryAccessor(), EndpointHostServiceFixture.CreateMcpToolsInvoker(), NullLogger.Instance));
     }
 
     [Fact]
@@ -206,7 +207,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
 
         // Act + Assert
         Assert.Throws<ArgumentNullException>(
-            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), LifecycleServiceFixture.CreateWorkspaceAccessor(), LifecycleServiceFixture.CreateInstructionsManifestAccessor(), LifecycleServiceFixture.CreateInstructionsOverridesAccessor(), LifecycleServiceFixture.CreateInstructionsBodyProjector(), LifecycleServiceFixture.CreateInstructionsFileReader(), LifecycleServiceFixture.CreateInstructionsSearchService(), LifecycleServiceFixture.CreateInstructionsBroadcaster(), mcpToolsRegistryAccessor: null!, LifecycleServiceFixture.CreateMcpToolsInvoker(), NullLogger.Instance));
+            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), EndpointHostServiceFixture.CreateLogFileReader(), EndpointHostServiceFixture.CreateLogsBroadcaster(), EndpointHostServiceFixture.CreateConfigAccessor(), EndpointHostServiceFixture.CreateConfigUpdater(), EndpointHostServiceFixture.CreateConfigBroadcaster(), EndpointHostServiceFixture.CreateWorkspaceAccessor(), EndpointHostServiceFixture.CreateInstructionsManifestAccessor(), EndpointHostServiceFixture.CreateInstructionsOverridesAccessor(), EndpointHostServiceFixture.CreateInstructionsBodyProjector(), EndpointHostServiceFixture.CreateInstructionsFileReader(), EndpointHostServiceFixture.CreateInstructionsSearchService(), EndpointHostServiceFixture.CreateInstructionsBroadcaster(), mcpToolsRegistryAccessor: null!, EndpointHostServiceFixture.CreateMcpToolsInvoker(), NullLogger.Instance));
     }
 
     [Fact]
@@ -217,7 +218,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
 
         // Act + Assert
         Assert.Throws<ArgumentNullException>(
-            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), LifecycleServiceFixture.CreateWorkspaceAccessor(), LifecycleServiceFixture.CreateInstructionsManifestAccessor(), LifecycleServiceFixture.CreateInstructionsOverridesAccessor(), LifecycleServiceFixture.CreateInstructionsBodyProjector(), LifecycleServiceFixture.CreateInstructionsFileReader(), LifecycleServiceFixture.CreateInstructionsSearchService(), LifecycleServiceFixture.CreateInstructionsBroadcaster(), LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(), mcpToolsInvoker: null!, NullLogger.Instance));
+            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), EndpointHostServiceFixture.CreateLogFileReader(), EndpointHostServiceFixture.CreateLogsBroadcaster(), EndpointHostServiceFixture.CreateConfigAccessor(), EndpointHostServiceFixture.CreateConfigUpdater(), EndpointHostServiceFixture.CreateConfigBroadcaster(), EndpointHostServiceFixture.CreateWorkspaceAccessor(), EndpointHostServiceFixture.CreateInstructionsManifestAccessor(), EndpointHostServiceFixture.CreateInstructionsOverridesAccessor(), EndpointHostServiceFixture.CreateInstructionsBodyProjector(), EndpointHostServiceFixture.CreateInstructionsFileReader(), EndpointHostServiceFixture.CreateInstructionsSearchService(), EndpointHostServiceFixture.CreateInstructionsBroadcaster(), EndpointHostServiceFixture.CreateMcpToolsRegistryAccessor(), mcpToolsInvoker: null!, NullLogger.Instance));
     }
 
     [Fact]
@@ -471,7 +472,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
     {
         // Arrange
         using var lifetime = new FakeHostApplicationLifetime();
-        var broadcaster = LifecycleServiceFixture.CreateLogsBroadcaster();
+        var broadcaster = EndpointHostServiceFixture.CreateLogsBroadcaster();
         var policy = DispatchPolicyTestFactory.Create(lifetime, logsBroadcaster: broadcaster);
         var request = JsonRpcRequestTestFactory.BuildRequest(LogsMethods.TailEngine);
 
@@ -525,7 +526,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
     {
         // Arrange
         using var lifetime = new FakeHostApplicationLifetime();
-        var broadcaster = LifecycleServiceFixture.CreateConfigBroadcaster();
+        var broadcaster = EndpointHostServiceFixture.CreateConfigBroadcaster();
 
         // Prime the broadcaster so the cold-start frame carries the
         // current state — a late subscriber needs no separate Get.
@@ -567,7 +568,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
     {
         // Arrange
         using var lifetime = new FakeHostApplicationLifetime();
-        var broadcaster = LifecycleServiceFixture.CreateInstructionsBroadcaster();
+        var broadcaster = EndpointHostServiceFixture.CreateInstructionsBroadcaster();
 
         // Prime the broadcaster so the cold-start frame carries the
         // current listing — a late subscriber needs no separate List.

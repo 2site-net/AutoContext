@@ -4,8 +4,8 @@ using System.Text.Json;
 
 using AutoContext.Engine.Core.Features.McpTools.Snapshot;
 using AutoContext.Engine.Core.Rpc.Results;
+using AutoContext.Engine.Core.Tests.Support;
 using AutoContext.Engine.Core.Tests.Support.Features.McpTools;
-using AutoContext.Engine.Core.Tests.Support.Lifecycle;
 using AutoContext.Engine.Core.Tests.Support.Rpc;
 using AutoContext.Engine.Core.Tests.Support.Rpc.Policies;
 using AutoContext.Engine.Core.Tests.Support.Workspace.Config;

@@ -1,7 +1,7 @@
 namespace AutoContext.Engine.Core.Tests.Watchdogs;
 
 using AutoContext.Engine.Core.Infrastructure.Diagnostics;
-using AutoContext.Engine.Core.Tests.Support.Lifecycle;
+using AutoContext.Engine.Core.Tests.Support;
 using AutoContext.Engine.Core.Tests.Support.Watchdogs;
 using AutoContext.Engine.Core.Watchdogs;
 

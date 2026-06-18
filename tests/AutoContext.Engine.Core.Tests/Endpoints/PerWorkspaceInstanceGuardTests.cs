@@ -1,8 +1,8 @@
-namespace AutoContext.Engine.Core.Tests.Lifecycle;
+namespace AutoContext.Engine.Core.Tests.Endpoints;
 
 using AutoContext.Engine.Core;
-using AutoContext.Engine.Core.Lifecycle;
-using AutoContext.Engine.Core.Tests.Support.Lifecycle;
+using AutoContext.Engine.Core.Endpoints;
+using AutoContext.Engine.Core.Tests.Support.Endpoints;
 
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;

@@ -1,4 +1,4 @@
-namespace AutoContext.Engine.Core.Lifecycle;
+namespace AutoContext.Engine.Core.Endpoints;
 
 using System.IO.Pipes;
 
@@ -21,7 +21,7 @@ using Microsoft.Extensions.Options;
 /// <para>
 /// The guard probes only the <c>rpc</c> endpoint. The four engine
 /// pipes (<c>rpc</c>, <c>events</c>, <c>health</c>, <c>logs</c>)
-/// are bound atomically by <see cref="LifecycleService"/>, so a
+/// are bound atomically by <see cref="EndpointHostService"/>, so a
 /// live peer at the <c>rpc</c> name necessarily implies the other
 /// three are also occupied.
 /// </para>
@@ -32,13 +32,13 @@ using Microsoft.Extensions.Options;
 /// (no pipe at this name) are both treated as "address is free".
 /// <see cref="UnauthorizedAccessException"/> from an ACL denial
 /// makes the probe inconclusive; the guard logs a warning and
-/// returns so the actual bind in <see cref="LifecycleService"/>
+/// returns so the actual bind in <see cref="EndpointHostService"/>
 /// runs as the authoritative check.
 /// </para>
 /// <para>
 /// A TOCTOU window exists between this probe and the real bind:
 /// a peer can race up after the probe clears. That race is still
-/// caught by <see cref="LifecycleService"/>'s bind, which fails
+/// caught by <see cref="EndpointHostService"/>'s bind, which fails
 /// the host with the underlying OS error. The guard's value is
 /// turning the common-case collision (a peer is already alive
 /// when this engine starts) into a clear, actionable diagnostic

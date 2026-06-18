@@ -1,13 +1,16 @@
-namespace AutoContext.Engine.Core.Tests.Lifecycle;
+namespace AutoContext.Engine.Core.Tests.Endpoints;
 
 using System.IO.Pipes;
 using System.Text;
 using System.Text.Json;
 
 using AutoContext.Engine.Core;
+using AutoContext.Engine.Core.Endpoints;
 using AutoContext.Engine.Core.Infrastructure.Storage;
 using AutoContext.Engine.Core.Lifecycle;
 using AutoContext.Engine.Core.Registry;
+using AutoContext.Engine.Core.Tests.Support;
+using AutoContext.Engine.Core.Tests.Support.Endpoints;
 using AutoContext.Engine.Core.Tests.Support.Lifecycle;
 using AutoContext.Engine.Core.Tests.Support.Logging;
 using AutoContext.Engine.Core.Tests.Support.Registry;
@@ -25,10 +28,10 @@ using AutoContext.Framework.Pipes;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
-public sealed class LifecycleServiceTests(
+public sealed class EndpointHostServiceTests(
     TempDirectoryFixture tempDirectory,
-    LifecycleServiceFixture lifecycle)
-    : IClassFixture<TempDirectoryFixture>, IClassFixture<LifecycleServiceFixture>
+    EndpointHostServiceFixture lifecycle)
+    : IClassFixture<TempDirectoryFixture>, IClassFixture<EndpointHostServiceFixture>
 {
     private const string RegistryFileName = "engine-registry.json";
 
@@ -97,192 +100,72 @@ public sealed class LifecycleServiceTests(
     public async Task Should_throw_when_constructed_with_null_options()
     {
         using var lifetime = new FakeHostApplicationLifetime();
-        await using var watchdog = LifecycleServiceFixture.CreateWatchdog(LifecycleServiceFixture.CreateOptions(), lifetime);
+        await using var watchdog = EndpointHostServiceFixture.CreateWatchdog(EndpointHostServiceFixture.CreateOptions(), lifetime);
 
         Assert.Throws<ArgumentNullException>(() =>
-            new LifecycleService(
+            new EndpointHostService(
                 null!,
                 NullLoggerFactory.Instance,
-                lifetime,
-                LifecycleServiceFixture.CreateRegistryReader(),
-                LifecycleServiceFixture.CreateEventStream(),
-                LifecycleServiceFixture.CreateNotifier(),
+                EndpointHostServiceFixture.CreateEventStream(),
+                EndpointHostServiceFixture.CreateNotifier(),
                 watchdog,
                 new FakeUniqueInstanceGuard(),
-                LifecycleServiceFixture.CreateLogsBroadcaster(),
-                LifecycleServiceFixture.CreateLogFileReader(),
-                LifecycleServiceFixture.CreateConfigAccessor(),
-                LifecycleServiceFixture.CreateConfigUpdater(),
-                LifecycleServiceFixture.CreateConfigBroadcaster(),
-                LifecycleServiceFixture.CreateWorkspaceAccessor(),
-                LifecycleServiceFixture.CreateInstructionsManifestAccessor(),
-                LifecycleServiceFixture.CreateInstructionsOverridesAccessor(),
-                LifecycleServiceFixture.CreateInstructionsBodyProjector(),
-                LifecycleServiceFixture.CreateInstructionsFileReader(),
-                LifecycleServiceFixture.CreateInstructionsSearchService(),
-                LifecycleServiceFixture.CreateInstructionsBroadcaster(),
-                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
-                LifecycleServiceFixture.CreateMcpToolsInvoker()));
+                EndpointHostServiceFixture.CreateLogsBroadcaster(),
+                EndpointHostServiceFixture.CreateDispatchPolicyFactory(lifetime)));
     }
 
     [Fact]
     public async Task Should_throw_when_constructed_with_null_logger_factory()
     {
         using var lifetime = new FakeHostApplicationLifetime();
-        await using var watchdog = LifecycleServiceFixture.CreateWatchdog(LifecycleServiceFixture.CreateOptions(), lifetime);
+        await using var watchdog = EndpointHostServiceFixture.CreateWatchdog(EndpointHostServiceFixture.CreateOptions(), lifetime);
 
         Assert.Throws<ArgumentNullException>(() =>
-            new LifecycleService(
-                Options.Create(LifecycleServiceFixture.CreateOptions()),
+            new EndpointHostService(
+                Options.Create(EndpointHostServiceFixture.CreateOptions()),
                 null!,
-                lifetime,
-                LifecycleServiceFixture.CreateRegistryReader(),
-                LifecycleServiceFixture.CreateEventStream(),
-                LifecycleServiceFixture.CreateNotifier(),
+                EndpointHostServiceFixture.CreateEventStream(),
+                EndpointHostServiceFixture.CreateNotifier(),
                 watchdog,
                 new FakeUniqueInstanceGuard(),
-                LifecycleServiceFixture.CreateLogsBroadcaster(),
-                LifecycleServiceFixture.CreateLogFileReader(),
-                LifecycleServiceFixture.CreateConfigAccessor(),
-                LifecycleServiceFixture.CreateConfigUpdater(),
-                LifecycleServiceFixture.CreateConfigBroadcaster(),
-                LifecycleServiceFixture.CreateWorkspaceAccessor(),
-                LifecycleServiceFixture.CreateInstructionsManifestAccessor(),
-                LifecycleServiceFixture.CreateInstructionsOverridesAccessor(),
-                LifecycleServiceFixture.CreateInstructionsBodyProjector(),
-                LifecycleServiceFixture.CreateInstructionsFileReader(),
-                LifecycleServiceFixture.CreateInstructionsSearchService(),
-                LifecycleServiceFixture.CreateInstructionsBroadcaster(),
-                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
-                LifecycleServiceFixture.CreateMcpToolsInvoker()));
-    }
-
-    [Fact]
-    public async Task Should_throw_when_constructed_with_null_application_lifetime()
-    {
-        using var lifetime = new FakeHostApplicationLifetime();
-        await using var watchdog = LifecycleServiceFixture.CreateWatchdog(LifecycleServiceFixture.CreateOptions(), lifetime);
-
-        Assert.Throws<ArgumentNullException>(() =>
-            new LifecycleService(
-                Options.Create(LifecycleServiceFixture.CreateOptions()),
-                NullLoggerFactory.Instance,
-                null!,
-                LifecycleServiceFixture.CreateRegistryReader(),
-                LifecycleServiceFixture.CreateEventStream(),
-                LifecycleServiceFixture.CreateNotifier(),
-                watchdog,
-                new FakeUniqueInstanceGuard(),
-                LifecycleServiceFixture.CreateLogsBroadcaster(),
-                LifecycleServiceFixture.CreateLogFileReader(),
-                LifecycleServiceFixture.CreateConfigAccessor(),
-                LifecycleServiceFixture.CreateConfigUpdater(),
-                LifecycleServiceFixture.CreateConfigBroadcaster(),
-                LifecycleServiceFixture.CreateWorkspaceAccessor(),
-                LifecycleServiceFixture.CreateInstructionsManifestAccessor(),
-                LifecycleServiceFixture.CreateInstructionsOverridesAccessor(),
-                LifecycleServiceFixture.CreateInstructionsBodyProjector(),
-                LifecycleServiceFixture.CreateInstructionsFileReader(),
-                LifecycleServiceFixture.CreateInstructionsSearchService(),
-                LifecycleServiceFixture.CreateInstructionsBroadcaster(),
-                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
-                LifecycleServiceFixture.CreateMcpToolsInvoker()));
-    }
-
-    [Fact]
-    public async Task Should_throw_when_constructed_with_null_registry_reader()
-    {
-        using var lifetime = new FakeHostApplicationLifetime();
-        await using var watchdog = LifecycleServiceFixture.CreateWatchdog(LifecycleServiceFixture.CreateOptions(), lifetime);
-
-        Assert.Throws<ArgumentNullException>(() =>
-            new LifecycleService(
-                Options.Create(LifecycleServiceFixture.CreateOptions()),
-                NullLoggerFactory.Instance,
-                lifetime,
-                null!,
-                LifecycleServiceFixture.CreateEventStream(),
-                LifecycleServiceFixture.CreateNotifier(),
-                watchdog,
-                new FakeUniqueInstanceGuard(),
-                LifecycleServiceFixture.CreateLogsBroadcaster(),
-                LifecycleServiceFixture.CreateLogFileReader(),
-                LifecycleServiceFixture.CreateConfigAccessor(),
-                LifecycleServiceFixture.CreateConfigUpdater(),
-                LifecycleServiceFixture.CreateConfigBroadcaster(),
-                LifecycleServiceFixture.CreateWorkspaceAccessor(),
-                LifecycleServiceFixture.CreateInstructionsManifestAccessor(),
-                LifecycleServiceFixture.CreateInstructionsOverridesAccessor(),
-                LifecycleServiceFixture.CreateInstructionsBodyProjector(),
-                LifecycleServiceFixture.CreateInstructionsFileReader(),
-                LifecycleServiceFixture.CreateInstructionsSearchService(),
-                LifecycleServiceFixture.CreateInstructionsBroadcaster(),
-                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
-                LifecycleServiceFixture.CreateMcpToolsInvoker()));
+                EndpointHostServiceFixture.CreateLogsBroadcaster(),
+                EndpointHostServiceFixture.CreateDispatchPolicyFactory(lifetime)));
     }
 
     [Fact]
     public async Task Should_throw_when_constructed_with_null_event_stream()
     {
         using var lifetime = new FakeHostApplicationLifetime();
-        await using var watchdog = LifecycleServiceFixture.CreateWatchdog(LifecycleServiceFixture.CreateOptions(), lifetime);
+        await using var watchdog = EndpointHostServiceFixture.CreateWatchdog(EndpointHostServiceFixture.CreateOptions(), lifetime);
 
         Assert.Throws<ArgumentNullException>(() =>
-            new LifecycleService(
-                Options.Create(LifecycleServiceFixture.CreateOptions()),
+            new EndpointHostService(
+                Options.Create(EndpointHostServiceFixture.CreateOptions()),
                 NullLoggerFactory.Instance,
-                lifetime,
-                LifecycleServiceFixture.CreateRegistryReader(),
                 null!,
-                LifecycleServiceFixture.CreateNotifier(),
+                EndpointHostServiceFixture.CreateNotifier(),
                 watchdog,
                 new FakeUniqueInstanceGuard(),
-                LifecycleServiceFixture.CreateLogsBroadcaster(),
-                LifecycleServiceFixture.CreateLogFileReader(),
-                LifecycleServiceFixture.CreateConfigAccessor(),
-                LifecycleServiceFixture.CreateConfigUpdater(),
-                LifecycleServiceFixture.CreateConfigBroadcaster(),
-                LifecycleServiceFixture.CreateWorkspaceAccessor(),
-                LifecycleServiceFixture.CreateInstructionsManifestAccessor(),
-                LifecycleServiceFixture.CreateInstructionsOverridesAccessor(),
-                LifecycleServiceFixture.CreateInstructionsBodyProjector(),
-                LifecycleServiceFixture.CreateInstructionsFileReader(),
-                LifecycleServiceFixture.CreateInstructionsSearchService(),
-                LifecycleServiceFixture.CreateInstructionsBroadcaster(),
-                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
-                LifecycleServiceFixture.CreateMcpToolsInvoker()));
+                EndpointHostServiceFixture.CreateLogsBroadcaster(),
+                EndpointHostServiceFixture.CreateDispatchPolicyFactory(lifetime)));
     }
 
     [Fact]
     public async Task Should_throw_when_constructed_with_null_lifecycle_notifier()
     {
         using var lifetime = new FakeHostApplicationLifetime();
-        await using var watchdog = LifecycleServiceFixture.CreateWatchdog(LifecycleServiceFixture.CreateOptions(), lifetime);
+        await using var watchdog = EndpointHostServiceFixture.CreateWatchdog(EndpointHostServiceFixture.CreateOptions(), lifetime);
 
         Assert.Throws<ArgumentNullException>(() =>
-            new LifecycleService(
-                Options.Create(LifecycleServiceFixture.CreateOptions()),
+            new EndpointHostService(
+                Options.Create(EndpointHostServiceFixture.CreateOptions()),
                 NullLoggerFactory.Instance,
-                lifetime,
-                LifecycleServiceFixture.CreateRegistryReader(),
-                LifecycleServiceFixture.CreateEventStream(),
+                EndpointHostServiceFixture.CreateEventStream(),
                 null!,
                 watchdog,
                 new FakeUniqueInstanceGuard(),
-                LifecycleServiceFixture.CreateLogsBroadcaster(),
-                LifecycleServiceFixture.CreateLogFileReader(),
-                LifecycleServiceFixture.CreateConfigAccessor(),
-                LifecycleServiceFixture.CreateConfigUpdater(),
-                LifecycleServiceFixture.CreateConfigBroadcaster(),
-                LifecycleServiceFixture.CreateWorkspaceAccessor(),
-                LifecycleServiceFixture.CreateInstructionsManifestAccessor(),
-                LifecycleServiceFixture.CreateInstructionsOverridesAccessor(),
-                LifecycleServiceFixture.CreateInstructionsBodyProjector(),
-                LifecycleServiceFixture.CreateInstructionsFileReader(),
-                LifecycleServiceFixture.CreateInstructionsSearchService(),
-                LifecycleServiceFixture.CreateInstructionsBroadcaster(),
-                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
-                LifecycleServiceFixture.CreateMcpToolsInvoker()));
+                EndpointHostServiceFixture.CreateLogsBroadcaster(),
+                EndpointHostServiceFixture.CreateDispatchPolicyFactory(lifetime)));
     }
 
     [Fact]
@@ -291,508 +174,68 @@ public sealed class LifecycleServiceTests(
         using var lifetime = new FakeHostApplicationLifetime();
 
         Assert.Throws<ArgumentNullException>(() =>
-            new LifecycleService(
-                Options.Create(LifecycleServiceFixture.CreateOptions()),
+            new EndpointHostService(
+                Options.Create(EndpointHostServiceFixture.CreateOptions()),
                 NullLoggerFactory.Instance,
-                lifetime,
-                LifecycleServiceFixture.CreateRegistryReader(),
-                LifecycleServiceFixture.CreateEventStream(),
-                LifecycleServiceFixture.CreateNotifier(),
+                EndpointHostServiceFixture.CreateEventStream(),
+                EndpointHostServiceFixture.CreateNotifier(),
                 null!,
                 new FakeUniqueInstanceGuard(),
-                LifecycleServiceFixture.CreateLogsBroadcaster(),
-                LifecycleServiceFixture.CreateLogFileReader(),
-                LifecycleServiceFixture.CreateConfigAccessor(),
-                LifecycleServiceFixture.CreateConfigUpdater(),
-                LifecycleServiceFixture.CreateConfigBroadcaster(),
-                LifecycleServiceFixture.CreateWorkspaceAccessor(),
-                LifecycleServiceFixture.CreateInstructionsManifestAccessor(),
-                LifecycleServiceFixture.CreateInstructionsOverridesAccessor(),
-                LifecycleServiceFixture.CreateInstructionsBodyProjector(),
-                LifecycleServiceFixture.CreateInstructionsFileReader(),
-                LifecycleServiceFixture.CreateInstructionsSearchService(),
-                LifecycleServiceFixture.CreateInstructionsBroadcaster(),
-                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
-                LifecycleServiceFixture.CreateMcpToolsInvoker()));
+                EndpointHostServiceFixture.CreateLogsBroadcaster(),
+                EndpointHostServiceFixture.CreateDispatchPolicyFactory(lifetime)));
     }
 
     [Fact]
     public async Task Should_throw_when_constructed_with_null_instance_guard()
     {
         using var lifetime = new FakeHostApplicationLifetime();
-        await using var watchdog = LifecycleServiceFixture.CreateWatchdog(LifecycleServiceFixture.CreateOptions(), lifetime);
+        await using var watchdog = EndpointHostServiceFixture.CreateWatchdog(EndpointHostServiceFixture.CreateOptions(), lifetime);
 
         Assert.Throws<ArgumentNullException>(() =>
-            new LifecycleService(
-                Options.Create(LifecycleServiceFixture.CreateOptions()),
+            new EndpointHostService(
+                Options.Create(EndpointHostServiceFixture.CreateOptions()),
                 NullLoggerFactory.Instance,
-                lifetime,
-                LifecycleServiceFixture.CreateRegistryReader(),
-                LifecycleServiceFixture.CreateEventStream(),
-                LifecycleServiceFixture.CreateNotifier(),
+                EndpointHostServiceFixture.CreateEventStream(),
+                EndpointHostServiceFixture.CreateNotifier(),
                 watchdog,
                 null!,
-                LifecycleServiceFixture.CreateLogsBroadcaster(),
-                LifecycleServiceFixture.CreateLogFileReader(),
-                LifecycleServiceFixture.CreateConfigAccessor(),
-                LifecycleServiceFixture.CreateConfigUpdater(),
-                LifecycleServiceFixture.CreateConfigBroadcaster(),
-                LifecycleServiceFixture.CreateWorkspaceAccessor(),
-                LifecycleServiceFixture.CreateInstructionsManifestAccessor(),
-                LifecycleServiceFixture.CreateInstructionsOverridesAccessor(),
-                LifecycleServiceFixture.CreateInstructionsBodyProjector(),
-                LifecycleServiceFixture.CreateInstructionsFileReader(),
-                LifecycleServiceFixture.CreateInstructionsSearchService(),
-                LifecycleServiceFixture.CreateInstructionsBroadcaster(),
-                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
-                LifecycleServiceFixture.CreateMcpToolsInvoker()));
+                EndpointHostServiceFixture.CreateLogsBroadcaster(),
+                EndpointHostServiceFixture.CreateDispatchPolicyFactory(lifetime)));
     }
 
     [Fact]
     public async Task Should_throw_when_constructed_with_null_logs_broadcaster()
     {
         using var lifetime = new FakeHostApplicationLifetime();
-        await using var watchdog = LifecycleServiceFixture.CreateWatchdog(LifecycleServiceFixture.CreateOptions(), lifetime);
+        await using var watchdog = EndpointHostServiceFixture.CreateWatchdog(EndpointHostServiceFixture.CreateOptions(), lifetime);
 
         Assert.Throws<ArgumentNullException>(() =>
-            new LifecycleService(
-                Options.Create(LifecycleServiceFixture.CreateOptions()),
+            new EndpointHostService(
+                Options.Create(EndpointHostServiceFixture.CreateOptions()),
                 NullLoggerFactory.Instance,
-                lifetime,
-                LifecycleServiceFixture.CreateRegistryReader(),
-                LifecycleServiceFixture.CreateEventStream(),
-                LifecycleServiceFixture.CreateNotifier(),
+                EndpointHostServiceFixture.CreateEventStream(),
+                EndpointHostServiceFixture.CreateNotifier(),
                 watchdog,
                 new FakeUniqueInstanceGuard(),
                 null!,
-                LifecycleServiceFixture.CreateLogFileReader(),
-                LifecycleServiceFixture.CreateConfigAccessor(),
-                LifecycleServiceFixture.CreateConfigUpdater(),
-                LifecycleServiceFixture.CreateConfigBroadcaster(),
-                LifecycleServiceFixture.CreateWorkspaceAccessor(),
-                LifecycleServiceFixture.CreateInstructionsManifestAccessor(),
-                LifecycleServiceFixture.CreateInstructionsOverridesAccessor(),
-                LifecycleServiceFixture.CreateInstructionsBodyProjector(),
-                LifecycleServiceFixture.CreateInstructionsFileReader(),
-                LifecycleServiceFixture.CreateInstructionsSearchService(),
-                LifecycleServiceFixture.CreateInstructionsBroadcaster(),
-                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
-                LifecycleServiceFixture.CreateMcpToolsInvoker()));
+                EndpointHostServiceFixture.CreateDispatchPolicyFactory(lifetime)));
     }
 
     [Fact]
-    public async Task Should_throw_when_constructed_with_null_log_file_reader()
+    public async Task Should_throw_when_constructed_with_null_dispatch_policy_factory()
     {
         using var lifetime = new FakeHostApplicationLifetime();
-        await using var watchdog = LifecycleServiceFixture.CreateWatchdog(LifecycleServiceFixture.CreateOptions(), lifetime);
+        await using var watchdog = EndpointHostServiceFixture.CreateWatchdog(EndpointHostServiceFixture.CreateOptions(), lifetime);
 
         Assert.Throws<ArgumentNullException>(() =>
-            new LifecycleService(
-                Options.Create(LifecycleServiceFixture.CreateOptions()),
+            new EndpointHostService(
+                Options.Create(EndpointHostServiceFixture.CreateOptions()),
                 NullLoggerFactory.Instance,
-                lifetime,
-                LifecycleServiceFixture.CreateRegistryReader(),
-                LifecycleServiceFixture.CreateEventStream(),
-                LifecycleServiceFixture.CreateNotifier(),
+                EndpointHostServiceFixture.CreateEventStream(),
+                EndpointHostServiceFixture.CreateNotifier(),
                 watchdog,
                 new FakeUniqueInstanceGuard(),
-                LifecycleServiceFixture.CreateLogsBroadcaster(),
-                null!,
-                LifecycleServiceFixture.CreateConfigAccessor(),
-                LifecycleServiceFixture.CreateConfigUpdater(),
-                LifecycleServiceFixture.CreateConfigBroadcaster(),
-                LifecycleServiceFixture.CreateWorkspaceAccessor(),
-                LifecycleServiceFixture.CreateInstructionsManifestAccessor(),
-                LifecycleServiceFixture.CreateInstructionsOverridesAccessor(),
-                LifecycleServiceFixture.CreateInstructionsBodyProjector(),
-                LifecycleServiceFixture.CreateInstructionsFileReader(),
-                LifecycleServiceFixture.CreateInstructionsSearchService(),
-                LifecycleServiceFixture.CreateInstructionsBroadcaster(),
-                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
-                LifecycleServiceFixture.CreateMcpToolsInvoker()));
-    }
-
-    [Fact]
-    public async Task Should_throw_when_constructed_with_null_config_source()
-    {
-        using var lifetime = new FakeHostApplicationLifetime();
-        await using var watchdog = LifecycleServiceFixture.CreateWatchdog(LifecycleServiceFixture.CreateOptions(), lifetime);
-
-        Assert.Throws<ArgumentNullException>(() =>
-            new LifecycleService(
-                Options.Create(LifecycleServiceFixture.CreateOptions()),
-                NullLoggerFactory.Instance,
-                lifetime,
-                LifecycleServiceFixture.CreateRegistryReader(),
-                LifecycleServiceFixture.CreateEventStream(),
-                LifecycleServiceFixture.CreateNotifier(),
-                watchdog,
-                new FakeUniqueInstanceGuard(),
-                LifecycleServiceFixture.CreateLogsBroadcaster(),
-                LifecycleServiceFixture.CreateLogFileReader(),
-                null!,
-                LifecycleServiceFixture.CreateConfigUpdater(),
-                LifecycleServiceFixture.CreateConfigBroadcaster(),
-                LifecycleServiceFixture.CreateWorkspaceAccessor(),
-                LifecycleServiceFixture.CreateInstructionsManifestAccessor(),
-                LifecycleServiceFixture.CreateInstructionsOverridesAccessor(),
-                LifecycleServiceFixture.CreateInstructionsBodyProjector(),
-                LifecycleServiceFixture.CreateInstructionsFileReader(),
-                LifecycleServiceFixture.CreateInstructionsSearchService(),
-                LifecycleServiceFixture.CreateInstructionsBroadcaster(),
-                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
-                LifecycleServiceFixture.CreateMcpToolsInvoker()));
-    }
-
-    [Fact]
-    public async Task Should_throw_when_constructed_with_null_config_updater()
-    {
-        using var lifetime = new FakeHostApplicationLifetime();
-        await using var watchdog = LifecycleServiceFixture.CreateWatchdog(LifecycleServiceFixture.CreateOptions(), lifetime);
-
-        Assert.Throws<ArgumentNullException>(() =>
-            new LifecycleService(
-                Options.Create(LifecycleServiceFixture.CreateOptions()),
-                NullLoggerFactory.Instance,
-                lifetime,
-                LifecycleServiceFixture.CreateRegistryReader(),
-                LifecycleServiceFixture.CreateEventStream(),
-                LifecycleServiceFixture.CreateNotifier(),
-                watchdog,
-                new FakeUniqueInstanceGuard(),
-                LifecycleServiceFixture.CreateLogsBroadcaster(),
-                LifecycleServiceFixture.CreateLogFileReader(),
-                LifecycleServiceFixture.CreateConfigAccessor(),
-                null!,
-                LifecycleServiceFixture.CreateConfigBroadcaster(),
-                LifecycleServiceFixture.CreateWorkspaceAccessor(),
-                LifecycleServiceFixture.CreateInstructionsManifestAccessor(),
-                LifecycleServiceFixture.CreateInstructionsOverridesAccessor(),
-                LifecycleServiceFixture.CreateInstructionsBodyProjector(),
-                LifecycleServiceFixture.CreateInstructionsFileReader(),
-                LifecycleServiceFixture.CreateInstructionsSearchService(),
-                LifecycleServiceFixture.CreateInstructionsBroadcaster(),
-                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
-                LifecycleServiceFixture.CreateMcpToolsInvoker()));
-    }
-
-    [Fact]
-    public async Task Should_throw_when_constructed_with_null_config_broadcaster()
-    {
-        using var lifetime = new FakeHostApplicationLifetime();
-        await using var watchdog = LifecycleServiceFixture.CreateWatchdog(LifecycleServiceFixture.CreateOptions(), lifetime);
-
-        Assert.Throws<ArgumentNullException>(() =>
-            new LifecycleService(
-                Options.Create(LifecycleServiceFixture.CreateOptions()),
-                NullLoggerFactory.Instance,
-                lifetime,
-                LifecycleServiceFixture.CreateRegistryReader(),
-                LifecycleServiceFixture.CreateEventStream(),
-                LifecycleServiceFixture.CreateNotifier(),
-                watchdog,
-                new FakeUniqueInstanceGuard(),
-                LifecycleServiceFixture.CreateLogsBroadcaster(),
-                LifecycleServiceFixture.CreateLogFileReader(),
-                LifecycleServiceFixture.CreateConfigAccessor(),
-                LifecycleServiceFixture.CreateConfigUpdater(),
-                null!,
-                LifecycleServiceFixture.CreateWorkspaceAccessor(),
-                LifecycleServiceFixture.CreateInstructionsManifestAccessor(),
-                LifecycleServiceFixture.CreateInstructionsOverridesAccessor(),
-                LifecycleServiceFixture.CreateInstructionsBodyProjector(),
-                LifecycleServiceFixture.CreateInstructionsFileReader(),
-                LifecycleServiceFixture.CreateInstructionsSearchService(),
-                LifecycleServiceFixture.CreateInstructionsBroadcaster(),
-                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
-                LifecycleServiceFixture.CreateMcpToolsInvoker()));
-    }
-
-    [Fact]
-    public async Task Should_throw_when_constructed_with_null_workspace_accessor()
-    {
-        using var lifetime = new FakeHostApplicationLifetime();
-        await using var watchdog = LifecycleServiceFixture.CreateWatchdog(LifecycleServiceFixture.CreateOptions(), lifetime);
-
-        Assert.Throws<ArgumentNullException>(() =>
-            new LifecycleService(
-                Options.Create(LifecycleServiceFixture.CreateOptions()),
-                NullLoggerFactory.Instance,
-                lifetime,
-                LifecycleServiceFixture.CreateRegistryReader(),
-                LifecycleServiceFixture.CreateEventStream(),
-                LifecycleServiceFixture.CreateNotifier(),
-                watchdog,
-                new FakeUniqueInstanceGuard(),
-                LifecycleServiceFixture.CreateLogsBroadcaster(),
-                LifecycleServiceFixture.CreateLogFileReader(),
-                LifecycleServiceFixture.CreateConfigAccessor(),
-                LifecycleServiceFixture.CreateConfigUpdater(),
-                LifecycleServiceFixture.CreateConfigBroadcaster(),
-                null!,
-                LifecycleServiceFixture.CreateInstructionsManifestAccessor(),
-                LifecycleServiceFixture.CreateInstructionsOverridesAccessor(),
-                LifecycleServiceFixture.CreateInstructionsBodyProjector(),
-                LifecycleServiceFixture.CreateInstructionsFileReader(),
-                LifecycleServiceFixture.CreateInstructionsSearchService(),
-                LifecycleServiceFixture.CreateInstructionsBroadcaster(),
-                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
-                LifecycleServiceFixture.CreateMcpToolsInvoker()));
-    }
-
-    [Fact]
-    public async Task Should_throw_when_constructed_with_null_manifest_accessor()
-    {
-        using var lifetime = new FakeHostApplicationLifetime();
-        await using var watchdog = LifecycleServiceFixture.CreateWatchdog(LifecycleServiceFixture.CreateOptions(), lifetime);
-
-        Assert.Throws<ArgumentNullException>(() =>
-            new LifecycleService(
-                Options.Create(LifecycleServiceFixture.CreateOptions()),
-                NullLoggerFactory.Instance,
-                lifetime,
-                LifecycleServiceFixture.CreateRegistryReader(),
-                LifecycleServiceFixture.CreateEventStream(),
-                LifecycleServiceFixture.CreateNotifier(),
-                watchdog,
-                new FakeUniqueInstanceGuard(),
-                LifecycleServiceFixture.CreateLogsBroadcaster(),
-                LifecycleServiceFixture.CreateLogFileReader(),
-                LifecycleServiceFixture.CreateConfigAccessor(),
-                LifecycleServiceFixture.CreateConfigUpdater(),
-                LifecycleServiceFixture.CreateConfigBroadcaster(),
-                LifecycleServiceFixture.CreateWorkspaceAccessor(),
-                null!,
-                LifecycleServiceFixture.CreateInstructionsOverridesAccessor(),
-                LifecycleServiceFixture.CreateInstructionsBodyProjector(),
-                LifecycleServiceFixture.CreateInstructionsFileReader(),
-                LifecycleServiceFixture.CreateInstructionsSearchService(),
-                LifecycleServiceFixture.CreateInstructionsBroadcaster(),
-                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
-                LifecycleServiceFixture.CreateMcpToolsInvoker()));
-    }
-
-    [Fact]
-    public async Task Should_throw_when_constructed_with_null_overrides_accessor()
-    {
-        using var lifetime = new FakeHostApplicationLifetime();
-        await using var watchdog = LifecycleServiceFixture.CreateWatchdog(LifecycleServiceFixture.CreateOptions(), lifetime);
-
-        Assert.Throws<ArgumentNullException>(() =>
-            new LifecycleService(
-                Options.Create(LifecycleServiceFixture.CreateOptions()),
-                NullLoggerFactory.Instance,
-                lifetime,
-                LifecycleServiceFixture.CreateRegistryReader(),
-                LifecycleServiceFixture.CreateEventStream(),
-                LifecycleServiceFixture.CreateNotifier(),
-                watchdog,
-                new FakeUniqueInstanceGuard(),
-                LifecycleServiceFixture.CreateLogsBroadcaster(),
-                LifecycleServiceFixture.CreateLogFileReader(),
-                LifecycleServiceFixture.CreateConfigAccessor(),
-                LifecycleServiceFixture.CreateConfigUpdater(),
-                LifecycleServiceFixture.CreateConfigBroadcaster(),
-                LifecycleServiceFixture.CreateWorkspaceAccessor(),
-                LifecycleServiceFixture.CreateInstructionsManifestAccessor(),
-                null!,
-                LifecycleServiceFixture.CreateInstructionsBodyProjector(),
-                LifecycleServiceFixture.CreateInstructionsFileReader(),
-                LifecycleServiceFixture.CreateInstructionsSearchService(),
-                LifecycleServiceFixture.CreateInstructionsBroadcaster(),
-                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
-                LifecycleServiceFixture.CreateMcpToolsInvoker()));
-    }
-
-    [Fact]
-    public async Task Should_throw_when_constructed_with_null_body_projector()
-    {
-        using var lifetime = new FakeHostApplicationLifetime();
-        await using var watchdog = LifecycleServiceFixture.CreateWatchdog(LifecycleServiceFixture.CreateOptions(), lifetime);
-
-        Assert.Throws<ArgumentNullException>(() =>
-            new LifecycleService(
-                Options.Create(LifecycleServiceFixture.CreateOptions()),
-                NullLoggerFactory.Instance,
-                lifetime,
-                LifecycleServiceFixture.CreateRegistryReader(),
-                LifecycleServiceFixture.CreateEventStream(),
-                LifecycleServiceFixture.CreateNotifier(),
-                watchdog,
-                new FakeUniqueInstanceGuard(),
-                LifecycleServiceFixture.CreateLogsBroadcaster(),
-                LifecycleServiceFixture.CreateLogFileReader(),
-                LifecycleServiceFixture.CreateConfigAccessor(),
-                LifecycleServiceFixture.CreateConfigUpdater(),
-                LifecycleServiceFixture.CreateConfigBroadcaster(),
-                LifecycleServiceFixture.CreateWorkspaceAccessor(),
-                LifecycleServiceFixture.CreateInstructionsManifestAccessor(),
-                LifecycleServiceFixture.CreateInstructionsOverridesAccessor(),
-                null!,
-                LifecycleServiceFixture.CreateInstructionsFileReader(),
-                LifecycleServiceFixture.CreateInstructionsSearchService(),
-                LifecycleServiceFixture.CreateInstructionsBroadcaster(),
-                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
-                LifecycleServiceFixture.CreateMcpToolsInvoker()));
-    }
-
-    [Fact]
-    public async Task Should_throw_when_constructed_with_null_file_reader()
-    {
-        using var lifetime = new FakeHostApplicationLifetime();
-        await using var watchdog = LifecycleServiceFixture.CreateWatchdog(LifecycleServiceFixture.CreateOptions(), lifetime);
-
-        Assert.Throws<ArgumentNullException>(() =>
-            new LifecycleService(
-                Options.Create(LifecycleServiceFixture.CreateOptions()),
-                NullLoggerFactory.Instance,
-                lifetime,
-                LifecycleServiceFixture.CreateRegistryReader(),
-                LifecycleServiceFixture.CreateEventStream(),
-                LifecycleServiceFixture.CreateNotifier(),
-                watchdog,
-                new FakeUniqueInstanceGuard(),
-                LifecycleServiceFixture.CreateLogsBroadcaster(),
-                LifecycleServiceFixture.CreateLogFileReader(),
-                LifecycleServiceFixture.CreateConfigAccessor(),
-                LifecycleServiceFixture.CreateConfigUpdater(),
-                LifecycleServiceFixture.CreateConfigBroadcaster(),
-                LifecycleServiceFixture.CreateWorkspaceAccessor(),
-                LifecycleServiceFixture.CreateInstructionsManifestAccessor(),
-                LifecycleServiceFixture.CreateInstructionsOverridesAccessor(),
-                LifecycleServiceFixture.CreateInstructionsBodyProjector(),
-                null!,
-                LifecycleServiceFixture.CreateInstructionsSearchService(),
-                LifecycleServiceFixture.CreateInstructionsBroadcaster(),
-                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
-                LifecycleServiceFixture.CreateMcpToolsInvoker()));
-    }
-
-    [Fact]
-    public async Task Should_throw_when_constructed_with_null_search_service()
-    {
-        using var lifetime = new FakeHostApplicationLifetime();
-        await using var watchdog = LifecycleServiceFixture.CreateWatchdog(LifecycleServiceFixture.CreateOptions(), lifetime);
-
-        Assert.Throws<ArgumentNullException>(() =>
-            new LifecycleService(
-                Options.Create(LifecycleServiceFixture.CreateOptions()),
-                NullLoggerFactory.Instance,
-                lifetime,
-                LifecycleServiceFixture.CreateRegistryReader(),
-                LifecycleServiceFixture.CreateEventStream(),
-                LifecycleServiceFixture.CreateNotifier(),
-                watchdog,
-                new FakeUniqueInstanceGuard(),
-                LifecycleServiceFixture.CreateLogsBroadcaster(),
-                LifecycleServiceFixture.CreateLogFileReader(),
-                LifecycleServiceFixture.CreateConfigAccessor(),
-                LifecycleServiceFixture.CreateConfigUpdater(),
-                LifecycleServiceFixture.CreateConfigBroadcaster(),
-                LifecycleServiceFixture.CreateWorkspaceAccessor(),
-                LifecycleServiceFixture.CreateInstructionsManifestAccessor(),
-                LifecycleServiceFixture.CreateInstructionsOverridesAccessor(),
-                LifecycleServiceFixture.CreateInstructionsBodyProjector(),
-                LifecycleServiceFixture.CreateInstructionsFileReader(),
-                null!,
-                LifecycleServiceFixture.CreateInstructionsBroadcaster(),
-                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
-                LifecycleServiceFixture.CreateMcpToolsInvoker()));
-    }
-
-    [Fact]
-    public async Task Should_throw_when_constructed_with_null_instructions_broadcaster()
-    {
-        using var lifetime = new FakeHostApplicationLifetime();
-        await using var watchdog = LifecycleServiceFixture.CreateWatchdog(LifecycleServiceFixture.CreateOptions(), lifetime);
-
-        Assert.Throws<ArgumentNullException>(() =>
-            new LifecycleService(
-                Options.Create(LifecycleServiceFixture.CreateOptions()),
-                NullLoggerFactory.Instance,
-                lifetime,
-                LifecycleServiceFixture.CreateRegistryReader(),
-                LifecycleServiceFixture.CreateEventStream(),
-                LifecycleServiceFixture.CreateNotifier(),
-                watchdog,
-                new FakeUniqueInstanceGuard(),
-                LifecycleServiceFixture.CreateLogsBroadcaster(),
-                LifecycleServiceFixture.CreateLogFileReader(),
-                LifecycleServiceFixture.CreateConfigAccessor(),
-                LifecycleServiceFixture.CreateConfigUpdater(),
-                LifecycleServiceFixture.CreateConfigBroadcaster(),
-                LifecycleServiceFixture.CreateWorkspaceAccessor(),
-                LifecycleServiceFixture.CreateInstructionsManifestAccessor(),
-                LifecycleServiceFixture.CreateInstructionsOverridesAccessor(),
-                LifecycleServiceFixture.CreateInstructionsBodyProjector(),
-                LifecycleServiceFixture.CreateInstructionsFileReader(),
-                LifecycleServiceFixture.CreateInstructionsSearchService(),
-                null!,
-                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
-                LifecycleServiceFixture.CreateMcpToolsInvoker()));
-    }
-
-    [Fact]
-    public async Task Should_throw_when_constructed_with_null_mcp_tools_registry_accessor()
-    {
-        using var lifetime = new FakeHostApplicationLifetime();
-        await using var watchdog = LifecycleServiceFixture.CreateWatchdog(LifecycleServiceFixture.CreateOptions(), lifetime);
-
-        Assert.Throws<ArgumentNullException>(() =>
-            new LifecycleService(
-                Options.Create(LifecycleServiceFixture.CreateOptions()),
-                NullLoggerFactory.Instance,
-                lifetime,
-                LifecycleServiceFixture.CreateRegistryReader(),
-                LifecycleServiceFixture.CreateEventStream(),
-                LifecycleServiceFixture.CreateNotifier(),
-                watchdog,
-                new FakeUniqueInstanceGuard(),
-                LifecycleServiceFixture.CreateLogsBroadcaster(),
-                LifecycleServiceFixture.CreateLogFileReader(),
-                LifecycleServiceFixture.CreateConfigAccessor(),
-                LifecycleServiceFixture.CreateConfigUpdater(),
-                LifecycleServiceFixture.CreateConfigBroadcaster(),
-                LifecycleServiceFixture.CreateWorkspaceAccessor(),
-                LifecycleServiceFixture.CreateInstructionsManifestAccessor(),
-                LifecycleServiceFixture.CreateInstructionsOverridesAccessor(),
-                LifecycleServiceFixture.CreateInstructionsBodyProjector(),
-                LifecycleServiceFixture.CreateInstructionsFileReader(),
-                LifecycleServiceFixture.CreateInstructionsSearchService(),
-                LifecycleServiceFixture.CreateInstructionsBroadcaster(),
-                null!,
-                LifecycleServiceFixture.CreateMcpToolsInvoker()));
-    }
-
-    [Fact]
-    public async Task Should_throw_when_constructed_with_null_mcp_tools_invoker()
-    {
-        using var lifetime = new FakeHostApplicationLifetime();
-        await using var watchdog = LifecycleServiceFixture.CreateWatchdog(LifecycleServiceFixture.CreateOptions(), lifetime);
-
-        Assert.Throws<ArgumentNullException>(() =>
-            new LifecycleService(
-                Options.Create(LifecycleServiceFixture.CreateOptions()),
-                NullLoggerFactory.Instance,
-                lifetime,
-                LifecycleServiceFixture.CreateRegistryReader(),
-                LifecycleServiceFixture.CreateEventStream(),
-                LifecycleServiceFixture.CreateNotifier(),
-                watchdog,
-                new FakeUniqueInstanceGuard(),
-                LifecycleServiceFixture.CreateLogsBroadcaster(),
-                LifecycleServiceFixture.CreateLogFileReader(),
-                LifecycleServiceFixture.CreateConfigAccessor(),
-                LifecycleServiceFixture.CreateConfigUpdater(),
-                LifecycleServiceFixture.CreateConfigBroadcaster(),
-                LifecycleServiceFixture.CreateWorkspaceAccessor(),
-                LifecycleServiceFixture.CreateInstructionsManifestAccessor(),
-                LifecycleServiceFixture.CreateInstructionsOverridesAccessor(),
-                LifecycleServiceFixture.CreateInstructionsBodyProjector(),
-                LifecycleServiceFixture.CreateInstructionsFileReader(),
-                LifecycleServiceFixture.CreateInstructionsSearchService(),
-                LifecycleServiceFixture.CreateInstructionsBroadcaster(),
-                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
+                EndpointHostServiceFixture.CreateLogsBroadcaster(),
                 null!));
     }
 
@@ -1300,7 +743,7 @@ public sealed class LifecycleServiceTests(
     public async Task Should_complete_StopAsync_within_drain_timeout_when_events_peer_never_reads()
     {
         // Arrange
-        var options = LifecycleServiceFixture.CreateOptions();
+        var options = EndpointHostServiceFixture.CreateOptions();
         options.ShutdownDrainTimeout = TimeSpan.FromMilliseconds(250);
         var context = lifecycle.Create(options);
         await context.Service.StartAsync(TestContext.Current.CancellationToken);

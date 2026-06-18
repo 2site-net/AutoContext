@@ -1,8 +1,9 @@
-namespace AutoContext.Engine.Core.Tests.Support.Lifecycle;
+namespace AutoContext.Engine.Core.Tests.Support.Endpoints;
 
 using System.Diagnostics.CodeAnalysis;
 
 using AutoContext.Engine.Core;
+using AutoContext.Engine.Core.Endpoints;
 using AutoContext.Engine.Core.Features.Instructions;
 using AutoContext.Engine.Core.Features.McpTools;
 using AutoContext.Engine.Core.Infrastructure.Events;
@@ -10,6 +11,7 @@ using AutoContext.Engine.Core.Lifecycle;
 using AutoContext.Engine.Core.Logging;
 using AutoContext.Engine.Core.Machine;
 using AutoContext.Engine.Core.Registry;
+using AutoContext.Engine.Core.Rpc.Policies;
 using AutoContext.Engine.Core.Tests.Support;
 using AutoContext.Engine.Core.Tests.Support.Features.Instructions;
 using AutoContext.Engine.Core.Tests.Support.Features.McpTools;
@@ -29,7 +31,7 @@ using Microsoft.Extensions.Options;
 
 /// <summary>
 /// Shared xUnit class fixture for tests that exercise a
-/// <see cref="LifecycleService"/> end-to-end. Each call to
+/// <see cref="EndpointHostService"/> end-to-end. Each call to
 /// <see cref="Create"/> returns a fresh <see cref="Context"/>
 /// bundling the disposables required to drive the service. The
 /// watchdog is wired with <see cref="EngineOptions.IdleTimeout"/>
@@ -37,7 +39,7 @@ using Microsoft.Extensions.Options;
 /// fixture tracks every produced disposable and tears them down in
 /// the correct order once the test class completes.
 /// </summary>
-public sealed class LifecycleServiceFixture : IAsyncDisposable
+public sealed class EndpointHostServiceFixture : IAsyncDisposable
 {
     private readonly List<IAsyncDisposable> _asyncTracked = [];
     private readonly List<IDisposable> _syncTracked = [];
@@ -45,7 +47,7 @@ public sealed class LifecycleServiceFixture : IAsyncDisposable
     [SuppressMessage(
         "Reliability",
         "CA2000:Dispose objects before losing scope",
-        Justification = "The full-text search service is owned by the constructed LifecycleService, which the fixture tracks and disposes during teardown.")]
+        Justification = "The full-text search service is owned by the constructed EndpointHostService, which the fixture tracks and disposes during teardown.")]
     internal Context Create(
         EngineOptions? options = null,
         RegistryFileReader? registryReader = null)
@@ -61,29 +63,17 @@ public sealed class LifecycleServiceFixture : IAsyncDisposable
             NullLogger<Broadcaster<JsonLogRecord>>.Instance, "logs-pipe");
         var logFileReader = new EngineLogFileReader(
             EngineCacheLayoutTestFactory.Create(resolvedOptions));
-        var service = new LifecycleService(
+        var dispatchPolicyFactory = CreateDispatchPolicyFactory(
+            lifetime, reader, logFileReader, logsBroadcaster);
+        var service = new EndpointHostService(
             Options.Create(resolvedOptions),
             NullLoggerFactory.Instance,
-            lifetime,
-            reader,
             stream,
             notifier,
             watchdog,
             instanceGuard,
             logsBroadcaster,
-            logFileReader,
-            CreateConfigAccessor(),
-            CreateConfigUpdater(),
-            CreateConfigBroadcaster(),
-            CreateWorkspaceAccessor(),
-            CreateInstructionsManifestAccessor(),
-            CreateInstructionsOverridesAccessor(),
-            CreateInstructionsBodyProjector(),
-            CreateInstructionsFileReader(),
-            CreateInstructionsSearchService(),
-            CreateInstructionsBroadcaster(),
-            CreateMcpToolsRegistryAccessor(),
-            CreateMcpToolsInvoker());
+            dispatchPolicyFactory);
 
         // Track in reverse dependency order so Dispose tears the
         // service down first, then the watchdog, then the lifetime.
@@ -100,6 +90,34 @@ public sealed class LifecycleServiceFixture : IAsyncDisposable
             WorkspacePath = EngineOptionsFakeData.GetWorkspacePath(),
             InstanceId = Guid.NewGuid(),
         };
+
+    [SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "The full-text search service is owned by the constructed DispatchPolicy, whose owning host the fixture tracks and disposes during teardown.")]
+    internal static DispatchPolicyFactory CreateDispatchPolicyFactory(
+        IHostApplicationLifetime lifetime,
+        RegistryFileReader? registryReader = null,
+        EngineLogFileReader? logFileReader = null,
+        Broadcaster<JsonLogRecord>? logsBroadcaster = null) =>
+        new(
+            lifetime,
+            registryReader ?? CreateRegistryReader(),
+            logFileReader ?? CreateLogFileReader(),
+            logsBroadcaster ?? CreateLogsBroadcaster(),
+            CreateConfigAccessor(),
+            CreateConfigUpdater(),
+            CreateConfigBroadcaster(),
+            CreateWorkspaceAccessor(),
+            CreateInstructionsManifestAccessor(),
+            CreateInstructionsOverridesAccessor(),
+            CreateInstructionsBodyProjector(),
+            CreateInstructionsFileReader(),
+            CreateInstructionsSearchService(),
+            CreateInstructionsBroadcaster(),
+            CreateMcpToolsRegistryAccessor(),
+            CreateMcpToolsInvoker(),
+            NullLogger<DispatchPolicy>.Instance);
 
     internal static IConfigSnapshotAccessor CreateConfigAccessor() =>
         new FakeConfigSnapshotAccessor();
@@ -270,7 +288,7 @@ public sealed class LifecycleServiceFixture : IAsyncDisposable
         if (failures is not null)
         {
             throw new AggregateException(
-                $"One or more disposables tracked by {nameof(LifecycleServiceFixture)} failed to dispose.",
+                $"One or more disposables tracked by {nameof(EndpointHostServiceFixture)} failed to dispose.",
                 failures);
         }
     }
@@ -279,6 +297,6 @@ public sealed class LifecycleServiceFixture : IAsyncDisposable
         EngineOptions EngineOptions,
         FakeHostApplicationLifetime Lifetime,
         IdleTimeoutWatchdog Watchdog,
-        LifecycleService Service,
+        EndpointHostService Service,
         Broadcaster<JsonLogRecord> LogsBroadcaster);
 }

@@ -8,7 +8,7 @@ using AutoContext.Engine.Core.Infrastructure.Events;
 using AutoContext.Engine.Core.Logging;
 using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Rpc.Policies;
-using AutoContext.Engine.Core.Tests.Support.Lifecycle;
+using AutoContext.Engine.Core.Tests.Support.Endpoints;
 using AutoContext.Engine.Core.Workspace.Config;
 using AutoContext.Engine.Core.Workspace.Context;
 using AutoContext.Engine.Protocol.Messages.Config;
@@ -21,7 +21,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 /// <summary>
 /// Builds <see cref="DispatchPolicy"/> instances for tests, defaulting every
-/// dependency the policy composes to a <see cref="LifecycleServiceFixture"/>
+/// dependency the policy composes to a <see cref="EndpointHostServiceFixture"/>
 /// helper so each test supplies only the collaborators it exercises. The
 /// instructions deps (manifest, overrides, body projector, file reader,
 /// full-text search) default to an empty corpus so non-instructions tests are
@@ -52,35 +52,35 @@ internal static class DispatchPolicyTestFactory
         IMcpToolsInvoker? mcpToolsInvoker = null,
         ILogger? logger = null)
     {
-        var config = configAccessor ?? LifecycleServiceFixture.CreateConfigAccessor();
+        var config = configAccessor ?? EndpointHostServiceFixture.CreateConfigAccessor();
         var overrides = overridesAccessor
-            ?? LifecycleServiceFixture.CreateInstructionsOverridesAccessor();
+            ?? EndpointHostServiceFixture.CreateInstructionsOverridesAccessor();
         var manifest = manifestAccessor
-            ?? LifecycleServiceFixture.CreateInstructionsManifestAccessor();
+            ?? EndpointHostServiceFixture.CreateInstructionsManifestAccessor();
         var projector = bodyProjector
-            ?? LifecycleServiceFixture.CreateInstructionsBodyProjector(overrides, config);
+            ?? EndpointHostServiceFixture.CreateInstructionsBodyProjector(overrides, config);
         var reader = fileReader
-            ?? LifecycleServiceFixture.CreateInstructionsFileReader(overrides);
+            ?? EndpointHostServiceFixture.CreateInstructionsFileReader(overrides);
         var search = searchService
-            ?? LifecycleServiceFixture.CreateInstructionsSearchService(manifest, projector, config);
+            ?? EndpointHostServiceFixture.CreateInstructionsSearchService(manifest, projector, config);
 
         return new DispatchPolicy(
             lifetime,
-            registryReader ?? LifecycleServiceFixture.CreateRegistryReader(),
-            logFileReader ?? LifecycleServiceFixture.CreateLogFileReader(),
-            logsBroadcaster ?? LifecycleServiceFixture.CreateLogsBroadcaster(),
+            registryReader ?? EndpointHostServiceFixture.CreateRegistryReader(),
+            logFileReader ?? EndpointHostServiceFixture.CreateLogFileReader(),
+            logsBroadcaster ?? EndpointHostServiceFixture.CreateLogsBroadcaster(),
             config,
-            configUpdater ?? LifecycleServiceFixture.CreateConfigUpdater(),
-            configBroadcaster ?? LifecycleServiceFixture.CreateConfigBroadcaster(),
-            workspaceAccessor ?? LifecycleServiceFixture.CreateWorkspaceAccessor(),
+            configUpdater ?? EndpointHostServiceFixture.CreateConfigUpdater(),
+            configBroadcaster ?? EndpointHostServiceFixture.CreateConfigBroadcaster(),
+            workspaceAccessor ?? EndpointHostServiceFixture.CreateWorkspaceAccessor(),
             manifest,
             overrides,
             projector,
             reader,
             search,
-            instructionsBroadcaster ?? LifecycleServiceFixture.CreateInstructionsBroadcaster(),
-            mcpToolsRegistryAccessor ?? LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
-            mcpToolsInvoker ?? LifecycleServiceFixture.CreateMcpToolsInvoker(),
+            instructionsBroadcaster ?? EndpointHostServiceFixture.CreateInstructionsBroadcaster(),
+            mcpToolsRegistryAccessor ?? EndpointHostServiceFixture.CreateMcpToolsRegistryAccessor(),
+            mcpToolsInvoker ?? EndpointHostServiceFixture.CreateMcpToolsInvoker(),
             logger ?? NullLogger.Instance);
     }
 }

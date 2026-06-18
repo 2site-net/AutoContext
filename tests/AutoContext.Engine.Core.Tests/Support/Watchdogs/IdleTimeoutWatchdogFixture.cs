@@ -4,7 +4,6 @@ using System.Diagnostics.CodeAnalysis;
 
 using AutoContext.Engine.Core;
 using AutoContext.Engine.Core.Tests.Support;
-using AutoContext.Engine.Core.Tests.Support.Lifecycle;
 using AutoContext.Engine.Core.Watchdogs;
 
 using Microsoft.Extensions.Hosting;

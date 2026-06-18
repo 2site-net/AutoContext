@@ -1,10 +1,10 @@
-namespace AutoContext.Engine.Core.Tests.Support.Lifecycle;
+namespace AutoContext.Engine.Core.Tests.Support;
 
 using Microsoft.Extensions.Hosting;
 
 /// <summary>
 /// Minimal <see cref="IHostApplicationLifetime"/> fake used by
-/// LifecycleService / DispatchPolicy tests. Records how many times
+/// EndpointHostService / DispatchPolicy tests. Records how many times
 /// <see cref="StopApplication"/> was called and signals the
 /// <see cref="ApplicationStopping"/> token on the first call.
 /// </summary>

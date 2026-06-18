@@ -12,7 +12,7 @@ namespace AutoContext.Engine.Core.Infrastructure;
 /// <para>
 /// The contract names <i>uniqueness</i> as the invariant; the
 /// production implementation
-/// (<c>Lifecycle.PerWorkspaceInstanceGuard</c>) scopes uniqueness
+/// (<c>Endpoints.PerWorkspaceInstanceGuard</c>) scopes uniqueness
 /// per workspace by probing the would-be <c>rpc</c> endpoint name
 /// derived from <c>WorkspaceHash</c> ×
 /// <c>EngineOptions.InstanceId</c>. Other scoping strategies (per
@@ -20,7 +20,7 @@ namespace AutoContext.Engine.Core.Infrastructure;
 /// same contract.
 /// </para>
 /// <para>
-/// Called from <c>LifecycleService.StartAsync</c> before any pipe
+/// Called from <c>EndpointHostService.StartAsync</c> before any pipe
 /// bind. On violation the implementation throws
 /// <see cref="IOException"/> with a message describing
 /// the colliding endpoint and the offending instance id; the

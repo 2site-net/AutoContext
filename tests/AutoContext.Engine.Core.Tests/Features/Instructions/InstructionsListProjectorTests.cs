@@ -4,8 +4,8 @@ using System.Collections.Frozen;
 
 using AutoContext.Engine.Core.Features.Instructions;
 using AutoContext.Engine.Core.Features.Instructions.Snapshot;
+using AutoContext.Engine.Core.Tests.Support.Endpoints;
 using AutoContext.Engine.Core.Tests.Support.Features.Instructions;
-using AutoContext.Engine.Core.Tests.Support.Lifecycle;
 using AutoContext.Engine.Core.Tests.Support.Workspace.Config;
 using AutoContext.Engine.Core.Tests.Support.Workspace.Context;
 using AutoContext.Engine.Core.Workspace.Config.Snapshot;
@@ -20,9 +20,9 @@ public sealed class InstructionsListProjectorTests
         Assert.Throws<ArgumentNullException>(() =>
             new InstructionsListProjector(
                 null!,
-                LifecycleServiceFixture.CreateInstructionsOverridesAccessor(),
-                LifecycleServiceFixture.CreateConfigAccessor(),
-                LifecycleServiceFixture.CreateWorkspaceAccessor()));
+                EndpointHostServiceFixture.CreateInstructionsOverridesAccessor(),
+                EndpointHostServiceFixture.CreateConfigAccessor(),
+                EndpointHostServiceFixture.CreateWorkspaceAccessor()));
     }
 
     [Fact]
@@ -34,7 +34,7 @@ public sealed class InstructionsListProjectorTests
                 "testing",
                 sections: [new InstructionsSection { Heading = "Alpha", Anchor = "alpha" }]),
             InstructionsFileManifestEntryTestFactory.Create("design"));
-        var projector = LifecycleServiceFixture.CreateInstructionsListProjector(manifest: manifest);
+        var projector = EndpointHostServiceFixture.CreateInstructionsListProjector(manifest: manifest);
 
         // Act
         var rows = projector.ProjectAll();
@@ -60,7 +60,7 @@ public sealed class InstructionsListProjectorTests
         {
             Current = new WorkspaceDetectionResult { Flags = FrozenSet<string>.Empty, Extensions = ["cs"] },
         };
-        var projector = LifecycleServiceFixture.CreateInstructionsListProjector(
+        var projector = EndpointHostServiceFixture.CreateInstructionsListProjector(
             manifest: manifest, workspace: workspace);
 
         // Act
@@ -83,7 +83,7 @@ public sealed class InstructionsListProjectorTests
                 Instructions = [new ConfigInstructionsFile { Name = "testing", Disabled = true }],
             },
         };
-        var projector = LifecycleServiceFixture.CreateInstructionsListProjector(
+        var projector = EndpointHostServiceFixture.CreateInstructionsListProjector(
             manifest: manifest, config: config);
 
         // Act

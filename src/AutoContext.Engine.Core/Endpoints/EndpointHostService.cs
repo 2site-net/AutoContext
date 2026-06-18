@@ -1,4 +1,4 @@
-namespace AutoContext.Engine.Core.Lifecycle;
+namespace AutoContext.Engine.Core.Endpoints;
 
 using System.Text.Json;
 
@@ -7,6 +7,7 @@ using AutoContext.Engine.Core.Features.McpTools;
 using AutoContext.Engine.Core.Infrastructure;
 using AutoContext.Engine.Core.Infrastructure.Events;
 using AutoContext.Engine.Core.Infrastructure.Storage;
+using AutoContext.Engine.Core.Lifecycle;
 using AutoContext.Engine.Core.Logging;
 using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Rpc;
@@ -72,7 +73,7 @@ using Microsoft.Extensions.Options;
 /// diagnostic instead of an opaque bind error.
 /// </para>
 /// </remarks>
-internal sealed partial class LifecycleService : IHostedService, IAsyncDisposable
+internal sealed partial class EndpointHostService : IHostedService, IAsyncDisposable
 {
     private static readonly EndpointKind[] AllKinds =
     [
@@ -82,11 +83,8 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         EndpointKind.Logs,
     ];
 
-    private readonly IHostApplicationLifetime _applicationLifetime;
-    private readonly IConfigSnapshotAccessor _configAccessor;
-    private readonly SnapshotBroadcaster<JsonConfigSnapshot> _configBroadcaster;
-    private readonly IConfigUpdater _configUpdater;
     private int _disposed;
+    private readonly DispatchPolicyFactory _dispatchPolicyFactory;
     private CancellationTokenSource? _drainCts;
     private readonly LifecycleEventStream _eventStream;
     private readonly LifecycleFrameStream _eventFrameStream = new();
@@ -94,40 +92,23 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
     private readonly IUniqueInstanceGuard _instanceGuard;
     private readonly LifecycleNotifier _lifecycleNotifier;
     private readonly Dictionary<EndpointKind, BoundPipeListener> _listeners = new(AllKinds.Length);
-    private readonly ILogger<LifecycleService> _logger;
+    private readonly ILogger<EndpointHostService> _logger;
     private readonly ILoggerFactory _loggerFactory;
     private readonly Broadcaster<JsonLogRecord> _logsBroadcaster;
     private readonly LogFrameStream _logFrameStream = new();
-    private readonly EngineLogFileReader _logFileReader;
     private readonly EngineOptions _options;
-    private readonly RegistryFileReader _registryReader;
     private readonly List<Task> _runTasks = new(AllKinds.Length);
     private int _started;
     private int _stopped;
     private CancellationTokenSource? _stoppingCts;
-    private readonly IWorkspaceContextAccessor _workspaceAccessor;
-    private readonly IInstructionsManifestAccessor _instructionsManifestAccessor;
-    private readonly IInstructionsOverridesAccessor _instructionsOverridesAccessor;
-    private readonly InstructionsBodyProjector _instructionsBodyProjector;
-    private readonly InstructionsFileReader _instructionsFileReader;
-    private readonly InstructionsFullTextSearchService _instructionsFullTextSearchService;
-    private readonly SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>> _instructionsSnapshotBroadcaster;
-    private readonly IMcpToolsInvoker _mcpToolsInvoker;
-    private readonly IMcpToolsRegistryAccessor _mcpToolsRegistryAccessor;
 
     /// <summary>
-    /// Creates a new <see cref="LifecycleService"/>.
+    /// Creates a new <see cref="EndpointHostService"/>.
     /// </summary>
     /// <param name="options">Engine options resolved from the
     /// host's options pipeline.</param>
     /// <param name="loggerFactory">Logger factory used to create
     /// loggers for this service and the underlying pipe listeners.</param>
-    /// <param name="applicationLifetime">Host lifetime the RPC
-    /// dispatcher signals on a successful <c>Engine.Shutdown</c>
-    /// request.</param>
-    /// <param name="registryReader">Reader the RPC dispatcher uses
-    /// to snapshot the machine-wide engine-liveness registry for
-    /// <c>Engine.RegistryEntries</c>.</param>
     /// <param name="eventStream">Fan-out stream backing
     /// <c>Engine.Lifecycle.Subscribe</c>; every <c>events</c>-pipe
     /// connection enrolls a subscriber here.</param>
@@ -151,126 +132,43 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
     /// <c>logs</c> pipe; every accepted <c>logs</c>-pipe connection
     /// enrolls a subscriber here and pumps drained
     /// <see cref="JsonLogStreamFrame"/> values to the wire.</param>
-    /// <param name="logFileReader">Forward-pass reader over the
-    /// active <c>engine.log</c>; threaded into the RPC dispatch
-    /// policy so the <c>Logs.GetEngine</c> handler can answer
-    /// snapshot requests against the on-disk file.</param>
-    /// <param name="configAccessor">Read-only view over the engine's
-    /// in-memory config snapshot; threaded into the RPC dispatch
-    /// policy so the <c>Config.Get</c> handler can answer with the
-    /// current snapshot.</param>
-    /// <param name="configUpdater">Write seam over the engine's
-    /// in-memory config snapshot; threaded into the RPC dispatch
-    /// policy so the <c>Config.ToggleFile</c> and
-    /// <c>Config.ToggleRule</c> handlers can publish edits.</param>
-    /// <param name="configBroadcaster">Fan-out broadcaster backing
-    /// the <c>Config.Subscribe</c> RPC stream; threaded into the RPC
-    /// dispatch policy so each subscribing connection enrolls a
-    /// snapshot-seeded subscriber.</param>
-    /// <param name="workspaceAccessor">Read-only view over the engine's
-    /// in-memory workspace detection result; threaded into the RPC
-    /// dispatch policy so the <c>Workspace.Detect</c> handler can answer
-    /// with the current detection result.</param>
-    /// <param name="instructionsManifestAccessor">Read-only view over the immutable
-    /// instructions manifest snapshot; threaded into the RPC dispatch
-    /// policy so the <c>Instructions.*</c> handlers can answer corpus
-    /// listing and read requests.</param>
-    /// <param name="instructionsOverridesAccessor">Read-only view over the workspace
-    /// instructions override inventory; threaded into the RPC dispatch
-    /// policy so the <c>Instructions.List</c> handler can mark overridden
-    /// files.</param>
-    /// <param name="instructionsBodyProjector">Projects instruction bodies for the
-    /// <c>Instructions.Get</c>, <c>GetAll</c>, and <c>GetAlwaysAttached</c>
-    /// handlers.</param>
-    /// <param name="instructionsFileReader">Reads verbatim on-disk instruction bodies
-    /// for the <c>Instructions.GetRaw</c> handler.</param>
-    /// <param name="instructionsFullTextSearchService">Full-text search over the projected
-    /// corpus backing the <c>Instructions.SearchContent</c>
-    /// handler.</param>
-    /// <param name="instructionsSnapshotBroadcaster">Fan-out broadcaster backing
-    /// the <c>Instructions.Subscribe</c> snapshot-on-subscribe stream.</param>
-    /// <param name="mcpToolsRegistryAccessor">Read-only view over the immutable
-    /// MCP-tools registry snapshot; threaded into the RPC dispatch policy
-    /// so the <c>McpTools.*</c> handlers can answer the tool listing.</param>
-    /// <param name="mcpToolsInvoker">Worker-dispatch seam backing
-    /// <c>McpTools.Invoke</c>; threaded into the policy so the handler can
-    /// round-trip a tool call to its owning worker. Injected directly because
-    /// the backing worker service resolves its manifest at host start, so
-    /// constructing the invoker during this hosted service's startup is
-    /// side-effect-free.</param>
+    /// <param name="dispatchPolicyFactory">Factory that constructs a
+    /// fresh <see cref="DispatchPolicy"/> for each accepted <c>rpc</c>
+    /// connection; it owns the leaf dependencies the policy needs to
+    /// answer <c>Registry.*</c>, <c>Logs.*</c>, <c>Config.*</c>,
+    /// <c>Workspace.*</c>, <c>Instructions.*</c>, and <c>McpTools.*</c>
+    /// requests.</param>
     /// <exception cref="ArgumentNullException">
     /// Any constructor argument is <see langword="null"/>.
     /// </exception>
-    public LifecycleService(
+    public EndpointHostService(
         IOptions<EngineOptions> options,
         ILoggerFactory loggerFactory,
-        IHostApplicationLifetime applicationLifetime,
-        RegistryFileReader registryReader,
         LifecycleEventStream eventStream,
         LifecycleNotifier lifecycleNotifier,
         IdleTimeoutWatchdog idleTimeoutWatchdog,
         IUniqueInstanceGuard instanceGuard,
         Broadcaster<JsonLogRecord> logsBroadcaster,
-        EngineLogFileReader logFileReader,
-        IConfigSnapshotAccessor configAccessor,
-        IConfigUpdater configUpdater,
-        SnapshotBroadcaster<JsonConfigSnapshot> configBroadcaster,
-        IWorkspaceContextAccessor workspaceAccessor,
-        IInstructionsManifestAccessor instructionsManifestAccessor,
-        IInstructionsOverridesAccessor instructionsOverridesAccessor,
-        InstructionsBodyProjector instructionsBodyProjector,
-        InstructionsFileReader instructionsFileReader,
-        InstructionsFullTextSearchService instructionsFullTextSearchService,
-        SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>> instructionsSnapshotBroadcaster,
-        IMcpToolsRegistryAccessor mcpToolsRegistryAccessor,
-        IMcpToolsInvoker mcpToolsInvoker)
+        DispatchPolicyFactory dispatchPolicyFactory)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(loggerFactory);
-        ArgumentNullException.ThrowIfNull(applicationLifetime);
-        ArgumentNullException.ThrowIfNull(registryReader);
         ArgumentNullException.ThrowIfNull(eventStream);
         ArgumentNullException.ThrowIfNull(lifecycleNotifier);
         ArgumentNullException.ThrowIfNull(idleTimeoutWatchdog);
         ArgumentNullException.ThrowIfNull(instanceGuard);
         ArgumentNullException.ThrowIfNull(logsBroadcaster);
-        ArgumentNullException.ThrowIfNull(logFileReader);
-        ArgumentNullException.ThrowIfNull(configAccessor);
-        ArgumentNullException.ThrowIfNull(configUpdater);
-        ArgumentNullException.ThrowIfNull(configBroadcaster);
-        ArgumentNullException.ThrowIfNull(workspaceAccessor);
-        ArgumentNullException.ThrowIfNull(instructionsManifestAccessor);
-        ArgumentNullException.ThrowIfNull(instructionsOverridesAccessor);
-        ArgumentNullException.ThrowIfNull(instructionsBodyProjector);
-        ArgumentNullException.ThrowIfNull(instructionsFileReader);
-        ArgumentNullException.ThrowIfNull(instructionsFullTextSearchService);
-        ArgumentNullException.ThrowIfNull(instructionsSnapshotBroadcaster);
-        ArgumentNullException.ThrowIfNull(mcpToolsRegistryAccessor);
-        ArgumentNullException.ThrowIfNull(mcpToolsInvoker);
+        ArgumentNullException.ThrowIfNull(dispatchPolicyFactory);
 
         _options = options.Value;
         _loggerFactory = loggerFactory;
-        _logger = loggerFactory.CreateLogger<LifecycleService>();
-        _applicationLifetime = applicationLifetime;
-        _registryReader = registryReader;
+        _logger = loggerFactory.CreateLogger<EndpointHostService>();
         _eventStream = eventStream;
         _lifecycleNotifier = lifecycleNotifier;
         _idleTimeoutWatchdog = idleTimeoutWatchdog;
         _instanceGuard = instanceGuard;
         _logsBroadcaster = logsBroadcaster;
-        _logFileReader = logFileReader;
-        _configAccessor = configAccessor;
-        _configUpdater = configUpdater;
-        _configBroadcaster = configBroadcaster;
-        _workspaceAccessor = workspaceAccessor;
-        _instructionsManifestAccessor = instructionsManifestAccessor;
-        _instructionsOverridesAccessor = instructionsOverridesAccessor;
-        _instructionsBodyProjector = instructionsBodyProjector;
-        _instructionsFileReader = instructionsFileReader;
-        _instructionsFullTextSearchService = instructionsFullTextSearchService;
-        _instructionsSnapshotBroadcaster = instructionsSnapshotBroadcaster;
-        _mcpToolsInvoker = mcpToolsInvoker;
-        _mcpToolsRegistryAccessor = mcpToolsRegistryAccessor;
+        _dispatchPolicyFactory = dispatchPolicyFactory;
     }
 
     /// <inheritdoc/>
@@ -300,7 +198,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         if (Interlocked.Exchange(ref _started, 1) != 0)
         {
             throw new InvalidOperationException(
-                "LifecycleService.StartAsync has already been invoked.");
+                "EndpointHostService.StartAsync has already been invoked.");
         }
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -465,11 +363,11 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
     private static partial void LogLogsPipeWriteFaulted(ILogger logger, Exception exception);
 
     [LoggerMessage(EventId = 1, Level = LogLevel.Information,
-        Message = "LifecycleService bound four pipes for workspace '{WorkspaceHash}' instance {InstanceId:D}.")]
+        Message = "EndpointHostService bound four pipes for workspace '{WorkspaceHash}' instance {InstanceId:D}.")]
     private static partial void LogStarted(ILogger logger, WorkspaceHash workspaceHash, Guid instanceId);
 
     [LoggerMessage(EventId = 2, Level = LogLevel.Information,
-        Message = "LifecycleService stopped; all pipe accept loops have drained.")]
+        Message = "EndpointHostService stopped; all pipe accept loops have drained.")]
     private static partial void LogStopped(ILogger logger);
 
     private void BindAll(WorkspaceHash workspaceHash, Guid instanceId)
@@ -555,7 +453,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
                 _ = await RpcConnectionProcessor
                     .RunAsync(
                         stream,
-                        new DispatchPolicy(_applicationLifetime, _registryReader, _logFileReader, _logsBroadcaster, _configAccessor, _configUpdater, _configBroadcaster, _workspaceAccessor, _instructionsManifestAccessor, _instructionsOverridesAccessor, _instructionsBodyProjector, _instructionsFileReader, _instructionsFullTextSearchService, _instructionsSnapshotBroadcaster, _mcpToolsRegistryAccessor, _mcpToolsInvoker, _logger),
+                        _dispatchPolicyFactory.Create(),
                         _logger,
                         cancellationToken)
                     .ConfigureAwait(false);

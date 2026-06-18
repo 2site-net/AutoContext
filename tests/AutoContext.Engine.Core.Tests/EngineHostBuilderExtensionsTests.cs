@@ -1,6 +1,7 @@
 namespace AutoContext.Engine.Core.Tests;
 
 using AutoContext.Engine.Core;
+using AutoContext.Engine.Core.Endpoints;
 using AutoContext.Engine.Core.Infrastructure.Diagnostics;
 using AutoContext.Engine.Core.Infrastructure.Storage;
 using AutoContext.Engine.Core.Machine;
@@ -12,8 +13,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
-
-using LifecycleService = Core.Lifecycle.LifecycleService;
 
 public sealed class EngineHostBuilderExtensionsTests
 {
@@ -119,7 +118,7 @@ public sealed class EngineHostBuilderExtensionsTests
         }
 
         [Fact]
-        public void Should_register_LifecycleService_as_a_hosted_service()
+        public void Should_register_EndpointHostService_as_a_hosted_service()
         {
             // Arrange
             var builder = Host.CreateApplicationBuilder();
@@ -130,11 +129,11 @@ public sealed class EngineHostBuilderExtensionsTests
             var hosted = host.Services.GetServices<IHostedService>();
 
             // Assert
-            Assert.Single(hosted, h => h is LifecycleService);
+            Assert.Single(hosted, h => h is EndpointHostService);
         }
 
         [Fact]
-        public void Should_register_LifecycleService_only_once_for_repeat_calls()
+        public void Should_register_EndpointHostService_only_once_for_repeat_calls()
         {
             // Arrange
             var builder = Host.CreateApplicationBuilder();
@@ -146,7 +145,7 @@ public sealed class EngineHostBuilderExtensionsTests
             var hosted = host.Services.GetServices<IHostedService>();
 
             // Assert
-            Assert.Single(hosted, h => h is LifecycleService);
+            Assert.Single(hosted, h => h is EndpointHostService);
         }
 
         [Fact]
@@ -247,13 +246,13 @@ public sealed class EngineHostBuilderExtensionsTests
             var hosted = host.Services.GetServices<IHostedService>().ToList();
 
             var indexOfFile = hosted.FindIndex(h => h is RegistryFileService);
-            var indexOfLifecycle = hosted.FindIndex(h => h is LifecycleService);
+            var indexOfEndpointHost = hosted.FindIndex(h => h is EndpointHostService);
 
             // Assert
             Assert.Multiple(
                 () => Assert.True(indexOfFile >= 0, "RegistryFileService should be registered."),
-                () => Assert.True(indexOfLifecycle >= 0, "LifecycleService should be registered."),
-                () => Assert.True(indexOfFile < indexOfLifecycle, "RegistryFileService must register before LifecycleService so it stops last."));
+                () => Assert.True(indexOfEndpointHost >= 0, "EndpointHostService should be registered."),
+                () => Assert.True(indexOfFile < indexOfEndpointHost, "RegistryFileService must register before EndpointHostService so it stops last."));
         }
 
         [Fact]
