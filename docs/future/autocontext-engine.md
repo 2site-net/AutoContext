@@ -188,7 +188,7 @@ also land here so the index stays the system's table of contents.
 |---|---|---|---|
 | `autocontext-engine` (daemon role) | .NET binary | one process per (workspace, launcher instance); binds four pipes, owns writes, runs housekeeping | [Engine binary](#engine-binary) |
 | `autocontext-engine --mcp-server with-stdio` (MCP-server-only role) | same .NET binary, different role | one process per MCP-host launch; no pipes, no registry, stdio-only, re-reads `.autocontext.json` per request, exits on stdio EOF | [Engine binary](#engine-binary) |
-| `AutoContext.Worker.DotNet` / `.Workspace` / `.Web` | .NET / Node task workers | spawned lazily by the engine via `WorkerManager` | [What the engine absorbs](#what-the-engine-absorbs-from-todays-topology) |
+| `AutoContext.Worker.DotNet` / `.Workspace` / `.Web` | .NET / Node task workers | spawned lazily by the engine via `WorkerProcessService` | [What the engine absorbs](#what-the-engine-absorbs-from-todays-topology) |
 | `AutoContext.Mcp.Server` | retired in this plan | absorbed into the engine | [What the engine absorbs](#what-the-engine-absorbs-from-todays-topology) |
 
 ### Distributed bundle layout
@@ -342,13 +342,13 @@ See [Log categories](#log-categories).
 
 | Service | Role |
 |---|---|
-| `AutoContextConfigStore` | owns `.autocontext.json`, validates and broadcasts writes |
+| `ConfigFileService` | owns `.autocontext.json`, validates and broadcasts writes |
 | `InstructionsManifestService` | merged catalog + manifest snapshot — startup ingestion + per-request projection |
 | `InstructionsBodyProjector` | raw → projected body (disabled-rule filter, `[INSTxxxx]` tags preserved as reference anchors, override resolution) |
 | `instructions-manifest-gen` (build-time tool, not a runtime service) | reads `instructions-catalog.json` + the corpus, emits `instructions-manifest.json` |
 | `InstructionsFullTextSearchService` | in-memory full-text search over instruction bodies (replaces extension-side trigram index) |
 | `WorkspaceContextDetector` | workspace detection (absorbed from extension) |
-| `WorkerManager` | lazy `ensureRunning(workerId)` worker dispatcher (absorbed from MCP server) |
+| `WorkerProcessService` | lazy `ensureRunning(workerId)` worker dispatcher (absorbed from MCP server) |
 
 ### Composition seams
 
@@ -400,7 +400,7 @@ classes:
 | Today | Lives in | Becomes |
 |-------|----------|---------|
 | `AutoContext.Mcp.Server` (orchestrator + MCP/stdio + worker dispatch + registry) | Standalone process | **Same `autocontext-engine` binary, MCP-server-only role** (`--mcp-server with-stdio`). Reads workspace state directly from `.autocontext.json` (re-read per MCP request) and bundled side-car corpus; no pipes, no worker dispatch, no registry entry. Concurrent daemon-role engine on the same workspace (when launched by a different host) is the writer; MCP-server role is read-mostly view. |
-| `AutoContextConfigManager` (TS, extension) | Extension process | **Engine internal**: `AutoContextConfigStore` (.NET) |
+| `AutoContextConfigManager` (TS, extension) | Extension process | **Engine internal**: `ConfigFileService` (.NET) |
 | `InstructionsFilesManager` + `InstructionsFileContentProjector` + `instructions-files-metadata-generator` + client-side content trigram index | Extension process | **Engine internal**: `InstructionsManifestService` + `InstructionsBodyProjector` + the build-time `instructions-manifest-gen` generator (now runs **both** at build time — reading the curated `Resources/instructions-catalog.json` and the corpus to emit the `Resources/instructions-manifest.json` side-car — **and** at engine startup, where the engine merges catalog + manifest into an immutable snapshot, applies per-request projection against workspace state, and returns rows via `Instructions.List`) + `InstructionsFullTextSearchService` (replaces the client-side trigram index; built lazily in-memory over the projected bodies `InstructionsBodyProjector` returns) |
 | `servers.json` (TS-side worker/MCP-server inventory) + `mcp-workers-registry.json` (MCP-server–side worker dispatch table) | Extension `resources/` + `AutoContext.Mcp.Server/` | **Replaced** by build-generated `Resources/workers.json` (scan of `src/AutoContext.Worker.*/` projects, id derived by stripping `AutoContext.Worker.` and replacing `.` with `-`, entrypoint written from the actual published path) + `Resources/mcp-tools-registry.json` (renamed from `mcp-workers-registry.json`; a hand-authored flat `tools[]` dispatch table, each tool carrying a `workerId` FK) + `Resources/mcp-tools-registry.schema.json` (its JSON-schema) + the hand-authored `Resources/mcp-tools-catalog.json` UI catalog. The old `servers.json` mixed MCP-server identity with worker identity; the MCP server is gone (consolidated into the engine), so the worker-only file is what remains. |
 | `LogServer` (sideband pipe) | Extension process | **Engine internal**: the engine binds the `logs` pipe (one of the four pipes — see `### Lifecycle`) as a unified server-streaming sink that fans out engine-emitted records **and** worker-emitted records forwarded through `Engine.WriteLog`, distinguished by the `category` field. The engine also persists every record to `…\<workspaceHash>\<instanceId>\logs\engine.log` (P4 / P5); clients tail the pipe instead of inventing their own log-watcher. |
@@ -415,7 +415,7 @@ Workers (`AutoContext.Worker.DotNet`, `AutoContext.Worker.Workspace`,
 `AutoContext.Worker.Web`) are **not** absorbed. They stay as separate
 binaries with their existing JSON-RPC-over-pipe protocol, spawned by
 the engine on demand using the same lazy `ensureRunning(workerId)`
-pattern `WorkerManager` uses today.
+pattern `WorkerControlClient` uses today.
 
 ### What `AutoContext.Framework.*` carries over
 
@@ -2360,7 +2360,7 @@ protocol event.
 | CLI verbs | lowercase, space-separated `noun verb [args]` | `instructions list`, `config toggle`, `workspace info`, `engine logs` |
 | Log-category prefixes | Dotted; lowercase namespace, PascalCase tail when the tail mirrors an RPC name | `engine.rpc.Instructions.Get`, `engine.lifecycle`, `worker.dotnet.RoslynAnalyzer` |
 | Resource manifest filenames | kebab-case `.json` | `instructions-catalog.json`, `instructions-manifest.json`, `mcp-tools-catalog.json`, `mcp-tools-registry.json`, `workers.json` |
-| .NET internal classes / services | PascalCase (standard .NET identifier rules) | `AutoContextConfigStore`, `InstructionsManifestService`, `WorkspaceContextDetector` |
+| .NET internal classes / services | PascalCase (standard .NET identifier rules) | `ConfigFileService`, `InstructionsManifestService`, `WorkspaceContextDetector` |
 | Placeholder tokens in this doc | `<lowerCamelCase>` inside angle brackets | `<workspaceHash>`, `<instanceId>`, `<name>`, `<workerId>` — see [Identifier tokens](#identifier-tokens) |
 
 #### Cross-cutting rules
@@ -2571,7 +2571,7 @@ source-code level.
 
 Consequences:
 
-- **One implementation, one home.** `AutoContextConfigStore`,
+- **One implementation, one home.** `ConfigFileService`,
   `InstructionsBodyProjector`, `InstructionsCorpusReader`,
   `InstructionsManifestService`, the engine's hosted services, and
   every RPC handler all live in `AutoContext.Engine/`. The engine
@@ -3210,10 +3210,10 @@ do **not** reference `Framework.Services`. Worker.* references
   depending on it, so they belong with the substrate.
 - **`AutoContext.Engine.Core`** is the engine **as a library**.
   Everything under `### Engine-internal services` lives here
-  (`AutoContextConfigStore`, `InstructionsManifestService`,
+  (`ConfigFileService`, `InstructionsManifestService`,
   `InstructionsBodyProjector`,
   `InstructionsFullTextSearchService`, `WorkspaceContextDetector`,
-  `WorkerManager`), together with the pipe-server bindings for the
+  `WorkerProcessService`), together with the pipe-server bindings for the
   four pipes and the RPC handlers (one per capability — P1). Public
   surface is `IHostApplicationBuilder.AddAutoContextEngine(Action<EngineOptions>)`
   (see *Composition contracts*). References `Framework.Pipes`,
@@ -3927,7 +3927,7 @@ Source-side locations for the editable inputs the build consumes:
 - **Do NOT** fold workers into the engine. Workers are transient
   task executors with their own crash / lifecycle profile. The
   engine spawns them via the same lazy `ensureRunning(workerId)`
-  gate `WorkerManager` uses today; workers stay as separate
+  gate `WorkerControlClient` uses today; workers stay as separate
   binaries (`AutoContext.Worker.DotNet`,
   `AutoContext.Worker.Workspace`, `AutoContext.Worker.Web`).
 - **Do NOT** invent a launcher-side URI scheme for spawning the

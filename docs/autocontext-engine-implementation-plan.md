@@ -373,19 +373,28 @@ src/
 
   AutoContext.Engine.Core/                # engine as a library
     AutoContext.Engine.Core.csproj
-    AddAutoContextEngine.cs                    # IHostApplicationBuilder extension — composition root
-    EngineOptions.cs                           # bound from argv (--instance-id, --workspace-root, --idle-timeout, …)
+    EngineHostBuilderExtensions.cs             # IHostApplicationBuilder extension — composition root (AddAutoContextEngine)
+    EngineMcpServerMode.cs                     # MCP-server capability mode selector (Off | WithStdioTransport)
+    EngineOptions.cs                           # composition-time configuration — CLI knobs (--instance-id, --workspace-root, --idle-timeout, …) + library-only options
+    EngineOptionsValidator.cs                  # validates EngineOptions shape against the documented ranges + charsets
     Infrastructure/                            # horizontal-axis substrate (cross-cutting plumbing); subdivided by kind, not by feature
+      EngineResourcesDirectory.cs              # resolves the engine's Resources/ side-car directory, with an optional per-file override overlay
+      EngineVersion.cs                         # resolves the running engine version from the AutoContext.Engine.Core assembly
       IUniqueInstanceGuard.cs                  # contract for the pre-bind "another engine already owns this <workspaceHash>#<instanceId>?" sanity check; production impl is Lifecycle/PerWorkspaceInstanceGuard.cs
-      Storage/                                 # cache-root vocabulary — identity coordinates and path resolution; leaf, consumed by Machine/ (EngineCacheLayout, Housekeeping) and Lifecycle/ (RegistryEntryBuilder), depends on nothing engine-side itself
+      IWorkspaceEngineInfo.cs                  # read-only view of engine metadata (workspace path, instance id, idle timeout) for services that need identity without taking EngineOptions
+      Storage/                                 # cache-root vocabulary — identity coordinates and path resolution; leaf, consumed by Machine/ (EngineCacheLayout, Housekeeping) and Registry/ (RegistryEntryBuilder), depends on nothing engine-side itself
         CacheRoot.cs                           # per-instance identity bundle — composes EngineOptions into resolved cache-root subtree paths (FullPath / WorkspaceBucketPath / InstancePath / WorkspaceUserPath); the DI singleton every on-disk path resolves through
         CacheRootPathResolver.cs               # pure static — resolves the OS-level engine cache root (%LOCALAPPDATA%\autocontext, $XDG_CACHE_HOME/autocontext, …) with --cache-root override; sole reader of the env vars and override option
         WorkspaceHash.cs                       # 16-uppercase-hex SHA-256 prefix of the workspace path — `readonly record struct` implementing `IParsable<WorkspaceHash>`; the `<workspaceHash>` segment in registry rows and on-disk paths
-        InstanceId.cs                          # launcher UUID value type — `readonly record struct` implementing IParsable<T>; the `<instanceId>` segment in endpoint names and on-disk paths (P4)
-      Diagnostics/                             # System.Diagnostics.Process seam — internal abstractions used by watchdogs and registry-sweep liveness checks
+      Diagnostics/                             # System.Diagnostics.Process seam — internal abstractions used by Workers/ (launch + supervision), Watchdogs/, and registry-sweep liveness checks
+        IProcess.cs                            # handle to a launched child process — pid + cancellable kill/exit operations
         IProcessHandle.cs                      # opens-once handle; exposes UTC start time and a cancellable WaitForExitAsync
+        IProcessLauncher.cs                    # seam over OS process creation (Process.Start) for unit testability
         IProcessLookup.cs                      # TryOpen(pid) → handle | null (gone / denied); single seam over Process.GetProcessById
-        SystemProcessHandle.cs                 # production wrapper over System.Diagnostics.Process
+        IProcessObserver.cs                    # sink for a launched process's stderr lines + exit notification
+        ProcessInfo.cs                         # immutable launch specification (command + arguments)
+        ProcessLaunchException.cs              # thrown when a process cannot start or exits prematurely
+        SystemProcessHandle.cs                 # production IProcessHandle wrapping System.Diagnostics.Process
         SystemProcessLookup.cs                 # production lookup; catches ArgumentException / InvalidOperationException / Win32Exception → null
       Events/                                  # fan-out substrate — the generic pub/sub core every stream (Lifecycle, Logs, Config, …) shares; domains add only a thin *StreamFrames framer (and, where they seed/terminate, a thin stream wrapper)
         Broadcaster.cs                         # singleton fan-out core `Broadcaster<TPayload>`: per-subscriber bounded Channel (capacity 64), slow-subscriber drop while the rest keep flowing, graceful Complete (clean EOF, no terminal frame); Subscribe(optional seed) → BroadcasterSubscription<T>
@@ -396,23 +405,27 @@ src/
         IBroadcasterFrameStream.cs             # `IBroadcasterFrameStream<TPayload, TFrame>` — the subscription→frames contract every domain stream satisfies (StreamAsync)
         BroadcasterFrameStream.cs              # abstract base owning the shared drain/terminal-flush skeleton; subclasses supply only ToFrame + CreateDroppedFrame
         TrailingEdgeDebouncer.cs               # capacity-one channel + TimeProvider quiet window (P3 row 4); wrapped by Infrastructure/IO/FileChangeWatcher
-    Lifecycle/                                 # this engine's own lifecycle: Hello, Shutdown, own registry entry
-      LifecycleService.cs                      # hosted service — owns the four-pipe accept loops
+      IO/                                      # filesystem-watch substrate
+        FileChangeWatcher.cs                   # debounced FileSystemWatcher (via TrailingEdgeDebouncer) firing a callback on external edits; armed by the Config + Instructions-overrides watchers
+    Lifecycle/                                 # this engine's own lifecycle: pipe accept loops, startup/shutdown, the lifecycle-event stream
+      LifecycleService.cs                      # hosted service — owns the four-pipe accept loops and drives startup/registration/shutdown; the Engine.Hello handshake + Engine.Shutdown handling now live in Rpc/Policies/ (HandshakePolicy + DispatchPolicy), not in dedicated handler classes
       PerWorkspaceInstanceGuard.cs             # IUniqueInstanceGuard impl — dials the would-be `rpc` endpoint before bind; throws IOException when a live peer answers (P4 launcher-bug guard); not a hosted service
-      HelloHandler.cs                          # protocol-version check + greeting payload
-      ShutdownHandler.cs                       # graceful drain + Engine.Shutdown RPC
       # — Engine.Lifecycle.Subscribe events stream (P10) — thin domain layer over Infrastructure/Events/ —
       LifecycleEventStream.cs                  # singleton fan-out backing Engine.Lifecycle.Subscribe — wraps a shared Infrastructure/Events/Broadcaster<T>; layers on the `started` seed + terminal-event replay (Subscribe / TryPublish / TryComplete)
       LifecycleFrameStream.cs                  # BroadcasterFrameStream<JsonLifecycleEvent, JsonLifecycleEvent> (IBroadcasterFrameStream impl): drains a BroadcasterSubscription<JsonLifecycleEvent> and yields each event as a wire frame, emitting a terminal `dropped` frame when the subscriber was dropped
       LifecycleNotifier.cs                     # stamps the engine's identity (InstanceId, Revision) onto each transition and publishes through LifecycleEventStream — the stream itself constructs only the seeded `started` event
-      # — Engine registry (engine-registry.json mechanics + this engine's own entry) —
+    Registry/                                  # engine-registry.json mechanics + this engine's own entry (its own tier — moved out of Lifecycle/)
       RegistryFileFormat.cs                    # stateless serializer + schema-version contract shared by reader and writer (envelope shape, JsonSerializerOptions)
+      JsonRegistryEnvelope.cs                  # on-disk envelope DTO (schemaVersion + entries[]) for engine-registry.json
       RegistryFileReader.cs                    # concurrent-read surface for engine-registry.json (P9 concurrent reads); retry under FileShare.ReadWrite|FileShare.Delete + corrupt-file tolerance (returns empty list)
+      RegistryFileReaderOptions.cs             # tunable read-retry backoff knobs (initial / max delay, multiplier, max-retries)
       RegistryFileWriter.cs                    # internal atomic single-shot writer; temp+fsync+rename only (no mutex, no retry, no RMW — owned by RegistryFileService)
       RegistryFileService.cs                   # hosted coordinator: dedicated worker thread + named cross-process Mutex + Channel<WriteRequest> + read-modify-write cycle; owns this engine's own-entry lifecycle (append on Start, best-effort remove on Stop); single intended caller of RegistryFileWriter
-      RegistryEntry.cs                         # entry DTO returned/accepted by RegistryFileReader/Service (engine-internal shape — never on the wire, P3)
-      RegistryEntryBuilder.cs                  # pure builder — composes EngineOptions + runtime facts (pid, start time, workspace hash, assembly version) into the RegistryEntry that represents this engine; invoked by RegistryFileService via DI-supplied factory
-      RegistryEntryReader.cs                   # composes over RegistryFileReader; applies Process.StartTime peer-liveness check, tagging each entry Live/Stale — consumed by Machine/Housekeeping/ (Phase 2b CacheRootScanner) as the registration half of its classification
+      RegistryFileServiceOptions.cs            # tunable cross-process mutex + worker-stop timeouts
+      RegistryEntryBuilder.cs                  # pure builder — composes EngineOptions + runtime facts (pid, start time, workspace hash, assembly version) into the entry that represents this engine; invoked by RegistryFileService via DI-supplied factory
+      RegistryEntryReader.cs                   # composes over RegistryFileReader; applies a Process.StartTime peer-liveness probe, tagging each entry Live/Stale — consumed by Machine/Housekeeping/ (CacheRootScanner) as the registration half of its classification
+      RegistryEntryProbeResult.cs              # an entry paired with its liveness verdict (Live / Stale)
+      RegistryEntryProbeState.cs               # enum: Live (pid + start-time match) | Stale (pid recycled / crashed)
     Watchdogs/                                 # process-lifetime guards — peers of Lifecycle/; each is a hosted service that signals IHostApplicationLifetime.StopApplication on its own trigger
       IdleTimeoutWatchdog.cs                   # --idle-timeout
       HostWatchdog.cs                          # --parent-pid; clamps engine lifetime to spawner via Infrastructure/Diagnostics handle (Process.StartTime pid-reuse defeat)
@@ -424,16 +437,20 @@ src/
         HousekeepingService.cs                 # hosted service — shutdown sweep only, runs after LifecycleService removes own entry + closes pipes; ≤ 1 s deadline budget
         SubtreeRegistryStatus.cs               # discriminated record hierarchy (Registered | StaleRegistration | Unregistered | Foreign) — P2-shaped contract between scanner, policy, and cleaner
         CacheRootScanner.cs                    # walks the engine cache root, produces SubtreeRegistryStatus per child (pure — no deletion here)
-        StaleSubtreeCleaner.cs                 # pattern-matches SubtreeRegistryStatus, deletes with concurrent-sweep tolerance (DirectoryNotFoundException counts as success)
-        RetentionPolicy.cs                     # single reader of `--retention` — resolves the window per SubtreeRegistryStatus arm (per-entry, unregistered-fallback, foreign)
-    Logging/                                   # engine sink, rotation, rotated-file cleanup
-      LogChannel.cs                            # single-channel ingest; TryWrite / ReadAllAsync / Complete
-      LogFileSinkService.cs                    # drain loop + dispatcher; owns the per-target file appenders (engine.log / worker-<id>.log); from row 5 also fans drained records out through a shared Infrastructure/Events/Broadcaster<JsonLogRecord> (pure live tail)
-      LogRotator.cs                            # --logging thresholds (normal vs debug)
-      RotatedLogCleaner.cs                     # deletes rotated log files past retention inside a live subtree (uses RetentionPolicy from Machine/Housekeeping/)
-      WorkerLogRouter.cs                       # routes Engine.WriteLog by category prefix
+        StaleSubtreeCleaner.cs                 # pattern-matches SubtreeRegistryStatus, deletes with concurrent-sweep tolerance (DirectoryNotFoundException counts as success); applies Logging/RetentionPolicy per arm
+    Logging/                                   # engine sink, rotation, rotated-file cleanup, retention, and log reads
+      EngineLogger.cs                          # per-category ILogger — formats on the caller thread and enqueues to LogChannel
+      EngineLoggerProvider.cs                  # ILoggerProvider caching one EngineLogger per category
+      LogChannel.cs                            # single-channel ingest; TryWrite / ReadAllAsync / Complete (DropOldest on overflow)
+      LogFileSinkService.cs                    # hosted service — drain loop + dispatcher; owns the per-target file appenders (engine.log / worker-<id>.log); also fans drained records out through a shared Infrastructure/Events/Broadcaster<JsonLogRecord> (pure live tail)
+      LogRotationThresholds.cs                 # per-verbosity line-count + byte-size rotation thresholds (replaces the old LogRotator)
+      LogVerbosity.cs                          # rotation-selector enum (Normal / Debug / Verbose)
+      RotatedLogCleaner.cs                     # deletes rotated log files past retention inside a live subtree (uses Logging/RetentionPolicy)
+      RetentionPolicy.cs                       # single reader of `--retention` — resolves the retention window (per-entry, unregistered-fallback, foreign); shared with Machine/Housekeeping/
+      EngineLogFileReader.cs                   # forward-pass NDJSON reader over engine.log with since / lastN filtering (backs Logs.GetEngine)
+      EngineLogReadResult.cs                   # output record (Records, Truncated) of EngineLogFileReader.ReadAsync
       LogFrameStream.cs                        # BroadcasterFrameStream<JsonLogRecord, JsonLogStreamFrame> (IBroadcasterFrameStream impl) for Logs.Tail*: drains a BroadcasterSubscription<JsonLogRecord> (fanned out by LogFileSinkService over the shared Infrastructure/Events/Broadcaster<T>) and yields record/dropped frames
-      LogsHandlers.cs                          # Logs.GetEngine / TailEngine / GetWorker / TailWorker
+      # Logs.{GetEngine,TailEngine,GetWorker,TailWorker} are routed by Rpc/Policies/DispatchPolicy.cs (no dedicated LogsHandlers class)
     Workspace/                                 # workspace-scoped state — everything keyed by the current workspace root
       Config/                                  # .autocontext.json owner (Config.* wire surface)
         Snapshot/                              # immutable domain graph (engine-internal source of truth)
@@ -454,12 +471,19 @@ src/
         ConfigFileManager.cs                   # store/manager — port of TS AutoContextConfigManager; owns the snapshot, FS-watch (Watch/ReconcileFromWatcherAsync), and signature-based self-write suppressor; implements IConfigSnapshotAccessor + IConfigUpdater
         ConfigFileService.cs                   # hosted service — initial disk load then arms the watcher at engine start
         IConfigSnapshotAccessor.cs             # lock-free read seam (Current) that DispatchPolicy reads for Config.Get
+        IConfigChangeNotifier.cs               # change-notification seam (Changed event) the ConfigFileService bridges to the broadcaster
         ConfigBatchWriter.cs                   # micro-batch write coalescer behind IConfigUpdater (P3 row 6, DONE)
         IConfigUpdater.cs                      # one-method write seam the manager satisfies (P3 row 6, DONE)
         ConfigFrameStream.cs                   # BroadcasterFrameStream<JsonConfigSnapshot, JsonConfigStreamFrame> (IBroadcasterFrameStream impl) for Config.Subscribe: drains a BroadcasterSubscription<JsonConfigSnapshot> (fanned out by ConfigFileService over a shared Infrastructure/Events/SnapshotBroadcaster<T> — snapshot-on-subscribe + per-subscriber bounded buffer, P3 row 9, DONE) and yields snapshot/dropped frames; Config.Subscribe is served by DispatchPolicy, Config.Get/ToggleFile/ToggleRule also via DispatchPolicy (the latter two via ConfigToggle + IConfigUpdater)
       Context/                                 # ~60-flag detection (Workspace.* wire surface)
-        WorkspaceContextDetector.cs            # orchestrator — injected with the three rule-data lists below; runs them, emits result
-        WorkspaceHandlers.cs                   # Workspace.{Detect,Info}
+        WorkspaceDetectionService.cs           # hosted service — scans the workspace at startup and re-runs on watched changes, publishing the result
+        WorkspaceContextDetector.cs            # detector core — injected with the three rule-data lists below; runs them, emits a WorkspaceDetectionResult
+        WorkspaceFileClassifier.cs             # compiles the rule tables into lookup indices (extension/filename dicts + glob list)
+        WorkspaceFileEnumerator.cs             # recursive workspace walker with directory pruning + per-entry resilience
+        IWorkspaceContextAccessor.cs           # read-only accessor exposing the latest WorkspaceDetectionResult
+        WorkspaceDetectionResult.cs            # immutable outcome — the FrozenSet of raised flag names
+        WorkspaceDetectionResultExtensions.cs  # projects the result onto the Workspace.Detect wire shape
+        # Workspace.{Detect,Info} are routed by Rpc/Policies/DispatchPolicy.cs (no dedicated WorkspaceHandlers class)
         # — Rule data (plain records; each file holds a `static readonly`
         #   table registered in DI as the corresponding `IReadOnlyList<T>`
         #   singleton; no interfaces — substitution is over the data, not
@@ -471,50 +495,99 @@ src/
         ContentPatternRule.cs                  # (Flag, Regex) — body-pattern → flag, scoped under a ContentScan
         FlagActivationEdge.cs                  # one row of IReadOnlyList<FlagActivationEdge> — [child, parent] transitive activation graph
         WorkspaceDetectionRules.cs             # static partial holding the three tables (FileRules, ContentScans, FlagActivationEdges) + GeneratedRegex patterns
-        # — Derived data (per-Detect outputs; plain records, not DI-registered) —
-        FileExtensionsIndex.cs                 # derived ext set, fed to Discovery (P7)
-    Features/                                  # outward-facing capability tier (P11): served to the extension over RPC; the engine runs without these, but without them nothing can consume anything
-      Instructions/                            # runtime services
-        InstructionsManifestService.cs           # merged catalog+manifest snapshot loader + reloader
-        InstructionsBodyProjector.cs             # projects a manifest entry's body per request: resolves override-vs-bundled, reads + parses; ToResponseBodyAsync filters disabled rules + slices sections for Get ([INSTxxxx] tags preserved), ToSearchBodyAsync rebuilds the offset-bearing body for indexing
-        InstructionsFullTextSearchService.cs     # in-memory full-text search over instruction bodies
-        InstructionsOverridesWatcher.cs          # per-overrides-root instructions/ FS watcher (debounced, default .github); produces InstructionsOverridesSnapshot values
-        Snapshot/InstructionsOverridesSnapshot.cs # immutable snapshot of the overrides-root instructions/ inventory (paths + basenames); consumed by InstructionsBodyProjector + InstructionsManifestService
-        FrontmatterApplyToParser.cs              # comma + brace-expand, extension extraction (shared with the build task via `<Compile Link>`)
-        InstructionsHandlers.cs                  # List/Categories/Get/GetAll/GetAlwaysAttached/GetRaw/SearchContent/Subscribe
-        InstructionsFrameStream.cs               # BroadcasterFrameStream<InstructionsSnapshot, …> (IBroadcasterFrameStream impl) for Instructions.Subscribe: drains a BroadcasterSubscription<InstructionsSnapshot> (fanned out over a shared Infrastructure/Events/SnapshotBroadcaster<T> — snapshot-on-subscribe + disabled-flag re-evaluation) and yields snapshot/dropped frames
+        # — Derived indices (built from the rule tables) —
+        FlagExtensionIndex.cs                  # maps each flag to its extension-selector set (fed to Discovery, P7)
+        FlagContributionIndex.cs               # inverted index — files → base flags and flags → contributor counts
+    Features/                                  # outward-facing capability tier (P11): served to the extension over RPC; the engine runs without these, but without them nothing can consume anything. Instructions/ + McpTools/ are built; Discovery/ + Agent/ (below) are not yet
+      Instructions/                            # runtime services for the Instructions.* surface
+        InstructionsManifestService.cs           # hosted service — loads the merged catalog+manifest snapshot at startup
+        IInstructionsManifestAccessor.cs         # read-only accessor over the loaded corpus snapshot
         InstructionsManifestLoader.cs            # reads Resources/instructions-catalog.json + instructions-manifest.json, merges into the snapshot
-      # McpTools/ — the McpTools.{List,Invoke} capability (today's Mcp/ below) is the next tenant of this tier (P11)
-    Workers/                                   # worker dispatch (absorbs AutoContext.Mcp.Server/Workers/)
-      WorkerManager.cs                         # ensureRunning(workerId) gate
-      WorkerProcessSupervisor.cs               # Process.Start + stderr capture under worker.<id>.engine.stderr
-      WorkerControlClient.cs                   # dial worker control pipe
-      WorkerTaskDispatcher.cs                  # request → worker → response, cancellation forwarding
+        InstructionsOverridesService.cs          # hosted service — scans the configured override directories at startup
+        IInstructionsOverridesAccessor.cs        # read-only accessor over the override inventory
+        InstructionsOverridesWatcher.cs          # per-overrides-root instructions/ FS watcher (debounced, default .github); syncs the override inventory
+        InstructionsOverridesStalenessInspector.cs # emits a warning when an override file is older than its bundled counterpart
+        InstructionsBodyProjector.cs             # projects a manifest entry's body per request: resolves override-vs-bundled, reads + parses; response body filters disabled rules + slices sections for Get ([INSTxxxx] tags preserved), search body rebuilds the offset-bearing body for indexing
+        InstructionsFileReader.cs                # reads the verbatim body from the bundled or override source
+        InstructionsListProjector.cs             # projects manifest + overrides + config into the Instructions.List rows
+        InstructionsResponseBody.cs              # Get output (content + returned-sections + not-found-sections)
+        InstructionsSearchBody.cs                # indexed body (content + sections with offsets)
+        InstructionsFullTextSearchService.cs     # in-memory full-text search over instruction bodies
+        InstructionsSubscriptionService.cs       # hosted service — primes the broadcaster and bridges config edits into Instructions.Subscribe
+        InstructionsFrameStream.cs               # BroadcasterFrameStream for Instructions.Subscribe: drains a BroadcasterSubscription (fanned out over a shared Infrastructure/Events/SnapshotBroadcaster<T> — snapshot-on-subscribe + disabled-flag re-evaluation) and yields snapshot/dropped frames
+        # Instructions.{List,Get,GetAll,GetAlwaysAttached,GetRaw,SearchContent,Subscribe} are routed by Rpc/Policies/DispatchPolicy.Instructions.cs (no dedicated InstructionsHandlers class)
+        Snapshot/                              # immutable snapshots + section/manifest records
+          InstructionsManifestSnapshot.cs        # immutable merged corpus snapshot
+          InstructionsOverridesSnapshot.cs       # immutable overrides-root inventory (paths + basenames)
+          InstructionsFileManifestEntry.cs       # per-file manifest entry (description, checksum, sections)
+          InstructionsCategoryEntry.cs           # catalog category entry
+          InstructionsSection.cs                 # section anchor (name + TextSpan offset range)
+        Format/                                # on-disk catalog/manifest DTOs + source-gen context
+          JsonInstructionsCatalog.cs / JsonInstructionsCatalogCategory.cs / JsonInstructionsCatalogEntry.cs
+          JsonInstructionsManifest.cs / JsonInstructionsManifestEntry.cs / JsonInstructionsManifestSection.cs
+          InstructionsManifestJsonContext.cs     # System.Text.Json source-generation context
+      McpTools/                                # runtime services for the McpTools.* surface (built — was the doc's old top-level Mcp/ folder)
+        IMcpToolsRegistryAccessor.cs             # read-only accessor over the loaded tool-registry snapshot
+        McpToolsRegistryService.cs               # hosted service — loads the registry at startup
+        McpToolsRegistryLoader.cs                # reads Resources/mcp-tools-registry.json and validates it via the schema validator
+        McpToolsRegistrySchemaValidator.cs       # validates the registry against its schema + cross-reference rules
+        McpToolsCatalogSchemaValidator.cs        # validates mcp-tools-catalog.json against its schema
+        McpToolsRegistryValidationResult.cs      # validation outcome with ordered error messages
+        IMcpToolsInvoker.cs                      # dispatch seam for McpTools.Invoke
+        McpToolsInvoker.cs                       # production invoker — dispatches a tool call to the owning worker (lazy-spawn via Workers/WorkerProcessService)
+        McpToolsInvokerNoop.cs                   # no-op fallback returning a deterministic tool-error (kept for composition; production now injects McpToolsInvoker directly)
+        EditorConfig/                          # per-request .editorconfig enrichment for McpTools.Invoke
+          IEditorConfigResolver.cs               # resolver seam invoked before tool dispatch
+          WorkerEditorConfigResolver.cs          # default resolver — round-trips to Worker.Workspace
+        Snapshot/                              # immutable registry snapshot records
+          McpToolsRegistry.cs / McpToolsRegistryEntry.cs / McpToolsRegistryParameterEntry.cs / McpToolsCategoryEntry.cs
+        Format/                                # on-disk registry/catalog DTOs + source-gen contexts
+          JsonMcpToolsRegistry.cs / JsonMcpToolsRegistryTool.cs / JsonMcpToolsRegistryParameter.cs
+          JsonMcpToolsCatalog.cs / JsonMcpToolsCatalogCategory.cs / JsonMcpToolsCatalogTool.cs
+          McpToolsRegistryJsonContext.cs / McpToolsCatalogJsonContext.cs
+        # McpTools.{List,Invoke} are routed by Rpc/Policies/DispatchPolicy.McpTools.cs
+    Workers/                                   # worker process lifecycle (absorbs AutoContext.Mcp.Server/Workers/)
+      WorkerProcessService.cs                  # lazy manager — EnsureRunningAsync(workerId) gate; spawns on first use, respawns on exit (was WorkerManager)
+      WorkerProcessLauncher.cs                 # production launcher — starts a worker via System.Diagnostics.Process (over Infrastructure/Diagnostics seams)
+      WorkerProcess.cs                         # production IProcess — wraps the worker Process with stderr/stdout drainage
+      WorkerProcessInfo.cs                     # launch spec — extends Infrastructure/Diagnostics/ProcessInfo with endpoint + workerId
+      WorkerProcessInfoResolver.cs             # maps a JsonWorkersManifest row to a WorkerProcessInfo launch spec
+      IWorkerConnectionProbe.cs                # readiness contract — confirms a worker is accepting on its pipe (replaces the old stderr ready-marker scrape)
+      WorkerConnectionProbe.cs                 # production probe — polls the worker endpoint with backoff until the pipe answers
       WorkersManifestLoader.cs                 # reads Resources/workers.json
-      WorkerHealthMonitorServer.cs             # accepts worker keep-alives (engine-side peer of WorkerHealthMonitorService)
-    Mcp/                                       # McpTools.List/Invoke handlers + stdio MCP-server role
-      McpToolsHandlers.cs                      # shared core (P1) — pipe + stdio both call into this
-      McpToolsCatalogService.cs                # filters by disabled state from Config snapshot
-      McpToolsRegistryLoader.cs                # reads Resources/mcp-tools-registry.json
-      McpToolsRegistrySchemaValidator.cs       # build-time + load-time schema check
-      InputSchemaBuilder.cs                    # JSON Schema → ModelContextProtocol types
-      McpSdkAdapter.cs                         # MCP-server role: tools/list + tools/call → McpToolsHandlers
-      StdioMcpServerEntryPoint.cs              # --mcp-server with-stdio composition root
-      PerRequestConfigReader.cs                # MCP-server-role disk re-read of .autocontext.json
-    Discovery/                                 # category & extension indices (P7)
+      Format/                                # workers.json on-disk DTOs
+        JsonWorkersManifest.cs                 # disk model (workers[])
+        JsonWorkerEntry.cs                     # disk model (id, type, label, command with ${root} placeholder)
+        WorkersManifestJsonContext.cs          # System.Text.Json source-generation context (camelCase)
+    # — NOT YET BUILT (kept here as the Phase target) —
+    # Mcp/ (stdio MCP-server role) — the McpTools.{List,Invoke} handlers already live in Features/McpTools/ above;
+    #   the stdio adapter layer (McpSdkAdapter, StdioMcpServerEntryPoint, InputSchemaBuilder, PerRequestConfigReader)
+    #   is not implemented yet — AutoContext.Engine/McpServerHostFactory is currently a stub (P11/P12).
+    Discovery/                                 # category & extension indices (P7 — NOT YET BUILT)
       DiscoveryService.cs                      # rebuilt on Instructions.Subscribe + McpTools changes
       CategoryIndex.cs                         # prompt → MCP tool routing
       ExtensionIndex.cs                        # extension → instruction file routing
       DiscoveryHandlers.cs                     # Discovery.{RouteForPrompt,RouteForTool}
-    Agent/                                     # Agent.* RPC family
+    Agent/                                     # Agent.* RPC family (P10 — NOT YET BUILT)
       AgentEventFrameStream.cs                 # BroadcasterFrameStream<AgentEvent, …> (IBroadcasterFrameStream impl) for Events.Subscribe: drains a BroadcasterSubscription<AgentEvent> (fanned out over a shared Infrastructure/Events/Broadcaster<T> — pure live tail, bounded per-subscriber buffers + drop) and yields event/dropped frames
       AgentNotificationHandlers.cs             # SubagentStarted/Stopped/Compacted/ToolUsed/TurnEnded
       AgentSessionToolHistogram.cs             # in-memory per-session ToolUsed counts
       AgentEventsHandlers.cs                   # Events.Subscribe pipe-side fan-out
-    Rpc/                                       # pipe-side framing shared by every handler folder
-      RpcDispatcher.cs                         # method-name → handler delegate table
-      RpcRequestReader.cs / RpcResponseWriter.cs
-      RpcCancellationBridge.cs                 # client-cancel → CancellationToken plumbing
+    Rpc/                                       # pipe-side connection processing + the policy/result framing shared by every handler
+      RpcConnectionProcessor.cs                # per-connection loop — reads frames, routes via the active IRpcConnectionPolicy, writes responses
+      IRpcConnectionPolicy.cs                  # strategy contract — handshake gate, frame-failure policy, and method→handler table for a connection
+      Continuation.cs                          # enum: Continue (next frame) | Exit (success) | ExitFailure (error)
+      FrameFailurePolicy.cs                    # enum: Recover (reply JSON-RPC error, keep reading) | Disconnect
+      JsonRpcId.cs                             # JSON-RPC 2.0 id normalization + null-handling helpers
+      Policies/                              # the two connection policies
+        HandshakePolicy.cs                     # enforces the mandatory Engine.Hello handshake at the pipe head
+        DispatchPolicy.cs                      # post-handshake JSON-RPC dispatch — routes Engine.RegistryEntries, Engine.Shutdown, Config.*, Logs.*, Workspace.* (partial class)
+        DispatchPolicy.Instructions.cs         # Instructions.* handlers (partial)
+        DispatchPolicy.McpTools.cs             # McpTools.* handlers (partial)
+      Results/                               # handler outcome shapes the processor flushes
+        RpcHandlerResult.cs                    # base — carries a Continuation + optional post-flush side effect
+        UnaryHandlerResult.cs                  # single JsonRpcResponse frame
+        StreamingHandlerResult.cs              # JsonRpcStreamNext frames + a terminal Complete/Error
 
   AutoContext.Client.Core/                # in-process .NET dialler library (consumed by CLI, .NET tests, future .NET embedders)
     AutoContext.Client.Core.csproj
@@ -564,12 +637,10 @@ src/
 
   AutoContext.Engine/                          # engine binary host
     AutoContext.Engine.csproj                  # publishes as autocontext-engine[.exe]
-    Program.cs                                 # entry point — role split (daemon vs. --mcp-server)
-    ArgvParser.cs                              # daemon-role + MCP-server-role argument tables, strict rejection
-    Role.cs                                    # enum: Daemon | McpServerWithStdio
-    DaemonHostFactory.cs                       # composes IHostBuilder → AddAutoContextEngine for the daemon role
-    McpServerHostFactory.cs                    # composes the stripped --mcp-server with-stdio host
-    StartupBanner.cs                           # ready-marker emission to stderr
+    Program.cs                                 # entry point — wires the System.CommandLine parser with a diagnostic prefix
+    EngineCommand.cs                           # RootCommand describing the CLI surface (the switches + daemon vs. --mcp-server role split; replaces the old ArgvParser/Role/StartupBanner trio)
+    DaemonHostFactory.cs                       # composes IHostBuilder → AddAutoContextEngine for the daemon role, with the unhandled-exception crash sinks
+    McpServerHostFactory.cs                    # composes the stripped --mcp-server with-stdio host (currently a stub — not yet implemented)
     Instructions/                              # bundled corpus — copied next to the binary,
       <curated *.instructions.md files>       # resolved via AppContext.BaseDirectory
                                                # (not embedded resources)
@@ -601,16 +672,41 @@ surfaces defined above; their per-file shape stays in their own
 documents and is not enumerated here.
 
 **One type per file.** Each `*.cs` filename above names exactly one
-top-level type (class, record, enum, or interface). Where a comment
-enumerates RPC methods after a `*Handlers.cs` filename — e.g.
-`WorkspaceHandlers.cs # Workspace.{Detect,Info}` — those are the
-*public methods* of the single `WorkspaceHandlers` class that
-`Rpc/RpcDispatcher.cs` binds into its method-name → delegate table,
-not separate types. The bundled-by-feature handler shape (one class
-per RPC family rather than one class per RPC method) is the
-deliberate trade-off: cohesion over file count, matched to the
-delegate-table dispatcher and to the rest of the codebase's
-vertical-feature folder axis.
+top-level type (class, record, enum, or interface). The RPC handlers
+are the deliberate exception: rather than a `*Handlers.cs` class per
+RPC family, the post-handshake methods are private handler methods on
+the single `Rpc/Policies/DispatchPolicy` class, split across partial
+files by family (`DispatchPolicy.cs`, `DispatchPolicy.Instructions.cs`,
+`DispatchPolicy.McpTools.cs`) and reached from its method-name →
+handler switch; `Rpc/RpcConnectionProcessor.cs` drives the per-frame
+loop against the active `IRpcConnectionPolicy`. The bundled-by-feature
+handler shape (one dispatch policy with partials per RPC family rather
+than one class per RPC method) is the deliberate trade-off: cohesion
+over file count, matched to the connection-policy dispatcher and to the
+rest of the codebase's vertical-feature folder axis.
+
+> **Renames since this plan was first written.** The source tree above
+> reflects the *current* code; several types were renamed or
+> reorganised after their phases landed. The historical commit-subject
+> rows in the phase tables below keep their original wording, so this
+> map bridges the two:
+>
+> - `WorkerManager` → `Workers/WorkerProcessService` (lazy spawn gate);
+>   `WorkerControlClient` → `Workers/WorkerConnectionProbe`; supervisor
+>   + task-dispatch responsibilities folded into `WorkerProcessService`
+>   / `WorkerProcessLauncher` and `Features/McpTools/McpToolsInvoker`.
+> - `HelloHandler` / `ShutdownHandler` and the per-family `*Handlers`
+>   classes (`WorkspaceHandlers`, `LogsHandlers`, `InstructionsHandlers`,
+>   `McpToolsHandlers`) → `Rpc/Policies/HandshakePolicy` +
+>   `DispatchPolicy` (partials); `RpcDispatcher` → `RpcConnectionProcessor`
+>   + `IRpcConnectionPolicy`.
+> - The engine registry moved out of `Lifecycle/` into its own
+>   `Registry/` tier; the `Mcp/` folder became `Features/McpTools/`.
+> - `AddAutoContextEngine.cs` → `EngineHostBuilderExtensions.cs` (the
+>   `AddAutoContextEngine` extension method name is unchanged);
+>   `ArgvParser` / `Role` / `StartupBanner` → `EngineCommand`;
+>   `LogRotator` → `LogRotationThresholds` (+ `LogVerbosity`);
+>   `FileExtensionsIndex` → `FlagExtensionIndex` (+ `FlagContributionIndex`).
 
 ### Runtime bundle layout (shipped artefact)
 
@@ -2154,7 +2250,7 @@ MCP-tool dispatch (Phase 7).
 | 3b | `feat(engine-core): validate mcp-tools-catalog at loader startup` | DONE |
 | 4 | `feat(build): generate workers.json from worker projects` | DONE |
 | 5 | ~~`feat(build): project mcp-tools.json from the registry`~~ | REMOVED — catalog is hand-authored |
-| 6 | `feat(engine-core): port WorkerManager with ensureRunning gate` | DONE |
+| 6 | `feat(engine-core): port WorkerManager with ensureRunning gate` | DONE (type since renamed to `WorkerProcessService`) |
 | 6b | `refactor(engine-core): use pipe probe for readiness` | DONE |
 | 7 | `feat(engine-core): serve McpTools.List over rpc` | DONE |
 | 8 | `feat(engine-core): load workers.json and wire the worker manager` | DONE |
@@ -2246,9 +2342,10 @@ manifests` (`workers.json`, `mcp-tools-registry.json`),
     it. The public `EnsureRunningAsync` surface is unchanged.
 
 **Code touch**:
-- `AutoContext.Engine.Core/Workers/WorkerManager` — port of
-  today's `WorkerManager` from `AutoContext.Mcp.Server/Workers/`
-  into the engine library. `ensureRunning(workerId)` gate unchanged.
+- `AutoContext.Engine.Core/Workers/WorkerProcessService` (ported as
+  `WorkerManager`, since renamed) — port of today's `WorkerManager`
+  from `AutoContext.Mcp.Server/Workers/` into the engine library.
+  `EnsureRunningAsync(workerId)` gate unchanged.
 - `Resources/workers.json` build generator — aggregates the
   per-worker `.autocontext-worker.json` descriptors under
   `src/AutoContext.Worker.*/` ({ `id`, `type`, `command` },
