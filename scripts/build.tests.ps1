@@ -333,22 +333,28 @@ $testCases = @(
         Name         = 'scripts/test.ps1 (all)'
         Script       = 'scripts/test.ps1'
         Arguments    = '-WhatIf'
-        ExpectOutput = @('Run TypeScript tests', 'dotnet test')
-        RejectOutput = @('Compile TypeScript', 'dotnet build')
+        ExpectOutput = @('Compile TypeScript', 'dotnet build', 'Run TypeScript tests', 'dotnet test')
     }
     @{
         Name         = 'scripts/test.ps1 TS'
         Script       = 'scripts/test.ps1'
         Arguments    = 'TS -WhatIf'
-        ExpectOutput = @('Run TypeScript tests')
-        RejectOutput = @('dotnet test')
+        ExpectOutput = @('Compile TypeScript', 'Run TypeScript tests')
+        RejectOutput = @('dotnet build', 'dotnet test')
     }
     @{
         Name         = 'scripts/test.ps1 DotNet'
         Script       = 'scripts/test.ps1'
         Arguments    = 'DotNet -WhatIf'
-        ExpectOutput = @('dotnet test')
-        RejectOutput = @('Run TypeScript tests')
+        ExpectOutput = @('dotnet build', 'dotnet test')
+        RejectOutput = @('Compile TypeScript', 'Run TypeScript tests')
+    }
+    @{
+        Name         = 'scripts/test.ps1 -NoCompile'
+        Script       = 'scripts/test.ps1'
+        Arguments    = '-NoCompile -WhatIf'
+        ExpectOutput = @('Run TypeScript tests', 'dotnet test')
+        RejectOutput = @('Compile TypeScript', 'dotnet build')
     }
     @{
         Name         = 'scripts/test.ps1 -Smoke (all)'

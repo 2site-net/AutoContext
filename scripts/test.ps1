@@ -6,36 +6,42 @@
     Run AutoContext tests (TypeScript and/or .NET; unit and/or smoke).
 
 .DESCRIPTION
-    Fast inner-loop wrapper that runs the TypeScript (vitest) and/or .NET
-    (dotnet test) unit suites by delegating to the AutoContext.Build module.
-    Pass -Smoke to instead stage the packaged extension layout and run the
-    smoke suites.
+    Inner-loop wrapper that compiles and runs the TypeScript (vitest) and/or
+    .NET (dotnet test) unit suites by delegating to the AutoContext.Build
+    module. Pass -Smoke to instead stage the packaged extension layout and run
+    the smoke suites.
 
-    NOTE: The unit suites run with `--no-build`, so they assume a prior
-    compile. Run scripts/compile.ps1 (or build.ps1) first if the output is
-    stale. The -Smoke path is self-staging: it runs the full Package -Local
-    pipeline (clean, version sync, compile/lint/test gate, and a
-    framework-dependent server copy) before the smoke suites, so it does not
-    assume a prior compile.
+    NOTE: By default the unit path compiles the selected stack(s) first, so
+    the `--no-build` test run never executes against stale output. Pass
+    -NoCompile to skip the compile when you know the output is already fresh
+    (e.g. immediately after scripts/compile.ps1 or build.ps1). The -Smoke path
+    is self-staging: it runs the full Package -Local pipeline (clean, version
+    sync, compile/lint/test gate, and a framework-dependent server copy)
+    before the smoke suites, so -NoCompile does not apply to it.
 
 .PARAMETER Target
     Which stack to test: TS (alias TypeScript), DotNet (alias .NET),
-    or All (default). Without -Smoke it scopes the unit suites. With -Smoke
-    the staging always builds both stacks (the packaged layout needs them);
-    Target then only selects which smoke suite runs: TS selects the VS Code
-    smoke suite, DotNet selects the .NET smoke suite.
+    or All (default). Without -Smoke it scopes the compile and the unit
+    suites. With -Smoke the staging always builds both stacks (the packaged
+    layout needs them); Target then only selects which smoke suite runs: TS
+    selects the VS Code smoke suite, DotNet selects the .NET smoke suite.
+
+.PARAMETER NoCompile
+    Skip the pre-test compile and run the unit suites against the existing
+    build output. Ignored when -Smoke is set (the smoke path always stages).
 
 .PARAMETER Smoke
     Stage the packaged extension layout (Package -Local) and run the smoke
     suites, scoped by Target. Replaces the unit-only run.
 
 .EXAMPLE
-    .\scripts\test.ps1                 # Unit tests, both stacks
-    .\scripts\test.ps1 TS              # TypeScript unit tests only
-    .\scripts\test.ps1 DotNet          # .NET unit tests only
-    .\scripts\test.ps1 -Smoke          # Unit + smoke, both stacks
-    .\scripts\test.ps1 TS -Smoke       # TS unit + VS Code smoke
-    .\scripts\test.ps1 DotNet -Smoke   # .NET unit + .NET smoke
+    .\scripts\test.ps1                 # Compile + unit tests, both stacks
+    .\scripts\test.ps1 TS              # Compile + unit tests, TypeScript only
+    .\scripts\test.ps1 DotNet          # Compile + unit tests, .NET only
+    .\scripts\test.ps1 -NoCompile      # Unit tests only (assume fresh build)
+    .\scripts\test.ps1 -Smoke          # Stage + smoke, both stacks
+    .\scripts\test.ps1 TS -Smoke       # Stage + VS Code smoke
+    .\scripts\test.ps1 DotNet -Smoke   # Stage + .NET smoke
     .\scripts\test.ps1 -WhatIf         # Preview
 #>
 
@@ -44,6 +50,8 @@ param(
     [Parameter(Position = 0)]
     [ValidateSet('All', 'TS', 'TypeScript', 'DotNet', '.NET')]
     [string]$Target = 'All',
+
+    [switch]$NoCompile,
 
     [switch]$Smoke
 )
@@ -62,6 +70,13 @@ if ($Smoke) {
     Invoke-Smoke -Context $context -Scope $Target -WhatIf:$WhatIfPreference
 }
 else {
+    # Compile first by default so the `--no-build` unit runs never test stale
+    # output. -NoCompile opts out when the build output is known to be fresh.
+    if (-not $NoCompile) {
+        if ($Target -in 'All', 'TS')     { Build-TypeScript -Context $context -WhatIf:$WhatIfPreference }
+        if ($Target -in 'All', 'DotNet') { Build-DotNet -Context $context -WhatIf:$WhatIfPreference }
+    }
+
     if ($Target -in 'All', 'TS')     { Test-TypeScript -Context $context -WhatIf:$WhatIfPreference }
     if ($Target -in 'All', 'DotNet') { Test-DotNet -Context $context -WhatIf:$WhatIfPreference }
 }
