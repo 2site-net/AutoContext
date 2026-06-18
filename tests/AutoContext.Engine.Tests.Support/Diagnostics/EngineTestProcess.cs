@@ -118,7 +118,7 @@ public sealed class EngineTestProcess : IAsyncDisposable
         if (!File.Exists(executablePath))
         {
             throw new FileNotFoundException(
-                "autocontext-engine binary not found. Run '.\\build.ps1 Compile DotNet' before running engine integration tests.",
+                "autocontext-engine binary not found. Run '.\\build.ps1 DotNet' before running engine integration tests.",
                 executablePath);
         }
 

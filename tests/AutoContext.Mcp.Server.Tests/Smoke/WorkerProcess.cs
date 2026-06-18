@@ -60,7 +60,7 @@ internal sealed class WorkerProcess : IAsyncDisposable
         if (!File.Exists(executablePath))
         {
             throw new FileNotFoundException(
-                $"Worker executable not found. Run '.\\build.ps1 Compile DotNet' before running smoke tests.",
+                $"Worker executable not found. Run '.\\build.ps1 DotNet' before running smoke tests.",
                 executablePath);
         }
 

@@ -12,7 +12,7 @@
 
 - **Do** route all compilation, testing, linting, and packaging through the AutoContext build tooling — never bare `npx vitest`, `npx tsc`, `dotnet build`, `dotnet test`, etc. The tooling configures paths, aliases, manifests, npm-install gating, and compilation order that bare invocations miss.
 - **Do** use the orchestrator `build.ps1` from the repository root as the canonical entry point; consult the **Build Commands** table below for the command for each task.
-- **Do** run `.\build.ps1 -Help` for the full list of actions, targets, and switches (e.g. `-Clean`, `-Local`, `-WhatIf`, `-RuntimeIdentifier`).
+- **Do** run `.\build.ps1 -Help` for the targets and switches (`TS`, `DotNet`, `-Clean`, `-WhatIf`), and the `scripts/*.ps1` wrappers (e.g. `scripts/package.ps1 -Help`) for packaging/publishing/tagging options like `-Local`, `-RuntimeIdentifier`, `All`.
 - **Don't** invoke `npx vitest`, `npx tsc`, `dotnet build`, `dotnet test`, or any other build/test tool directly — go through `build.ps1` or a `scripts/*.ps1` wrapper.
 
 ### Two-tier workflow

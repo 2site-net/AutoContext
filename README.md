@@ -100,10 +100,10 @@ orchestrator — it exposes every tool declared in the embedded
 ## Testing
 
 ```powershell
-./build.ps1                   # compile + unit tests (all)
-./build.ps1 Compile TS        # TypeScript compile + tests
-./build.ps1 Compile DotNet    # .NET compile + tests
-./build.ps1 Compile -NoTest   # compile only, skip unit tests
+./build.ps1                   # compile + format + unit tests (all)
+./build.ps1 TS                # TypeScript compile + tests
+./build.ps1 DotNet            # .NET compile + format + tests
+./scripts/compile.ps1         # compile only, skip tests + format
 ```
 
 ### VS Code Extension — Smoke Tests
@@ -111,7 +111,7 @@ orchestrator — it exposes every tool declared in the embedded
 Smoke tests launch a real VS Code instance, load the extension, and verify activation and command registration:
 
 ```powershell
-./build.ps1 Compile -Smoke
+./scripts/test.ps1 -Smoke
 ```
 
 A VS Code installation is downloaded automatically on the first run and cached
@@ -120,9 +120,9 @@ in `src/AutoContext.VsCode/.vscode-test/`.
 ## Building and Publishing the Extension
 
 ```powershell
-./build.ps1 Package                          # current platform
-./build.ps1 Package All                      # all 6 platforms
-./build.ps1 Package -RuntimeIdentifier win-x64
+./scripts/package.ps1                          # current platform
+./scripts/package.ps1 All                      # all 6 platforms
+./scripts/package.ps1 -RuntimeIdentifier win-x64
 ```
 
 Available targets: `win-x64`, `win-arm64`, `linux-x64`, `linux-arm64`, `osx-x64`, `osx-arm64`.
@@ -130,8 +130,8 @@ Available targets: `win-x64`, `win-arm64`, `linux-x64`, `linux-arm64`, `osx-x64`
 Publish to the VS Code Marketplace and [Open VSX](https://open-vsx.org/) registry:
 
 ```powershell
-./build.ps1 Publish           # current platform
-./build.ps1 Publish All       # all 6 platforms
+./scripts/publish.ps1           # current platform
+./scripts/publish.ps1 All       # all 6 platforms
 ```
 
 Publishing requires two Personal Access Tokens set as environment variables:
@@ -143,11 +143,11 @@ Publishing requires two Personal Access Tokens set as environment variables:
 
 ## Releasing
 
-The `Tag` action bumps all version numbers, compiles, tests, commits, and creates an annotated git tag in one step:
+The `tag.ps1` wrapper bumps all version numbers, compiles, tests, commits, and creates an annotated git tag in one step:
 
 ```powershell
-./build.ps1 Tag 0.6.0           # bump to 0.6.0, compile, test, commit, tag
-./build.ps1 Tag 0.6.0 -WhatIf   # dry-run — shows what would happen without changing anything
+./scripts/tag.ps1 0.6.0           # bump to 0.6.0, compile, test, commit, tag
+./scripts/tag.ps1 0.6.0 -WhatIf   # dry-run — shows what would happen without changing anything
 ```
 
 The action:

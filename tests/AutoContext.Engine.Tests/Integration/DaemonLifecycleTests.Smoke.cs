@@ -25,7 +25,7 @@ using Xunit.Sdk;
 /// harness up; subsequent phases extend it with workers and
 /// per-pipe payload assertions. Gated with the repository's
 /// <c>Category=Smoke</c> trait so it runs under
-/// <c>.\build.ps1 Compile -Smoke DotNet</c> and stays out of the
+/// <c>.\scripts\test.ps1 -Smoke DotNet</c> and stays out of the
 /// default unit-test pass.
 /// </remarks>
 [Trait("Category", "Smoke")]

@@ -44,7 +44,7 @@ using AutoContext.Framework.Pipes;
 /// </para>
 /// <para>
 /// Gated with the repository's <c>Category=Smoke</c> trait so it runs under
-/// <c>.\build.ps1 Compile -Smoke DotNet</c> and stays out of the default
+/// <c>.\scripts\test.ps1 -Smoke DotNet</c> and stays out of the default
 /// unit-test pass.
 /// </para>
 /// </remarks>
@@ -68,7 +68,7 @@ public sealed class McpToolDispatchTests
         Assert.True(
             File.Exists(driverPath),
             $"Test-driver worker binary not found at '{driverPath}'. "
-            + "Run '.\\build.ps1 Compile DotNet' before running engine integration tests.");
+            + "Run '.\\build.ps1 DotNet' before running engine integration tests.");
 
         // Declared before the engine so they dispose after it exits.
         using var resourcesRoot = CreateResourcesOverlay(driverPath);

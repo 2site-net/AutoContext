@@ -18,8 +18,8 @@ using ModelContextProtocol.Protocol;
 /// </summary>
 /// <remarks>
 /// Gated by the <c>Category=Smoke</c> trait; excluded from the default
-/// <c>.\build.ps1 Compile DotNet</c> run and invoked explicitly via
-/// <c>.\build.ps1 Compile -Smoke DotNet</c>.
+/// <c>.\build.ps1 DotNet</c> run and invoked explicitly via
+/// <c>.\scripts\test.ps1 -Smoke DotNet</c>.
 /// </remarks>
 [Trait("Category", "Smoke")]
 public sealed class EndToEndSmokeTests

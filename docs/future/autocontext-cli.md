@@ -779,7 +779,7 @@ Shape:
 - **Verbs land alongside engine RPCs.** Each verb in this doc lands
   in the same release as the engine RPC it consumes, with the
   round-trip test that exercises both sides.
-- **Distribution wiring.** `build.ps1 Package` produces both
+- **Distribution wiring.** `scripts/package.ps1` produces both
   binaries in the per-RID staging layout; per-platform packaging
   flattens the matching RID subtree to `cli/` and `engine/` in the
   shipped artefact. Integration tests assert `autocontext-engine`

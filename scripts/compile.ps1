@@ -10,9 +10,9 @@
     .NET solution by delegating to the AutoContext.Build module.
 
     NOTE: This is COMPILE-ONLY and intentionally differs from
-    `build.ps1 Compile`, which is a composite that also verifies .NET
+    `build.ps1`, which is a composite that also verifies .NET
     formatting and runs unit tests. Use this script for quick syntax checks;
-    run `build.ps1 Compile` (or scripts/test.ps1 + scripts/format.ps1)
+    run `build.ps1` (or scripts/test.ps1 + scripts/format.ps1)
     before declaring work done.
 
 .PARAMETER Target

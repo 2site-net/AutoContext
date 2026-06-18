@@ -22,7 +22,7 @@ using Xunit.Sdk;
 /// workspace and a shared <c>--cache-root</c>, hard-kills one, then
 /// shuts the survivor down gracefully and asserts the sweep outcome.
 /// Gated with the repository's <c>Category=Smoke</c> trait so it runs
-/// under <c>.\build.ps1 Compile -Smoke DotNet</c> and stays out of
+/// under <c>.\scripts\test.ps1 -Smoke DotNet</c> and stays out of
 /// the default unit-test pass.
 /// </remarks>
 [Trait("Category", "Smoke")]

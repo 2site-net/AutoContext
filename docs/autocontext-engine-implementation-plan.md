@@ -93,7 +93,7 @@
   tests; no phase defers its tests to a later phase.
 - **Each phase compiles and tests green at its boundary** so a
   reviewer can cherry-pick the branch at any phase boundary and the
-  full `.\build.ps1 Prepare` is green.
+  full `.\scripts\prepare.ps1` is green.
 - **Re-read the design before every phase.** Before opening a phase
   branch, re-read the sections of
   [`future/autocontext-engine.md`](./future/autocontext-engine.md)
@@ -123,7 +123,7 @@
   commits (one per logical sub-step — e.g. project split, shim
   removal, registration, rename), not one mega-commit. Hard rule:
   every individual commit compiles green and passes its tests via
-  `.\build.ps1 Prepare`; if a split can't satisfy that, the split
+  `.\scripts\prepare.ps1`; if a split can't satisfy that, the split
   is wrong, not the rule. Merge the PR with a merge commit or
   "Rebase and merge", never "Squash and merge" — squashing destroys
   the per-step bisect granularity that justified the focused
@@ -228,7 +228,7 @@ other reason still need a real second impl.
   Worker test projects are unchanged.
 - **TS tests** stay in Vitest, in the same layout
   `AutoContext.Nodejs.Core` and `AutoContext.VsCode` already use.
-- **Smoke tests** route through `build.ps1 Compile -Smoke` as they do
+- **Smoke tests** route through `scripts/test.ps1 -Smoke` as they do
   today.
 
 ## Target structure (end-state after Phase 16)
@@ -760,7 +760,7 @@ instructions-tooling project is created in the phase that first uses it (see
   only; packaging stays out until Phase 13).
 
 **Tests**:
-- Solution builds via `.\build.ps1 Compile`.
+- Solution builds via `.\build.ps1`.
 - All existing `Worker.*` tests and the split-up Framework substrate
   tests stay green after the rename + consolidation (no behaviour
   change — the diff is purely namespace + project-graph).
@@ -2584,7 +2584,7 @@ consuming the client (Phase 15); CLI verb implementations
 
 **Status**: Not started.
 
-**Goal**: `build.ps1 Package` emits per-RID engine staging under
+**Goal**: `scripts/package.ps1` emits per-RID engine staging under
 `out/engine/<rid>/...`; per-platform packaging (VSIX, plugin
 release, GitHub-release tarball) selects the matching RID and
 copies the flat `engine/` subtree into the shipped artefact. The
@@ -2595,8 +2595,8 @@ without any host-supplied path.
 the per-platform packaging note (`vsce package --target <target>`).
 
 **Code touch**:
-- `build.ps1` — new actions for per-RID engine publish
-  (`dotnet publish -r <rid> --self-contained`), per-worker
+- `scripts/package.ps1` / `AutoContext.Build` module — per-RID engine
+  publish (`dotnet publish -r <rid> --self-contained`), per-worker
   self-contained publish into `Workers/<id>/`, manifest copy
   (`Instructions/`, `Resources/`), per-platform packaging that
   selects one RID's staging into one VSIX / one plugin release /
@@ -2612,7 +2612,7 @@ the per-platform packaging note (`vsce package --target <target>`).
   runtimes from each other and from the engine.
 
 **Tests**:
-- `build.ps1 Package -Local` per RID succeeds.
+- `scripts/package.ps1 -Local` per RID succeeds.
 - A packaged engine binary started inside its staging dir resolves
   every side-car (manifest fixture for each).
 - Per-platform VSIX contains the right RID's binaries and no others
@@ -2680,7 +2680,7 @@ LM tools dial the engine over the four pipes.
 - Extension Vitest suites: every replaced module's test coverage
   migrates onto `EngineDaemonManager` fakes / engine-in-process fixtures.
   No coverage drops below the replaced module's bar.
-- `build.ps1 Compile -Smoke` (the VS Code extension smoke test) runs
+- `scripts/test.ps1 -Smoke` (the VS Code extension smoke test) runs
   end-to-end: extension activates, spawns the engine, tree view
   populates, an instruction toggle round-trips.
 - Cross-window scenario: two VS Code windows on the same workspace

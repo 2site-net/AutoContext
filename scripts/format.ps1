@@ -7,7 +7,7 @@
 
 .DESCRIPTION
     Inner-loop wrapper that runs the .NET format gate by delegating to the
-    AutoContext.Build module. This is the same gate `build.ps1 Compile` runs
+    AutoContext.Build module. This is the same gate `build.ps1` runs
     by default; run it standalone for a quick format check. TypeScript linting
     is not wired up yet, so this covers .NET only.
 

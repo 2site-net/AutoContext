@@ -3319,7 +3319,7 @@ SessionStart hook (no VS Code extension running, no PATH guarantee).
 Decision:
 
 - `autocontext-engine` is published per-RID by `dotnet publish -r <rid>
-  --self-contained` from `build.ps1 Package`. No Node runtime is
+  --self-contained` from `scripts/package.ps1`. No Node runtime is
   bundled; the engine and every subcommand are pure .NET.
 - **Supported RIDs:** `win-x64`, `win-arm64`, `linux-x64`,
   `linux-arm64`, `osx-x64`, `osx-arm64`. Resolved at runtime from

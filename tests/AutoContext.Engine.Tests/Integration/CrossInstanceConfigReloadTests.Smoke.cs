@@ -34,7 +34,7 @@ using AutoContext.Framework.Pipes;
 /// </para>
 /// <para>
 /// Gated with the repository's <c>Category=Smoke</c> trait so it
-/// runs under <c>.\build.ps1 Compile -Smoke DotNet</c> and stays out
+/// runs under <c>.\scripts\test.ps1 -Smoke DotNet</c> and stays out
 /// of the default unit-test pass.
 /// </para>
 /// </remarks>

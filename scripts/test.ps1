@@ -11,10 +11,10 @@
     Pass -Smoke to also run the smoke suites.
 
     NOTE: All .NET suites run with `--no-build`, so they assume a prior
-    compile. Run scripts/compile.ps1 (or build.ps1 Compile) first if the
+    compile. Run scripts/compile.ps1 (or build.ps1) first if the
     output is stale. The smoke suites additionally require the packaged
-    extension layout to be staged (e.g. via `build.ps1 Compile -Smoke` or
-    `scripts/package.ps1 -Local`); this wrapper runs them but does not stage.
+    extension layout to be staged (e.g. via `scripts/package.ps1 -Local`);
+    this wrapper runs them but does not stage.
 
 .PARAMETER Target
     Which stack to test: TS (alias TypeScript), DotNet (alias .NET),

@@ -38,7 +38,7 @@ jobs:
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
-        run: pwsh ./build.ps1 Publish All
+        run: pwsh ./scripts/publish.ps1 All
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
