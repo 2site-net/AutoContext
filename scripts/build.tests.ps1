@@ -361,14 +361,14 @@ $testCases = @(
         Script       = 'scripts/test.ps1'
         Arguments    = 'TS -Smoke -WhatIf'
         ExpectOutput = @('Run TypeScript tests', 'Run VS Code smoke tests')
-        RejectOutput = @('dotnet test')
+        RejectOutput = @('dotnet test --no-build \(smoke\)')
     }
     @{
         Name         = 'scripts/test.ps1 DotNet -Smoke'
         Script       = 'scripts/test.ps1'
         Arguments    = 'DotNet -Smoke -WhatIf'
         ExpectOutput = @('dotnet test --no-build \(unit\)', 'dotnet test --no-build \(smoke\)')
-        RejectOutput = @('Run TypeScript tests', 'Run VS Code smoke tests')
+        RejectOutput = @('Run VS Code smoke tests')
     }
     @{
         Name         = 'scripts/format.ps1'

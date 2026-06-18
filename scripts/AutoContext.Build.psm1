@@ -552,8 +552,9 @@ function Test-DotNetSmoke {
 
     Write-Section 'Smoke-test .NET'
 
-    # Caller (Invoke-Build -Smoke) is responsible for compiling and staging
-    # the packaged extension layout before invoking this function.
+    # The caller (Invoke-Smoke, reached via scripts/test.ps1 -Smoke) is
+    # responsible for compiling and staging the packaged extension layout
+    # before invoking this function.
 
     $smokeTestProjects =
         Get-ChildItem (Join-Path $Context.RepoRoot 'tests') -Recurse -File -Filter '*.Smoke.cs' |
@@ -593,8 +594,9 @@ function Test-VsCodeSmoke {
 
     Write-Section 'Smoke-test VS Code extension'
 
-    # Caller (Invoke-Build -Smoke) is responsible for compiling and staging
-    # the packaged extension layout before invoking this function.
+    # The caller (Invoke-Smoke, reached via scripts/test.ps1 -Smoke) is
+    # responsible for compiling and staging the packaged extension layout
+    # before invoking this function.
 
     if ($PSCmdlet.ShouldProcess('vscode-test', 'Run VS Code smoke tests')) {
         Assert-ExternalCommand 'npx'
@@ -1082,46 +1084,9 @@ function Invoke-Build {
     param(
         [Parameter(Mandatory)][psobject]$Context,
         [string]$Scope = 'All',
-        [switch]$Smoke,
         [switch]$NoLint,
         [switch]$NoTest
     )
-
-    if ($Smoke) {
-        # Smoke exercises the packaged extension layout, so we always compile
-        # and stage both stacks regardless of $Scope. $Scope only narrows
-        # which smoke suite(s) actually run at the end.
-        Invoke-Clean -Context $Context
-
-        Sync-ProjectVersions -Context $Context
-
-        Write-Header 'Compile'
-        Build-TypeScript -Context $Context
-        Build-DotNet -Context $Context
-
-        if (-not $NoLint -and $Scope -in 'All', 'DotNet') {
-            Write-Header 'Lint'
-            Test-DotNetFormat -Context $Context
-        }
-
-        if (-not $NoTest) {
-            Write-Header 'Test'
-            if ($Scope -in 'All', 'TS')     { Test-TypeScript -Context $Context }
-            if ($Scope -in 'All', 'DotNet') { Test-DotNet -Context $Context }
-        }
-
-        Write-Header 'Prepare'
-        Copy-AssetsToExtensionFolder -Context $Context
-
-        Write-Header 'Package'
-        Copy-NodeJsToServersFolder -Context $Context
-        Copy-DotNetToServersFolder -Context $Context
-
-        Write-Header 'Smoke Test'
-        if ($Scope -in 'All', 'TS')     { Test-VsCodeSmoke -Context $Context }
-        if ($Scope -in 'All', 'DotNet') { Test-DotNetSmoke -Context $Context }
-        return
-    }
 
     Write-Header 'Compile'
     if ($Scope -in 'All', 'TS')     { Build-TypeScript -Context $Context }
@@ -1195,6 +1160,25 @@ function Invoke-Package {
         Build-DotNetPackage -Context $Context -Rid $rid
         Build-VscePackage -Context $Context -Rid $rid
     }
+}
+
+function Invoke-Smoke {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory)][psobject]$Context,
+        [string]$Scope = 'All'
+    )
+
+    # Smoke runs against the packaged extension layout, so stage both stacks
+    # via the same Package -Local pipeline used for local F5 (clean, version
+    # sync, the full compile/lint/test gate, asset copy, and a
+    # framework-dependent server copy). $Scope only narrows which smoke
+    # suite(s) actually run at the end.
+    Invoke-Package -Context $Context -Local
+
+    Write-Header 'Smoke Test'
+    if ($Scope -in 'All', 'TS')     { Test-VsCodeSmoke -Context $Context }
+    if ($Scope -in 'All', 'DotNet') { Test-DotNetSmoke -Context $Context }
 }
 
 function Invoke-Publish {

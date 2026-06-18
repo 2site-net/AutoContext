@@ -925,7 +925,7 @@
     "compile": "pwsh ../../scripts/compile.ps1 TS",
     "watch": "tsc -b --watch ./tsconfig.json",
     "test": "pwsh ../../build.ps1 TS",
-    "test:smoke": "pwsh ../../scripts/package.ps1 -Local && pwsh ../../scripts/test.ps1 -Smoke"
+    "test:smoke": "pwsh ../../scripts/test.ps1 -Smoke"
   },
   "dependencies": {
     "autocontext-nodejs-core": "file:../AutoContext.Nodejs.Core"

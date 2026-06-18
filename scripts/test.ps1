@@ -8,21 +8,26 @@
 .DESCRIPTION
     Fast inner-loop wrapper that runs the TypeScript (vitest) and/or .NET
     (dotnet test) unit suites by delegating to the AutoContext.Build module.
-    Pass -Smoke to also run the smoke suites.
+    Pass -Smoke to instead stage the packaged extension layout and run the
+    smoke suites.
 
-    NOTE: All .NET suites run with `--no-build`, so they assume a prior
-    compile. Run scripts/compile.ps1 (or build.ps1) first if the
-    output is stale. The smoke suites additionally require the packaged
-    extension layout to be staged (e.g. via `scripts/package.ps1 -Local`);
-    this wrapper runs them but does not stage.
+    NOTE: The unit suites run with `--no-build`, so they assume a prior
+    compile. Run scripts/compile.ps1 (or build.ps1) first if the output is
+    stale. The -Smoke path is self-staging: it runs the full Package -Local
+    pipeline (clean, version sync, compile/lint/test gate, and a
+    framework-dependent server copy) before the smoke suites, so it does not
+    assume a prior compile.
 
 .PARAMETER Target
     Which stack to test: TS (alias TypeScript), DotNet (alias .NET),
-    or All (default). Scopes both the unit and smoke suites: TS selects the
-    VS Code smoke suite, DotNet selects the .NET smoke suite.
+    or All (default). Without -Smoke it scopes the unit suites. With -Smoke
+    the staging always builds both stacks (the packaged layout needs them);
+    Target then only selects which smoke suite runs: TS selects the VS Code
+    smoke suite, DotNet selects the .NET smoke suite.
 
 .PARAMETER Smoke
-    Also run the smoke suites after the unit suites, scoped by Target.
+    Stage the packaged extension layout (Package -Local) and run the smoke
+    suites, scoped by Target. Replaces the unit-only run.
 
 .EXAMPLE
     .\scripts\test.ps1                 # Unit tests, both stacks
@@ -53,10 +58,10 @@ if ($Target -eq '.NET')       { $Target = 'DotNet' }
 
 $context = Initialize-BuildContext -RepoRoot (Split-Path $PSScriptRoot -Parent)
 
-if ($Target -in 'All', 'TS')     { Test-TypeScript -Context $context -WhatIf:$WhatIfPreference }
-if ($Target -in 'All', 'DotNet') { Test-DotNet -Context $context -WhatIf:$WhatIfPreference }
-
 if ($Smoke) {
-    if ($Target -in 'All', 'TS')     { Test-VsCodeSmoke -Context $context -WhatIf:$WhatIfPreference }
-    if ($Target -in 'All', 'DotNet') { Test-DotNetSmoke -Context $context -WhatIf:$WhatIfPreference }
+    Invoke-Smoke -Context $context -Scope $Target -WhatIf:$WhatIfPreference
+}
+else {
+    if ($Target -in 'All', 'TS')     { Test-TypeScript -Context $context -WhatIf:$WhatIfPreference }
+    if ($Target -in 'All', 'DotNet') { Test-DotNet -Context $context -WhatIf:$WhatIfPreference }
 }
