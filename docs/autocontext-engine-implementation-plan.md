@@ -2143,7 +2143,7 @@ MCP-tool dispatch (Phase 7).
 
 ## Phase 7 — MCP tool catalog, dispatch, and worker manager
 
-**Status**: Not started.
+**Status**: Completed on branch `features/mcp-tools-catalog-and-dispatch`.
 
 | # | Commit subject | State |
 |---|---|---| 
@@ -2161,7 +2161,7 @@ MCP-tool dispatch (Phase 7).
 | 8b | `feat(engine-core): serve McpTools.Invoke over rpc` | DONE |
 | 8c | `feat(engine-core): enrich McpTools.Invoke with editorconfig` | DONE |
 | 9 | `test(engine): integration test for mcp tool dispatch over rpc` | DONE |
-| 10 | `docs(plan): mark Phase 7 complete` | Not started |
+| 10 | `docs(plan): mark Phase 7 complete` | DONE |
 
 **Goal**: engine absorbs today's `AutoContext.Mcp.Server` worker
 dispatcher. `McpTools.List` and `McpTools.Invoke` answer over the
