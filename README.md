@@ -29,7 +29,6 @@ Tools and instructions are grouped into categories and managed from dedicated si
 AutoContext.slnx                          # Solution file
 servers.json                              # Server manifest (id + name + runtime kind for the orchestrator and each worker)
 version.json                              # Canonical version (single source of truth)
-versionize.ps1                            # Version stamping tool (Sync, Export, SyncAndExport)
 src/AutoContext.Mcp.Abstractions/         # IMcpTask contract shared between the orchestrator and every worker
 src/AutoContext.Framework/                # .NET framework primitives shared by the orchestrator and every .NET worker:
                                           # named-pipe transport (Pipes/), structured logging (Logging/), the worker-side
@@ -172,7 +171,7 @@ The action:
 2. Rejects versions lower than the current version in `version.json`.
 3. Requires a clean working tree (no uncommitted changes).
 4. Compiles and tests the entire solution — the tag is only created if everything passes.
-5. Updates `version.json`, then runs `versionize.ps1 Sync` to stamp all `package.json`, `package-lock.json`, and `.csproj` files, and `Export` to generate `version.ts` constants for Node.js servers. Commits the result.
+5. Updates `version.json`, then stamps that version into all `package.json`, `package-lock.json`, and `.csproj` files and generates the `version.ts` constants for Node.js servers. Commits the result.
 6. Creates an annotated tag (`Release X.Y.Z`).
 
 If the requested version already matches the current version (e.g. after a failed push), the bump and commit are skipped and only the tag is created.

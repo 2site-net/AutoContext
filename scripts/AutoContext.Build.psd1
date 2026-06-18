@@ -73,7 +73,8 @@ FunctionsToExport = 'Initialize-BuildContext', 'Build-TypeScript', 'Build-DotNet
                'Test-TypeScript', 'Test-DotNet', 'Test-DotNetFormat', 
                'Test-DotNetSmoke', 'Test-VsCodeSmoke', 'Invoke-Clean', 
                'Invoke-Build', 'Invoke-Prepare', 'Invoke-Package', 'Invoke-Smoke', 
-               'Invoke-Publish', 'Invoke-Tag'
+               'Invoke-Publish', 'Invoke-Tag', 'Export-VersionConstant', 
+               'Sync-ProjectFileVersions'
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
 CmdletsToExport = @()

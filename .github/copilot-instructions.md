@@ -61,4 +61,4 @@ Some AutoContext MCP tools are trained against production-code patterns and prod
 ## Versioning
 
 - **Don't** modify version numbers anywhere in the codebase without explicit user permission. This includes (but is not limited to) `version.json`, `package.json` `version` fields, `.csproj` `<Version>` / `<VersionPrefix>` properties, instruction-file frontmatter `name: "<id> (vX.Y.Z)"` strings, and any other semver string baked into source.
-- **Do** treat version bumps as a deliberate, user-driven action performed via `versionize.ps1` — never opportunistically as part of an unrelated change.
+- **Do** treat version bumps as a deliberate, user-driven action performed via `scripts/versionize.ps1` — never opportunistically as part of an unrelated change.

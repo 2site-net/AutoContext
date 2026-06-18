@@ -52,7 +52,6 @@ function Initialize-BuildContext {
     $extensionVersion = if (Test-Path $versionJsonPath) {
         (Get-Content $versionJsonPath -Raw | ConvertFrom-Json).version
     }
-    $versionizePath = Join-Path $RepoRoot 'versionize.ps1'
 
     # Read server manifest (defines which servers to package and their type)
     $serversJsonPath = Join-Path $RepoRoot 'servers.json'
@@ -112,7 +111,6 @@ function Initialize-BuildContext {
         PublishDir         = $publishDir
         VersionJsonPath    = $versionJsonPath
         ExtensionVersion   = $extensionVersion
-        VersionizePath     = $versionizePath
         ServersJsonPath    = $serversJsonPath
         ServerManifest     = $serverManifest
         NodeServers        = $nodeServers
@@ -285,6 +283,143 @@ function Compare-SemVer {
 
 # ── Version sync ─────────────────────────────────────────────────────────────
 
+function Get-CanonicalVersion {
+    <#
+    .SYNOPSIS
+        Reads the canonical version string fresh from version.json. Read on
+        each call (not the cached $Context.ExtensionVersion) so callers that
+        have just rewritten version.json — e.g. Update-ProjectVersion during
+        tagging — stamp the new value.
+    #>
+    [OutputType([string])]
+    param([Parameter(Mandatory)][psobject]$Context)
+
+    if (-not (Test-Path $Context.VersionJsonPath)) {
+        throw "version.json not found at $($Context.VersionJsonPath)"
+    }
+
+    $version = (Get-Content $Context.VersionJsonPath -Raw | ConvertFrom-Json).version
+    if (-not $version) {
+        throw 'version.json does not contain a "version" property.'
+    }
+
+    return $version
+}
+
+function Export-VersionConstant {
+    <#
+    .SYNOPSIS
+        Writes a TypeScript `export const VERSION` constant carrying the
+        canonical version to $TargetPath. A relative path resolves against the
+        current working directory; an absolute path is used as-is.
+    #>
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory)][psobject]$Context,
+        [Parameter(Mandatory)][string]$TargetPath
+    )
+
+    $version = Get-CanonicalVersion -Context $Context
+
+    $resolvedPath = if ([System.IO.Path]::IsPathRooted($TargetPath)) {
+        $TargetPath
+    }
+    else {
+        Join-Path (Get-Location).Path $TargetPath
+    }
+
+    if ($PSCmdlet.ShouldProcess($resolvedPath, "Write version constant $version")) {
+        $content = "export const VERSION = `"$version`";" + [System.Environment]::NewLine
+        Set-Content -LiteralPath $resolvedPath -Value $content -NoNewline
+        Write-Host "Exported version $version -> $resolvedPath"
+    }
+}
+
+function Sync-ProjectFileVersions {
+    <#
+    .SYNOPSIS
+        Stamps the canonical version into every package.json,
+        package-lock.json, and .csproj discovered from the repository and the
+        solution.
+    #>
+    [CmdletBinding(SupportsShouldProcess)]
+    param([Parameter(Mandatory)][psobject]$Context)
+
+    $version = Get-CanonicalVersion -Context $Context
+    $repoRoot = $Context.RepoRoot
+
+    if (-not $PSCmdlet.ShouldProcess('project files', "Stamp version $version")) { return }
+
+    # ── Discover npm directories (any src/*/ with package.json) ──
+    $npmDirs = @(Get-ChildItem (Join-Path $repoRoot 'src') -Filter 'package.json' -Recurse -Depth 1 |
+        ForEach-Object { $_.Directory.FullName })
+
+    # ── Pass 1: update package.json files and collect our local package names ──
+    $ourNames = @{}
+    foreach ($dir in $npmDirs) {
+        $pkgPath = Join-Path $dir 'package.json'
+        $dirName = Split-Path $dir -Leaf
+
+        if (Test-Path $pkgPath) {
+            $raw = Get-Content $pkgPath -Raw
+            $pkgJson = $raw | ConvertFrom-Json -AsHashtable
+            if ($pkgJson.ContainsKey('name')) { $ourNames[$pkgJson['name']] = $true }
+
+            $updated = $raw -replace '"version":\s*"[^"]*"', "`"version`": `"$version`""
+            if ($updated -ne $raw) {
+                Set-Content $pkgPath $updated -NoNewline
+                Write-Host "Synced $dirName/package.json -> $version"
+            }
+        }
+    }
+
+    # ── Pass 2: update package-lock.json files ──
+    # Each version slot in a lockfile (root, packages[""], packages["../<sibling>"])
+    # is preceded by a "name": "<our-package>" entry. Anchoring on our known names
+    # avoids touching transitive deps that may coincidentally share the version.
+    foreach ($dir in $npmDirs) {
+        $lockPath = Join-Path $dir 'package-lock.json'
+        $dirName = Split-Path $dir -Leaf
+
+        if (-not (Test-Path $lockPath)) { continue }
+
+        $lockRaw = Get-Content $lockPath -Raw
+        $original = $lockRaw
+
+        foreach ($name in $ourNames.Keys) {
+            $pattern = [regex]::new(
+                '("name":\s*"' + [regex]::Escape($name) + '",\s*\r?\n\s*"version":\s*")[^"]*(")')
+            $lockRaw = $pattern.Replace($lockRaw, "`${1}$version`${2}")
+        }
+
+        if ($lockRaw -ne $original) {
+            Set-Content $lockPath $lockRaw -NoNewline
+            Write-Host "Synced $dirName/package-lock.json -> $version"
+        }
+    }
+
+    # ── Update .NET projects discovered from the solution ──
+    foreach ($projectPath in $Context.DotnetProjects) {
+        $projectName = [System.IO.Path]::GetFileNameWithoutExtension($projectPath)
+        if (-not (Test-Path $projectPath)) { continue }
+
+        $raw = Get-Content $projectPath -Raw
+
+        if ($raw -match '<Version>[^<]*</Version>') {
+            $updated = $raw -replace '<Version>[^<]*</Version>', "<Version>$version</Version>"
+        }
+        else {
+            $propGroupRegex = [regex]::new('(<PropertyGroup>)(\r?\n)')
+            $updated = $propGroupRegex.Replace($raw, "`${1}`${2}    <Version>$version</Version>`${2}", 1)
+        }
+
+        if ($updated -ne $raw) {
+            Set-Content $projectPath $updated -NoNewline
+            Write-Host "Synced $projectName.csproj -> $version"
+        }
+    }
+}
+
 function Sync-ProjectVersions {
     <#
     .SYNOPSIS
@@ -296,13 +431,11 @@ function Sync-ProjectVersions {
     param([Parameter(Mandatory)][psobject]$Context)
 
     if ($PSCmdlet.ShouldProcess('version.json', 'Sync versions to all projects')) {
-        & $Context.VersionizePath Sync
-        if ($LASTEXITCODE -ne 0) { throw 'versionize.ps1 Sync failed.' }
+        Sync-ProjectFileVersions -Context $Context
 
         foreach ($server in $Context.NodeServers) {
             $versionTsPath = Join-Path $Context.RepoRoot 'src' $server.name 'src' 'version.ts'
-            & $Context.VersionizePath Export $versionTsPath
-            if ($LASTEXITCODE -ne 0) { throw "versionize.ps1 Export failed for $($server.name)." }
+            Export-VersionConstant -Context $Context -TargetPath $versionTsPath
         }
     }
 }
@@ -444,8 +577,7 @@ function Build-TypeScript {
 
                 $versionTsPath = Join-Path $serverDir 'src' 'version.ts'
                 Write-Status "Generating $serverLabel version..." 'INFO'
-                & $Context.VersionizePath Export $versionTsPath
-                if ($LASTEXITCODE -ne 0) { throw "$serverLabel version generation failed." }
+                Export-VersionConstant -Context $Context -TargetPath $versionTsPath
 
                 Write-Status "Compiling $serverLabel (src + tests)..." 'INFO'
                 npx tsc -b ./tsconfig.json
@@ -1066,13 +1198,11 @@ function Update-ProjectVersion {
         Set-Content $Context.VersionJsonPath $raw -NoNewline
         Write-Status "version.json -> $NewVersion" 'OK'
 
-        & $Context.VersionizePath Sync
-        if ($LASTEXITCODE -ne 0) { throw 'versionize.ps1 Sync failed.' }
+        Sync-ProjectFileVersions -Context $Context
 
         foreach ($server in $Context.NodeServers) {
             $versionTsPath = Join-Path $Context.RepoRoot 'src' $server.name 'src' 'version.ts'
-            & $Context.VersionizePath Export $versionTsPath
-            if ($LASTEXITCODE -ne 0) { throw "versionize.ps1 Export failed for $($server.name)." }
+            Export-VersionConstant -Context $Context -TargetPath $versionTsPath
         }
     }
 }

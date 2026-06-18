@@ -456,6 +456,28 @@ $testCases = @(
         ErrorPattern = 'less than current'
     }
 
+    # ── versionize ───────────────────────────────────────────────────────
+
+    @{
+        Name         = 'scripts/versionize.ps1 Sync'
+        Script       = 'scripts/versionize.ps1'
+        Arguments    = 'Sync -WhatIf'
+        ExpectOutput = @('Stamp version')
+    }
+    @{
+        Name         = 'scripts/versionize.ps1 Export'
+        Script       = 'scripts/versionize.ps1'
+        Arguments    = 'Export scratch/_versionize_test.ts -WhatIf'
+        ExpectOutput = @('Write version constant')
+    }
+    @{
+        Name         = 'scripts/versionize.ps1 Export without path (error)'
+        Script       = 'scripts/versionize.ps1'
+        Arguments    = 'Export -WhatIf'
+        ExpectError  = $true
+        ErrorPattern = 'requires a target path'
+    }
+
     # ── Help ─────────────────────────────────────────────────────────────
 
     @{
