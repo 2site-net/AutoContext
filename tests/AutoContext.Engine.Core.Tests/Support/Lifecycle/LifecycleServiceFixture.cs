@@ -82,7 +82,8 @@ public sealed class LifecycleServiceFixture : IAsyncDisposable
             CreateInstructionsFileReader(),
             CreateInstructionsSearchService(),
             CreateInstructionsBroadcaster(),
-            CreateMcpToolsRegistryAccessor());
+            CreateMcpToolsRegistryAccessor(),
+            CreateMcpToolsInvoker());
 
         // Track in reverse dependency order so Dispose tears the
         // service down first, then the watchdog, then the lifetime.
@@ -125,6 +126,9 @@ public sealed class LifecycleServiceFixture : IAsyncDisposable
 
     internal static IMcpToolsRegistryAccessor CreateMcpToolsRegistryAccessor() =>
         new FakeMcpToolsRegistryAccessor();
+
+    internal static Lazy<IMcpToolsInvoker> CreateMcpToolsInvoker() =>
+        new(new FakeMcpToolsInvoker());
 
     internal static IInstructionsOverridesAccessor CreateInstructionsOverridesAccessor() =>
         new FakeInstructionsOverridesAccessor();

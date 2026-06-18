@@ -121,7 +121,8 @@ public sealed class LifecycleServiceTests(
                 LifecycleServiceFixture.CreateInstructionsFileReader(),
                 LifecycleServiceFixture.CreateInstructionsSearchService(),
                 LifecycleServiceFixture.CreateInstructionsBroadcaster(),
-                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor()));
+                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
+                LifecycleServiceFixture.CreateMcpToolsInvoker()));
     }
 
     [Fact]
@@ -152,7 +153,8 @@ public sealed class LifecycleServiceTests(
                 LifecycleServiceFixture.CreateInstructionsFileReader(),
                 LifecycleServiceFixture.CreateInstructionsSearchService(),
                 LifecycleServiceFixture.CreateInstructionsBroadcaster(),
-                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor()));
+                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
+                LifecycleServiceFixture.CreateMcpToolsInvoker()));
     }
 
     [Fact]
@@ -183,7 +185,8 @@ public sealed class LifecycleServiceTests(
                 LifecycleServiceFixture.CreateInstructionsFileReader(),
                 LifecycleServiceFixture.CreateInstructionsSearchService(),
                 LifecycleServiceFixture.CreateInstructionsBroadcaster(),
-                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor()));
+                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
+                LifecycleServiceFixture.CreateMcpToolsInvoker()));
     }
 
     [Fact]
@@ -214,7 +217,8 @@ public sealed class LifecycleServiceTests(
                 LifecycleServiceFixture.CreateInstructionsFileReader(),
                 LifecycleServiceFixture.CreateInstructionsSearchService(),
                 LifecycleServiceFixture.CreateInstructionsBroadcaster(),
-                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor()));
+                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
+                LifecycleServiceFixture.CreateMcpToolsInvoker()));
     }
 
     [Fact]
@@ -245,7 +249,8 @@ public sealed class LifecycleServiceTests(
                 LifecycleServiceFixture.CreateInstructionsFileReader(),
                 LifecycleServiceFixture.CreateInstructionsSearchService(),
                 LifecycleServiceFixture.CreateInstructionsBroadcaster(),
-                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor()));
+                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
+                LifecycleServiceFixture.CreateMcpToolsInvoker()));
     }
 
     [Fact]
@@ -276,7 +281,8 @@ public sealed class LifecycleServiceTests(
                 LifecycleServiceFixture.CreateInstructionsFileReader(),
                 LifecycleServiceFixture.CreateInstructionsSearchService(),
                 LifecycleServiceFixture.CreateInstructionsBroadcaster(),
-                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor()));
+                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
+                LifecycleServiceFixture.CreateMcpToolsInvoker()));
     }
 
     [Fact]
@@ -306,7 +312,8 @@ public sealed class LifecycleServiceTests(
                 LifecycleServiceFixture.CreateInstructionsFileReader(),
                 LifecycleServiceFixture.CreateInstructionsSearchService(),
                 LifecycleServiceFixture.CreateInstructionsBroadcaster(),
-                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor()));
+                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
+                LifecycleServiceFixture.CreateMcpToolsInvoker()));
     }
 
     [Fact]
@@ -337,7 +344,8 @@ public sealed class LifecycleServiceTests(
                 LifecycleServiceFixture.CreateInstructionsFileReader(),
                 LifecycleServiceFixture.CreateInstructionsSearchService(),
                 LifecycleServiceFixture.CreateInstructionsBroadcaster(),
-                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor()));
+                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
+                LifecycleServiceFixture.CreateMcpToolsInvoker()));
     }
 
     [Fact]
@@ -368,7 +376,8 @@ public sealed class LifecycleServiceTests(
                 LifecycleServiceFixture.CreateInstructionsFileReader(),
                 LifecycleServiceFixture.CreateInstructionsSearchService(),
                 LifecycleServiceFixture.CreateInstructionsBroadcaster(),
-                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor()));
+                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
+                LifecycleServiceFixture.CreateMcpToolsInvoker()));
     }
 
     [Fact]
@@ -399,7 +408,8 @@ public sealed class LifecycleServiceTests(
                 LifecycleServiceFixture.CreateInstructionsFileReader(),
                 LifecycleServiceFixture.CreateInstructionsSearchService(),
                 LifecycleServiceFixture.CreateInstructionsBroadcaster(),
-                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor()));
+                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
+                LifecycleServiceFixture.CreateMcpToolsInvoker()));
     }
 
     [Fact]
@@ -430,7 +440,8 @@ public sealed class LifecycleServiceTests(
                 LifecycleServiceFixture.CreateInstructionsFileReader(),
                 LifecycleServiceFixture.CreateInstructionsSearchService(),
                 LifecycleServiceFixture.CreateInstructionsBroadcaster(),
-                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor()));
+                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
+                LifecycleServiceFixture.CreateMcpToolsInvoker()));
     }
 
     [Fact]
@@ -461,7 +472,8 @@ public sealed class LifecycleServiceTests(
                 LifecycleServiceFixture.CreateInstructionsFileReader(),
                 LifecycleServiceFixture.CreateInstructionsSearchService(),
                 LifecycleServiceFixture.CreateInstructionsBroadcaster(),
-                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor()));
+                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
+                LifecycleServiceFixture.CreateMcpToolsInvoker()));
     }
 
     [Fact]
@@ -492,7 +504,8 @@ public sealed class LifecycleServiceTests(
                 LifecycleServiceFixture.CreateInstructionsFileReader(),
                 LifecycleServiceFixture.CreateInstructionsSearchService(),
                 LifecycleServiceFixture.CreateInstructionsBroadcaster(),
-                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor()));
+                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
+                LifecycleServiceFixture.CreateMcpToolsInvoker()));
     }
 
     [Fact]
@@ -523,7 +536,8 @@ public sealed class LifecycleServiceTests(
                 LifecycleServiceFixture.CreateInstructionsFileReader(),
                 LifecycleServiceFixture.CreateInstructionsSearchService(),
                 LifecycleServiceFixture.CreateInstructionsBroadcaster(),
-                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor()));
+                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
+                LifecycleServiceFixture.CreateMcpToolsInvoker()));
     }
 
     [Fact]
@@ -554,7 +568,8 @@ public sealed class LifecycleServiceTests(
                 LifecycleServiceFixture.CreateInstructionsFileReader(),
                 LifecycleServiceFixture.CreateInstructionsSearchService(),
                 LifecycleServiceFixture.CreateInstructionsBroadcaster(),
-                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor()));
+                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
+                LifecycleServiceFixture.CreateMcpToolsInvoker()));
     }
 
     [Fact]
@@ -585,7 +600,8 @@ public sealed class LifecycleServiceTests(
                 LifecycleServiceFixture.CreateInstructionsFileReader(),
                 LifecycleServiceFixture.CreateInstructionsSearchService(),
                 LifecycleServiceFixture.CreateInstructionsBroadcaster(),
-                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor()));
+                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
+                LifecycleServiceFixture.CreateMcpToolsInvoker()));
     }
 
     [Fact]
@@ -616,7 +632,8 @@ public sealed class LifecycleServiceTests(
                 LifecycleServiceFixture.CreateInstructionsFileReader(),
                 LifecycleServiceFixture.CreateInstructionsSearchService(),
                 LifecycleServiceFixture.CreateInstructionsBroadcaster(),
-                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor()));
+                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
+                LifecycleServiceFixture.CreateMcpToolsInvoker()));
     }
 
     [Fact]
@@ -647,7 +664,8 @@ public sealed class LifecycleServiceTests(
                 null!,
                 LifecycleServiceFixture.CreateInstructionsSearchService(),
                 LifecycleServiceFixture.CreateInstructionsBroadcaster(),
-                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor()));
+                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
+                LifecycleServiceFixture.CreateMcpToolsInvoker()));
     }
 
     [Fact]
@@ -678,7 +696,8 @@ public sealed class LifecycleServiceTests(
                 LifecycleServiceFixture.CreateInstructionsFileReader(),
                 null!,
                 LifecycleServiceFixture.CreateInstructionsBroadcaster(),
-                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor()));
+                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
+                LifecycleServiceFixture.CreateMcpToolsInvoker()));
     }
 
     [Fact]
@@ -709,7 +728,8 @@ public sealed class LifecycleServiceTests(
                 LifecycleServiceFixture.CreateInstructionsFileReader(),
                 LifecycleServiceFixture.CreateInstructionsSearchService(),
                 null!,
-                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor()));
+                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
+                LifecycleServiceFixture.CreateMcpToolsInvoker()));
     }
 
     [Fact]
@@ -740,6 +760,39 @@ public sealed class LifecycleServiceTests(
                 LifecycleServiceFixture.CreateInstructionsFileReader(),
                 LifecycleServiceFixture.CreateInstructionsSearchService(),
                 LifecycleServiceFixture.CreateInstructionsBroadcaster(),
+                null!,
+                LifecycleServiceFixture.CreateMcpToolsInvoker()));
+    }
+
+    [Fact]
+    public async Task Should_throw_when_constructed_with_null_mcp_tools_invoker()
+    {
+        using var lifetime = new FakeHostApplicationLifetime();
+        await using var watchdog = LifecycleServiceFixture.CreateWatchdog(LifecycleServiceFixture.CreateOptions(), lifetime);
+
+        Assert.Throws<ArgumentNullException>(() =>
+            new LifecycleService(
+                Options.Create(LifecycleServiceFixture.CreateOptions()),
+                NullLoggerFactory.Instance,
+                lifetime,
+                LifecycleServiceFixture.CreateRegistryReader(),
+                LifecycleServiceFixture.CreateEventStream(),
+                LifecycleServiceFixture.CreateNotifier(),
+                watchdog,
+                new FakeUniqueInstanceGuard(),
+                LifecycleServiceFixture.CreateLogsBroadcaster(),
+                LifecycleServiceFixture.CreateLogFileReader(),
+                LifecycleServiceFixture.CreateConfigAccessor(),
+                LifecycleServiceFixture.CreateConfigUpdater(),
+                LifecycleServiceFixture.CreateConfigBroadcaster(),
+                LifecycleServiceFixture.CreateWorkspaceAccessor(),
+                LifecycleServiceFixture.CreateInstructionsManifestAccessor(),
+                LifecycleServiceFixture.CreateInstructionsOverridesAccessor(),
+                LifecycleServiceFixture.CreateInstructionsBodyProjector(),
+                LifecycleServiceFixture.CreateInstructionsFileReader(),
+                LifecycleServiceFixture.CreateInstructionsSearchService(),
+                LifecycleServiceFixture.CreateInstructionsBroadcaster(),
+                LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
                 null!));
     }
 

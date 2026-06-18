@@ -2,6 +2,7 @@ namespace AutoContext.Engine.Core;
 
 using AutoContext.Engine.Core.Features.Instructions;
 using AutoContext.Engine.Core.Features.McpTools;
+using AutoContext.Engine.Core.Features.McpTools.EditorConfig;
 using AutoContext.Engine.Core.Infrastructure;
 using AutoContext.Engine.Core.Infrastructure.Diagnostics;
 using AutoContext.Engine.Core.Infrastructure.Events;
@@ -359,6 +360,44 @@ public static class EngineHostBuilderExtensions
                 sp.GetRequiredService<IWorkerConnectionProbe>(),
                 sp.GetRequiredService<ILogger<WorkerManager>>());
         });
+
+        // MCP-tools dispatch seam. The invoker round-trips one tool call to
+        // its owning worker over the shared request/response pipe contract,
+        // spawning the worker lazily via WorkerManager on first invoke; the
+        // editorconfig resolver is the engine's single editorconfig hop
+        // (resolution lives in Worker.Workspace, never in-process). Both are
+        // built from the already-registered WorkerManager + PipeTransport
+        // singletons plus the engine instance id.
+        //
+        // LifecycleService injects Lazy<IMcpToolsInvoker> rather than the
+        // invoker itself: LifecycleService is a hosted service constructed at
+        // host startup, but the invoker is needed only at RPC-dispatch time
+        // and pulls in WorkerManager (which loads the workers.json side-car).
+        // Deferring resolution behind Lazy keeps the worker substrate out of
+        // the startup construction path — preserving the lazy-worker contract
+        // and letting the DI graph build without the Resources side-cars
+        // present — while the first McpTools dispatch forces the value once.
+        builder.Services.TryAddSingleton<IEditorConfigResolver>(sp =>
+        {
+            var options = sp.GetRequiredService<IOptions<EngineOptions>>().Value;
+            return new WorkerEditorConfigResolver(
+                sp.GetRequiredService<WorkerManager>(),
+                sp.GetRequiredService<PipeTransport>(),
+                options.InstanceId.ToString("D"),
+                sp.GetRequiredService<ILogger<WorkerEditorConfigResolver>>());
+        });
+        builder.Services.TryAddSingleton<IMcpToolsInvoker>(sp =>
+        {
+            var options = sp.GetRequiredService<IOptions<EngineOptions>>().Value;
+            return new McpToolsInvoker(
+                sp.GetRequiredService<WorkerManager>(),
+                sp.GetRequiredService<PipeTransport>(),
+                options.InstanceId.ToString("D"),
+                sp.GetRequiredService<IEditorConfigResolver>(),
+                sp.GetRequiredService<ILogger<McpToolsInvoker>>());
+        });
+        builder.Services.TryAddSingleton(sp =>
+            new Lazy<IMcpToolsInvoker>(sp.GetRequiredService<IMcpToolsInvoker>));
 
         // Instructions override inventory. The service performs a one-shot
         // startup scan of the workspace's override directories and exposes

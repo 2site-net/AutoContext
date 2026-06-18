@@ -4,7 +4,6 @@ using System.Text.Json;
 
 using AutoContext.Engine.Core.Features.Instructions;
 using AutoContext.Engine.Core.Features.McpTools;
-using AutoContext.Engine.Core.Features.McpTools.EditorConfig;
 using AutoContext.Engine.Core.Infrastructure;
 using AutoContext.Engine.Core.Infrastructure.Events;
 using AutoContext.Engine.Core.Infrastructure.Storage;
@@ -13,7 +12,6 @@ using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Rpc;
 using AutoContext.Engine.Core.Rpc.Policies;
 using AutoContext.Engine.Core.Watchdogs;
-using AutoContext.Engine.Core.Workers;
 using AutoContext.Engine.Core.Workspace.Config;
 using AutoContext.Engine.Core.Workspace.Context;
 using AutoContext.Engine.Protocol;
@@ -114,10 +112,8 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
     private readonly InstructionsFileReader _fileReader;
     private readonly InstructionsFullTextSearchService _searchService;
     private readonly SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>> _instructionsBroadcaster;
+    private readonly Lazy<IMcpToolsInvoker> _mcpToolsInvoker;
     private readonly IMcpToolsRegistryAccessor _mcpToolsRegistryAccessor;
-    private readonly Lock _mcpToolsInvokerGate = new();
-    private IMcpToolsInvoker _mcpToolsInvoker;
-    private readonly IServiceProvider? _services;
 
     /// <summary>
     /// Creates a new <see cref="LifecycleService"/>.
@@ -196,10 +192,12 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
     /// <param name="mcpToolsRegistryAccessor">Read-only view over the immutable
     /// MCP-tools registry snapshot; threaded into the RPC dispatch policy
     /// so the <c>McpTools.*</c> handlers can answer the tool listing.</param>
-    /// <param name="services">Optional root service provider used to lazily
-    /// resolve worker-dispatch dependencies for <c>McpTools.Invoke</c>.
-    /// When absent, invoke falls back to a deterministic
-    /// <c>tool-error</c> arm.</param>
+    /// <param name="mcpToolsInvoker">Deferred worker-dispatch seam backing
+    /// <c>McpTools.Invoke</c>; forced once on the first RPC dispatch and
+    /// threaded into the policy so the handler can round-trip a tool call to
+    /// its owning worker. Deferred behind <see cref="Lazy{T}"/> because the
+    /// invoker pulls in the worker substrate, which must not resolve during
+    /// this hosted service's startup construction.</param>
     /// <exception cref="ArgumentNullException">
     /// Any constructor argument is <see langword="null"/>.
     /// </exception>
@@ -225,7 +223,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         InstructionsFullTextSearchService searchService,
         SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>> instructionsBroadcaster,
         IMcpToolsRegistryAccessor mcpToolsRegistryAccessor,
-        IServiceProvider? services = null)
+        Lazy<IMcpToolsInvoker> mcpToolsInvoker)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(loggerFactory);
@@ -248,6 +246,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         ArgumentNullException.ThrowIfNull(searchService);
         ArgumentNullException.ThrowIfNull(instructionsBroadcaster);
         ArgumentNullException.ThrowIfNull(mcpToolsRegistryAccessor);
+        ArgumentNullException.ThrowIfNull(mcpToolsInvoker);
 
         _options = options.Value;
         _loggerFactory = loggerFactory;
@@ -270,9 +269,8 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         _fileReader = fileReader;
         _searchService = searchService;
         _instructionsBroadcaster = instructionsBroadcaster;
+        _mcpToolsInvoker = mcpToolsInvoker;
         _mcpToolsRegistryAccessor = mcpToolsRegistryAccessor;
-        _services = services;
-        _mcpToolsInvoker = McpToolsInvokerNoop.Instance;
     }
 
     /// <inheritdoc/>
@@ -557,7 +555,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
                 _ = await RpcConnectionProcessor
                     .RunAsync(
                         stream,
-                        new DispatchPolicy(_applicationLifetime, _registryReader, _logFileReader, _logsBroadcaster, _configAccessor, _configUpdater, _configBroadcaster, _workspaceAccessor, _manifestAccessor, _overridesAccessor, _bodyProjector, _fileReader, _searchService, _instructionsBroadcaster, _mcpToolsRegistryAccessor, _logger, GetMcpToolsInvoker()),
+                        new DispatchPolicy(_applicationLifetime, _registryReader, _logFileReader, _logsBroadcaster, _configAccessor, _configUpdater, _configBroadcaster, _workspaceAccessor, _manifestAccessor, _overridesAccessor, _bodyProjector, _fileReader, _searchService, _instructionsBroadcaster, _mcpToolsRegistryAccessor, _logger, _mcpToolsInvoker.Value),
                         _logger,
                         cancellationToken)
                     .ConfigureAwait(false);
@@ -676,47 +674,6 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         {
             LogAcceptLoopFaulted(_logger, ex, kind);
             throw;
-        }
-    }
-
-    private IMcpToolsInvoker GetMcpToolsInvoker()
-    {
-        if (_services is null)
-        {
-            return McpToolsInvokerNoop.Instance;
-        }
-
-        lock (_mcpToolsInvokerGate)
-        {
-            if (!ReferenceEquals(_mcpToolsInvoker, McpToolsInvokerNoop.Instance))
-            {
-                return _mcpToolsInvoker;
-            }
-
-            if (_services.GetService(typeof(WorkerManager)) is not WorkerManager workerManager)
-            {
-                return _mcpToolsInvoker;
-            }
-
-            var transport = _services.GetService(typeof(PipeTransport)) as PipeTransport
-                ?? new PipeTransport(_loggerFactory.CreateLogger<PipeTransport>());
-
-            var instanceId = _options.InstanceId.ToString("D");
-
-            var editorConfigResolver = new WorkerEditorConfigResolver(
-                workerManager,
-                transport,
-                instanceId,
-                _loggerFactory.CreateLogger<WorkerEditorConfigResolver>());
-
-            _mcpToolsInvoker = new McpToolsInvoker(
-                workerManager,
-                transport,
-                instanceId,
-                editorConfigResolver,
-                _loggerFactory.CreateLogger<McpToolsInvoker>());
-
-            return _mcpToolsInvoker;
         }
     }
 }
