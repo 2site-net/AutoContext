@@ -70,9 +70,10 @@ public sealed class McpToolDispatchTests
             $"Test-driver worker binary not found at '{driverPath}'. "
             + "Run '.\\build.ps1 Compile DotNet' before running engine integration tests.");
 
-        var resourcesRoot = CreateResourcesOverlay(driverPath);
-        var cache = IsolatedCacheRoot.Create();
-        var workspacePath = WorkspaceTestDirectoryFactory.Create();
+        // Declared before the engine so they dispose after it exits.
+        using var resourcesRoot = CreateResourcesOverlay(driverPath);
+        using var cache = IsolatedCacheRoot.Create();
+        using var workspace = WorkspaceTestDirectoryFactory.Create();
 
         var expectedPayload = $"round-trip-{Guid.NewGuid():N}";
 
@@ -80,9 +81,9 @@ public sealed class McpToolDispatchTests
         {
             Options = new()
             {
-                WorkspacePath = workspacePath,
+                WorkspacePath = workspace.Path,
                 CacheRootOverride = cache.Path,
-                ResourcesRootOverride = resourcesRoot,
+                ResourcesRootOverride = resourcesRoot.Path,
             },
         };
         await engine.SpawnAsync(ct);
@@ -94,19 +95,24 @@ public sealed class McpToolDispatchTests
         await EngineWireTestClient.SendHelloAsync(codec, ProtocolVersion.Current, ct);
         await EngineWireTestClient.ReadResponseAsync(codec, ct);
 
-        // Act — list the projected catalog, dispatch the echo happy path
-        // (which lazily spawns the worker), then dispatch the failing tool.
+        // Act — warm the lazily-spawned worker (see WarmUpWorkerAsync for the
+        // cold-spawn race it absorbs), list the projected catalog, dispatch
+        // the echo happy path, then dispatch the failing tool. Once warm, the
+        // worker is already running, so the asserted invokes respond fast.
+        var invokeReadTimeout = TimeSpan.FromSeconds(10);
+
+        await WarmUpWorkerAsync(codec, ct);
         var listing = await ListAsync(codec, id: 2, ct);
         var echoResult = await InvokeAsync(
-            codec, id: 3, EchoTool, new JsonObject { ["payload"] = expectedPayload }, ct);
-        var failResult = await InvokeAsync(codec, id: 4, FailTool, arguments: null, ct);
+            codec, id: 3, EchoTool, new JsonObject { ["payload"] = expectedPayload }, invokeReadTimeout, ct);
+        var failResult = await InvokeAsync(codec, id: 4, FailTool, arguments: null, invokeReadTimeout, ct);
 
         // Assert
         var echoRow = SelectRow(listing, EchoTool);
         var failRow = SelectRow(listing, FailTool);
         var hangRow = SelectRow(listing, HangTool);
 
-        var echoOk = Assert.IsType<JsonMcpToolsInvokeOkResult>(echoResult);
+        var echoOk = AssertOk(echoResult);
         var failError = Assert.IsType<JsonMcpToolsInvokeToolErrorResult>(failResult);
 
         Assert.Multiple(
@@ -152,6 +158,34 @@ public sealed class McpToolDispatchTests
                 ?? throw new InvalidOperationException("Content block carried a null 'text'.");
         }
 
+        static JsonMcpToolsInvokeOkResult AssertOk(JsonMcpToolsInvokeResult result)
+        {
+            if (result is JsonMcpToolsInvokeOkResult ok)
+            {
+                return ok;
+            }
+
+            Assert.Fail(
+                "Expected the echo happy path to return an Ok result, but got "
+                + $"{result.GetType().Name}: {DescribeResult(result)}");
+            return null!; // Unreachable: Assert.Fail always throws.
+        }
+
+        static string DescribeResult(JsonMcpToolsInvokeResult result)
+        {
+            if (result is not JsonMcpToolsInvokeToolErrorResult error)
+            {
+                return result.GetType().Name;
+            }
+
+            var texts = error.Content.Select(block =>
+                block.TryGetProperty("text", out var text)
+                    ? text.GetString()
+                    : block.GetRawText());
+
+            return string.Join(" | ", texts);
+        }
+
         static async Task<JsonMcpToolsListResult> ListAsync(
             LengthPrefixedFrameCodec codec, int id, CancellationToken cancellationToken)
         {
@@ -169,6 +203,7 @@ public sealed class McpToolDispatchTests
             int id,
             string name,
             JsonObject? arguments,
+            TimeSpan readTimeout,
             CancellationToken cancellationToken)
         {
             var paramsNode = new JsonObject { ["name"] = name };
@@ -181,7 +216,7 @@ public sealed class McpToolDispatchTests
             using var paramsDocument = JsonDocument.Parse(paramsNode.ToJsonString());
             await EngineWireTestClient.SendRequestAsync(
                 codec, id, McpToolsMethods.Invoke, paramsDocument.RootElement, cancellationToken);
-            var response = await EngineWireTestClient.ReadResponseAsync(codec, cancellationToken);
+            var response = await EngineWireTestClient.ReadResponseAsync(codec, readTimeout, cancellationToken);
             Assert.Null(response.Error);
             var result = response.Result!.Value.Deserialize(
                 ProtocolJsonContext.Default.JsonMcpToolsInvokeResult);
@@ -189,13 +224,52 @@ public sealed class McpToolDispatchTests
             return result!;
         }
 
-        static string CreateResourcesOverlay(string driverCommand)
+        static async Task WarmUpWorkerAsync(
+            LengthPrefixedFrameCodec codec, CancellationToken cancellationToken)
         {
-            var root = Path.Combine(
-                Path.GetTempPath(),
-                "autocontext-engine-tests-resources",
-                Guid.NewGuid().ToString("N"));
-            Directory.CreateDirectory(root);
+            // The first Invoke routed to a worker lazily cold-spawns it: the
+            // engine starts the worker process, waits for its pipe, then
+            // dispatches. On a cold machine that synchronous spawn can take
+            // several seconds — longer than the default per-read deadline — so
+            // read the warm-up response with a deadline above the engine's own
+            // 30s worker-wait, letting the spawn complete inside one read
+            // (never orphaning a late frame onto the shared pipe). The spawn
+            // can also lose the worker's one-shot accept re-arm race and
+            // surface the tool-error arm, so retry the happy path until it
+            // round-trips; the asserted dispatches that follow are then
+            // deterministic against the now-running worker.
+            var readTimeout = TimeSpan.FromSeconds(35);
+            const int MaxAttempts = 10;
+            const int RetryDelayMilliseconds = 200;
+
+            JsonMcpToolsInvokeResult? last = null;
+
+            for (var attempt = 1; attempt <= MaxAttempts; attempt++)
+            {
+                last = await InvokeAsync(
+                    codec,
+                    1000 + attempt,
+                    EchoTool,
+                    new JsonObject { ["payload"] = "warm-up" },
+                    readTimeout,
+                    cancellationToken);
+
+                if (last is JsonMcpToolsInvokeOkResult)
+                {
+                    return;
+                }
+
+                await Task.Delay(RetryDelayMilliseconds, cancellationToken);
+            }
+
+            Assert.Fail(
+                $"Worker did not become ready after {MaxAttempts} warm-up echo "
+                + $"invocations; last result: {DescribeResult(last!)}");
+        }
+
+        static TempDirectory CreateResourcesOverlay(string driverCommand)
+        {
+            var root = TempDirectory.CreateNew("autocontext-engine-tests-resources");
 
             var workers = new JsonObject
             {
@@ -233,9 +307,9 @@ public sealed class McpToolDispatchTests
                     CatalogTool(HangTool, "Blocks until cancelled.")),
             };
 
-            File.WriteAllText(Path.Combine(root, "workers.json"), workers.ToJsonString());
-            File.WriteAllText(Path.Combine(root, "mcp-tools-registry.json"), registry.ToJsonString());
-            File.WriteAllText(Path.Combine(root, "mcp-tools-catalog.json"), catalog.ToJsonString());
+            File.WriteAllText(Path.Combine(root.Path, "workers.json"), workers.ToJsonString());
+            File.WriteAllText(Path.Combine(root.Path, "mcp-tools-registry.json"), registry.ToJsonString());
+            File.WriteAllText(Path.Combine(root.Path, "mcp-tools-catalog.json"), catalog.ToJsonString());
 
             return root;
         }

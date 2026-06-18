@@ -170,14 +170,29 @@ public static class EngineWireTestClient
     }
 
     /// <summary>Reads exactly one JSON-RPC response frame.</summary>
+    public static Task<JsonRpcResponse> ReadResponseAsync(
+        LengthPrefixedFrameCodec codec,
+        CancellationToken cancellationToken)
+        => ReadResponseAsync(codec, ReadResponseTimeout, cancellationToken);
+
+    /// <summary>
+    /// Reads exactly one JSON-RPC response frame, bounding the read with
+    /// <paramref name="timeout"/> rather than the default deadline. Used when
+    /// a single response is expected to take longer than usual — for example
+    /// the first <c>McpTools.Invoke</c> that lazily cold-spawns a worker
+    /// process. Reading the slow response inside one bounded wait keeps the
+    /// request/response stream in sync; a caller that timed out and retried on
+    /// the same pipe could read the late frame as the next response.
+    /// </summary>
     public static async Task<JsonRpcResponse> ReadResponseAsync(
         LengthPrefixedFrameCodec codec,
+        TimeSpan timeout,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(codec);
 
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        cts.CancelAfter(ReadResponseTimeout);
+        cts.CancelAfter(timeout);
 
         var bytes = await codec.ReadAsync(cts.Token).ConfigureAwait(false);
         Assert.NotNull(bytes);

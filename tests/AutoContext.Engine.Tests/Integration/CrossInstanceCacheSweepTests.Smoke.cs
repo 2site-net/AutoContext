@@ -33,8 +33,9 @@ public sealed class CrossInstanceCacheSweepTests
     {
         // Arrange
         var ct = TestContext.Current.CancellationToken;
-        var cache = IsolatedCacheRoot.Create();
-        var workspacePath = WorkspaceTestDirectoryFactory.Create();
+        using var cache = IsolatedCacheRoot.Create();
+        using var workspace = WorkspaceTestDirectoryFactory.Create();
+        var workspacePath = workspace.Path;
         var killedInstanceId = Guid.NewGuid();
         var survivorInstanceId = Guid.NewGuid();
         var workspaceHash = WorkspaceHash.Compute(workspacePath).Value;

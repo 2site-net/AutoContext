@@ -1,14 +1,16 @@
 namespace AutoContext.Engine.Tests.Support.IO;
 
+/// <summary>
+/// An xUnit class fixture that owns a single temp root for the
+/// lifetime of a test class and hands out isolated paths and
+/// subdirectories beneath it. The whole root is removed when xUnit
+/// disposes the fixture at class teardown. For a single
+/// inline-disposed temp directory (with cleanup ordered relative to
+/// other resources), use <see cref="TempDirectory"/> directly.
+/// </summary>
 public sealed class TempDirectoryFixture : IDisposable
 {
-    private readonly string _root;
-
-    public TempDirectoryFixture()
-    {
-        _root = Path.Combine(Path.GetTempPath(), $"ac-tests-{Guid.NewGuid():N}");
-        Directory.CreateDirectory(_root);
-    }
+    private readonly TempDirectory _root = TempDirectory.CreateNew("ac-tests");
 
     /// <summary>
     /// Allocates a fresh, isolated file path under the fixture's root directory.
@@ -17,7 +19,7 @@ public sealed class TempDirectoryFixture : IDisposable
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
 
-        var subdirectory = Path.Combine(_root, Guid.NewGuid().ToString("N"));
+        var subdirectory = Path.Combine(_root.Path, Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(subdirectory);
         return Path.Combine(subdirectory, fileName);
     }
@@ -28,23 +30,11 @@ public sealed class TempDirectoryFixture : IDisposable
     /// </summary>
     public string CreateDirectory()
     {
-        var subdirectory = Path.Combine(_root, Guid.NewGuid().ToString("N"));
+        var subdirectory = Path.Combine(_root.Path, Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(subdirectory);
         return subdirectory;
     }
 
-    public void Dispose()
-    {
-        try
-        {
-            if (Directory.Exists(_root))
-            {
-                Directory.Delete(_root, recursive: true);
-            }
-        }
-        catch (IOException)
-        {
-            // Best-effort cleanup.
-        }
-    }
+    public void Dispose() =>
+        _root.Dispose();
 }

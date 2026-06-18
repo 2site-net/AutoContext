@@ -43,8 +43,9 @@ public sealed class WorkspaceDetectionTests
         // C# + Python, plus an override file under .github/instructions
         // that the Detect contract must remain blind to.
         var ct = TestContext.Current.CancellationToken;
-        var cache = IsolatedCacheRoot.Create();
-        var workspacePath = WorkspaceTestDirectoryFactory.Create();
+        using var cache = IsolatedCacheRoot.Create();
+        using var workspace = WorkspaceTestDirectoryFactory.Create();
+        var workspacePath = workspace.Path;
         await File.WriteAllTextAsync(
             Path.Combine(workspacePath, "App.csproj"), "<Project />", ct);
         await File.WriteAllTextAsync(
@@ -97,7 +98,7 @@ public sealed class WorkspaceDetectionTests
     {
         // Arrange
         var ct = TestContext.Current.CancellationToken;
-        var cache = IsolatedCacheRoot.Create();
+        using var cache = IsolatedCacheRoot.Create();
         var instanceId = Guid.NewGuid();
 
         await using var engine = new EngineTestProcess
