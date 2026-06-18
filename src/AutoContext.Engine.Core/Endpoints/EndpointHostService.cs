@@ -42,14 +42,15 @@ using Microsoft.Extensions.Options;
 /// </summary>
 /// <remarks>
 /// <para>
-/// On every <c>rpc</c> and <c>events</c> connection, the service
-/// performs the <c>Engine.Hello</c> handshake, then runs the
-/// post-handshake JSON-RPC dispatch loop on <c>rpc</c> (handling
-/// <c>Engine.RegistryEntries</c> and <c>Engine.Shutdown</c>) and
-/// the subscription pump on <c>events</c> (enrolling the
-/// connection with the <see cref="LifecycleEventStream"/> and
-/// serialising each fanned-out <see cref="JsonLifecycleEvent"/>
-/// into an <c>Engine.Lifecycle</c> JSON-RPC notification frame).
+/// <c>rpc</c> connections are delegated whole to
+/// <see cref="RpcEndpointHandler"/>, which performs the
+/// <c>Engine.Hello</c> handshake and then runs the post-handshake
+/// JSON-RPC dispatch loop. <c>events</c> connections are handled
+/// inline: the service performs the handshake, then runs the
+/// subscription pump (enrolling the connection with the
+/// <see cref="LifecycleEventStream"/> and serialising each
+/// fanned-out <see cref="JsonLifecycleEvent"/> into an
+/// <c>Engine.Lifecycle</c> JSON-RPC notification frame).
 /// <c>health</c> and <c>logs</c> are passive observer surfaces
 /// the service binds but does not author payloads for.
 /// </para>
@@ -84,7 +85,7 @@ internal sealed partial class EndpointHostService : IHostedService, IAsyncDispos
     ];
 
     private int _disposed;
-    private readonly DispatchPolicyFactory _dispatchPolicyFactory;
+    private readonly RpcEndpointHandler _rpcEndpointHandler;
     private CancellationTokenSource? _drainCts;
     private readonly LifecycleEventStream _eventStream;
     private readonly LifecycleFrameStream _eventFrameStream = new();
@@ -132,10 +133,10 @@ internal sealed partial class EndpointHostService : IHostedService, IAsyncDispos
     /// <c>logs</c> pipe; every accepted <c>logs</c>-pipe connection
     /// enrolls a subscriber here and pumps drained
     /// <see cref="JsonLogStreamFrame"/> values to the wire.</param>
-    /// <param name="dispatchPolicyFactory">Factory that constructs a
-    /// fresh <see cref="DispatchPolicy"/> for each accepted <c>rpc</c>
-    /// connection; it owns the leaf dependencies the policy needs to
-    /// answer <c>Registry.*</c>, <c>Logs.*</c>, <c>Config.*</c>,
+    /// <param name="rpcEndpointHandler">Handler that drives each
+    /// accepted <c>rpc</c> connection end-to-end — handshake, idle
+    /// keep-alive, and the post-handshake JSON-RPC dispatch loop
+    /// that answers <c>Registry.*</c>, <c>Logs.*</c>, <c>Config.*</c>,
     /// <c>Workspace.*</c>, <c>Instructions.*</c>, and <c>McpTools.*</c>
     /// requests.</param>
     /// <exception cref="ArgumentNullException">
@@ -149,7 +150,7 @@ internal sealed partial class EndpointHostService : IHostedService, IAsyncDispos
         IdleTimeoutWatchdog idleTimeoutWatchdog,
         IUniqueInstanceGuard instanceGuard,
         Broadcaster<JsonLogRecord> logsBroadcaster,
-        DispatchPolicyFactory dispatchPolicyFactory)
+        RpcEndpointHandler rpcEndpointHandler)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(loggerFactory);
@@ -158,7 +159,7 @@ internal sealed partial class EndpointHostService : IHostedService, IAsyncDispos
         ArgumentNullException.ThrowIfNull(idleTimeoutWatchdog);
         ArgumentNullException.ThrowIfNull(instanceGuard);
         ArgumentNullException.ThrowIfNull(logsBroadcaster);
-        ArgumentNullException.ThrowIfNull(dispatchPolicyFactory);
+        ArgumentNullException.ThrowIfNull(rpcEndpointHandler);
 
         _options = options.Value;
         _loggerFactory = loggerFactory;
@@ -168,7 +169,7 @@ internal sealed partial class EndpointHostService : IHostedService, IAsyncDispos
         _idleTimeoutWatchdog = idleTimeoutWatchdog;
         _instanceGuard = instanceGuard;
         _logsBroadcaster = logsBroadcaster;
-        _dispatchPolicyFactory = dispatchPolicyFactory;
+        _rpcEndpointHandler = rpcEndpointHandler;
     }
 
     /// <inheritdoc/>
@@ -422,8 +423,27 @@ internal sealed partial class EndpointHostService : IHostedService, IAsyncDispos
             return;
         }
 
+        // rpc owns its full connection lifecycle — handshake, idle
+        // keep-alive, and the post-handshake JSON-RPC dispatch loop —
+        // inside RpcEndpointHandler.
+        if (kind is EndpointKind.Rpc)
+        {
+            await _rpcEndpointHandler.HandleAsync(stream, cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
+        // events: handshake, then the keep-alive-guarded subscription
+        // pump. (Extraction of an EventsEndpointHandler is a later
+        // step; the pump still lives on the host for now.)
+        await HandleEventsConnectionAsync(stream, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task HandleEventsConnectionAsync(
+        Stream stream,
+        CancellationToken cancellationToken)
+    {
         var accepted = await RpcConnectionProcessor
-            .RunAsync(stream, new HandshakePolicy(kind, _logger), _logger, cancellationToken)
+            .RunAsync(stream, new HandshakePolicy(EndpointKind.Events, _logger), _logger, cancellationToken)
             .ConfigureAwait(false);
 
         if (!accepted)
@@ -434,32 +454,15 @@ internal sealed partial class EndpointHostService : IHostedService, IAsyncDispos
         }
 
         // Keep-alive accounting per design § Lifecycle > Idle
-        // shutdown: only post-handshake rpc and events connections
-        // pin the engine alive against the idle-timeout gate.
-        // health and logs short-circuit above and never reach
-        // this point.
+        // shutdown: a post-handshake events connection pins the
+        // engine alive against the idle-timeout gate. health and logs
+        // short-circuit before reaching this point.
         var keepAlive = await _idleTimeoutWatchdog
             .AcquireKeepAliveAsync()
             .ConfigureAwait(false);
+
         await using (keepAlive.ConfigureAwait(false))
         {
-            if (kind == EndpointKind.Rpc)
-            {
-                // Post-handshake RPC dispatch loop (row #9). Reads one
-                // JSON-RPC frame at a time and routes it to the
-                // matching handler until the peer closes the pipe,
-                // cancellation is observed, or Engine.Shutdown is
-                // honoured.
-                _ = await RpcConnectionProcessor
-                    .RunAsync(
-                        stream,
-                        _dispatchPolicyFactory.Create(),
-                        _logger,
-                        cancellationToken)
-                    .ConfigureAwait(false);
-                return;
-            }
-
             // Events: post-handshake subscription loop. Enrol with the
             // stream (which seeds the started event into our bounded
             // buffer), then pump every event the stream hands us onto

@@ -65,6 +65,10 @@ public sealed class EndpointHostServiceFixture : IAsyncDisposable
             EngineCacheLayoutTestFactory.Create(resolvedOptions));
         var dispatchPolicyFactory = CreateDispatchPolicyFactory(
             lifetime, reader, logFileReader, logsBroadcaster);
+        var rpcEndpointHandler = new RpcEndpointHandler(
+            dispatchPolicyFactory,
+            watchdog,
+            NullLogger<RpcEndpointHandler>.Instance);
         var service = new EndpointHostService(
             Options.Create(resolvedOptions),
             NullLoggerFactory.Instance,
@@ -73,7 +77,7 @@ public sealed class EndpointHostServiceFixture : IAsyncDisposable
             watchdog,
             instanceGuard,
             logsBroadcaster,
-            dispatchPolicyFactory);
+            rpcEndpointHandler);
 
         // Track in reverse dependency order so Dispose tears the
         // service down first, then the watchdog, then the lifetime.
@@ -118,6 +122,17 @@ public sealed class EndpointHostServiceFixture : IAsyncDisposable
             CreateMcpToolsRegistryAccessor(),
             CreateMcpToolsInvoker(),
             NullLogger<DispatchPolicy>.Instance);
+
+    [SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "The idle-timeout watchdog created here is disabled (IdleTimeout=Zero), so it holds no timer or unmanaged resources; the throwaway handler built for the host's constructor-guard tests intentionally does not dispose it.")]
+    internal static RpcEndpointHandler CreateRpcEndpointHandler(
+        IHostApplicationLifetime lifetime) =>
+        new(
+            CreateDispatchPolicyFactory(lifetime),
+            CreateWatchdog(CreateOptions(), lifetime),
+            NullLogger<RpcEndpointHandler>.Instance);
 
     internal static IConfigSnapshotAccessor CreateConfigAccessor() =>
         new FakeConfigSnapshotAccessor();

@@ -111,7 +111,7 @@ public sealed class EndpointHostServiceTests(
                 watchdog,
                 new FakeUniqueInstanceGuard(),
                 EndpointHostServiceFixture.CreateLogsBroadcaster(),
-                EndpointHostServiceFixture.CreateDispatchPolicyFactory(lifetime)));
+                EndpointHostServiceFixture.CreateRpcEndpointHandler(lifetime)));
     }
 
     [Fact]
@@ -129,7 +129,7 @@ public sealed class EndpointHostServiceTests(
                 watchdog,
                 new FakeUniqueInstanceGuard(),
                 EndpointHostServiceFixture.CreateLogsBroadcaster(),
-                EndpointHostServiceFixture.CreateDispatchPolicyFactory(lifetime)));
+                EndpointHostServiceFixture.CreateRpcEndpointHandler(lifetime)));
     }
 
     [Fact]
@@ -147,7 +147,7 @@ public sealed class EndpointHostServiceTests(
                 watchdog,
                 new FakeUniqueInstanceGuard(),
                 EndpointHostServiceFixture.CreateLogsBroadcaster(),
-                EndpointHostServiceFixture.CreateDispatchPolicyFactory(lifetime)));
+                EndpointHostServiceFixture.CreateRpcEndpointHandler(lifetime)));
     }
 
     [Fact]
@@ -165,7 +165,7 @@ public sealed class EndpointHostServiceTests(
                 watchdog,
                 new FakeUniqueInstanceGuard(),
                 EndpointHostServiceFixture.CreateLogsBroadcaster(),
-                EndpointHostServiceFixture.CreateDispatchPolicyFactory(lifetime)));
+                EndpointHostServiceFixture.CreateRpcEndpointHandler(lifetime)));
     }
 
     [Fact]
@@ -182,7 +182,7 @@ public sealed class EndpointHostServiceTests(
                 null!,
                 new FakeUniqueInstanceGuard(),
                 EndpointHostServiceFixture.CreateLogsBroadcaster(),
-                EndpointHostServiceFixture.CreateDispatchPolicyFactory(lifetime)));
+                EndpointHostServiceFixture.CreateRpcEndpointHandler(lifetime)));
     }
 
     [Fact]
@@ -200,7 +200,7 @@ public sealed class EndpointHostServiceTests(
                 watchdog,
                 null!,
                 EndpointHostServiceFixture.CreateLogsBroadcaster(),
-                EndpointHostServiceFixture.CreateDispatchPolicyFactory(lifetime)));
+                EndpointHostServiceFixture.CreateRpcEndpointHandler(lifetime)));
     }
 
     [Fact]
@@ -218,11 +218,11 @@ public sealed class EndpointHostServiceTests(
                 watchdog,
                 new FakeUniqueInstanceGuard(),
                 null!,
-                EndpointHostServiceFixture.CreateDispatchPolicyFactory(lifetime)));
+                EndpointHostServiceFixture.CreateRpcEndpointHandler(lifetime)));
     }
 
     [Fact]
-    public async Task Should_throw_when_constructed_with_null_dispatch_policy_factory()
+    public async Task Should_throw_when_constructed_with_null_rpc_endpoint_handler()
     {
         using var lifetime = new FakeHostApplicationLifetime();
         await using var watchdog = EndpointHostServiceFixture.CreateWatchdog(EndpointHostServiceFixture.CreateOptions(), lifetime);

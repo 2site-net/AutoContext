@@ -536,6 +536,7 @@ public static class EngineHostBuilderExtensions
             ServiceDescriptor.Singleton<IHostedService, InstructionsSubscriptionService>());
 
         builder.Services.TryAddSingleton<DispatchPolicyFactory>();
+        builder.Services.TryAddSingleton<RpcEndpointHandler>();
 
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, EndpointHostService>());
