@@ -50,7 +50,7 @@ internal sealed partial class DispatchPolicy
                 ? null
                 : FrontmatterApplyToParser.Parse(parameters.ApplyToHint).Extensions;
 
-            var rows = _listProjector.Project(includeSections, applyWorkspaceFilter, hintExtensions);
+            var rows = _instructionsListProjector.Project(includeSections, applyWorkspaceFilter, hintExtensions);
 
             var result = new JsonInstructionsListResult { Files = rows };
             return Success(result, ProtocolJsonContext.Default.JsonInstructionsListResult);
@@ -97,7 +97,7 @@ internal sealed partial class DispatchPolicy
 
     private UnaryHandlerResult HandleInstructionsCategories()
     {
-        var categories = _manifestAccessor.Current.Categories;
+        var categories = _instructionsManifestAccessor.Current.Categories;
         var mapped = new List<JsonInstructionsCategory>(categories.Count);
 
         foreach (var category in categories)
@@ -145,7 +145,7 @@ internal sealed partial class DispatchPolicy
 
         try
         {
-            var body = await _bodyProjector
+            var body = await _instructionsBodyProjector
                 .ToResponseBodyAsync(entry, parameters.Sections, cancellationToken)
                 .ConfigureAwait(false);
 
@@ -239,7 +239,7 @@ internal sealed partial class DispatchPolicy
             {
                 case InstructionsRawSource.Bundled:
                     {
-                        var content = await _fileReader
+                        var content = await _instructionsFileReader
                             .ReadOriginalFileAsync(entry.FileName, cancellationToken)
                             .ConfigureAwait(false);
                         return content is null ? RawNotFound(name) : RawOk(entry, InstructionsSource.Bundled, content);
@@ -247,7 +247,7 @@ internal sealed partial class DispatchPolicy
 
                 case InstructionsRawSource.Override:
                     {
-                        var content = await _fileReader
+                        var content = await _instructionsFileReader
                             .ReadOverrideFileAsync(entry.FileName, cancellationToken)
                             .ConfigureAwait(false);
                         return content is null ? RawNotFound(name) : RawOk(entry, InstructionsSource.Override, content);
@@ -256,7 +256,7 @@ internal sealed partial class DispatchPolicy
                 case InstructionsRawSource.Active:
                 default:
                     {
-                        var overrideContent = await _fileReader
+                        var overrideContent = await _instructionsFileReader
                             .ReadOverrideFileAsync(entry.FileName, cancellationToken)
                             .ConfigureAwait(false);
 
@@ -265,7 +265,7 @@ internal sealed partial class DispatchPolicy
                             return RawOk(entry, InstructionsSource.Override, overrideContent);
                         }
 
-                        var bundled = await _fileReader
+                        var bundled = await _instructionsFileReader
                             .ReadOriginalFileAsync(entry.FileName, cancellationToken)
                             .ConfigureAwait(false);
                         return bundled is null ? RawNotFound(name) : RawOk(entry, InstructionsSource.Bundled, bundled);
@@ -299,7 +299,7 @@ internal sealed partial class DispatchPolicy
         try
         {
             var includeDisabled = parameters.IncludeDisabled ?? false;
-            var hits = await _searchService
+            var hits = await _instructionsSearchService
                 .SearchAsync(parameters.Query, parameters.Limit, includeDisabled, cancellationToken)
                 .ConfigureAwait(false);
 
@@ -326,7 +326,7 @@ internal sealed partial class DispatchPolicy
     {
         var files = new List<JsonInstructionsFile>();
 
-        foreach (var entry in _manifestAccessor.Current.Files)
+        foreach (var entry in _instructionsManifestAccessor.Current.Files)
         {
             if (!predicate(entry))
             {
@@ -337,7 +337,7 @@ internal sealed partial class DispatchPolicy
 
             try
             {
-                body = await _bodyProjector
+                body = await _instructionsBodyProjector
                     .ToResponseBodyAsync(entry, null, cancellationToken)
                     .ConfigureAwait(false);
             }
@@ -362,7 +362,7 @@ internal sealed partial class DispatchPolicy
 
     private InstructionsFileManifestEntry? ResolveEntry(string name)
     {
-        var snapshot = _manifestAccessor.Current;
+        var snapshot = _instructionsManifestAccessor.Current;
 
         return snapshot.FindByFileName(name)
             ?? snapshot.Files.FirstOrDefault(file => string.Equals(file.Key, name, StringComparison.Ordinal));

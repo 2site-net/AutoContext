@@ -72,11 +72,11 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
     private readonly ConfigFrameStream _configFrameStream;
     private readonly IConfigUpdater _configUpdater;
     private readonly IWorkspaceContextAccessor _workspaceAccessor;
-    private readonly IInstructionsManifestAccessor _manifestAccessor;
-    private readonly InstructionsBodyProjector _bodyProjector;
-    private readonly InstructionsFileReader _fileReader;
-    private readonly InstructionsFullTextSearchService _searchService;
-    private readonly InstructionsListProjector _listProjector;
+    private readonly IInstructionsManifestAccessor _instructionsManifestAccessor;
+    private readonly InstructionsBodyProjector _instructionsBodyProjector;
+    private readonly InstructionsFileReader _instructionsFileReader;
+    private readonly InstructionsFullTextSearchService _instructionsSearchService;
+    private readonly InstructionsListProjector _instructionsListProjector;
     private readonly SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>> _instructionsBroadcaster;
     private readonly InstructionsFrameStream _instructionsFrameStream;
     private readonly IMcpToolsRegistryAccessor _mcpToolsRegistryAccessor;
@@ -129,11 +129,11 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
         _configBroadcaster = configBroadcaster;
         _configFrameStream = new();
         _workspaceAccessor = workspaceAccessor;
-        _manifestAccessor = manifestAccessor;
-        _bodyProjector = bodyProjector;
-        _fileReader = fileReader;
-        _searchService = searchService;
-        _listProjector = new InstructionsListProjector(
+        _instructionsManifestAccessor = manifestAccessor;
+        _instructionsBodyProjector = bodyProjector;
+        _instructionsFileReader = fileReader;
+        _instructionsSearchService = searchService;
+        _instructionsListProjector = new InstructionsListProjector(
             manifestAccessor, overridesAccessor, configAccessor, workspaceAccessor);
         _instructionsBroadcaster = instructionsBroadcaster;
         _instructionsFrameStream = new();
