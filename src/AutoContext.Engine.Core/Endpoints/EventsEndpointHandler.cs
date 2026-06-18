@@ -43,7 +43,7 @@ using Microsoft.Extensions.Logging;
 /// the drain deadline elapses — whichever comes first.
 /// </para>
 /// </remarks>
-internal sealed partial class EventsEndpointHandler
+internal sealed partial class EventsEndpointHandler : IEndpointHandler
 {
     private readonly ShutdownDrainDeadline _drainDeadline;
     private readonly LifecycleFrameStream _eventFrameStream = new();
@@ -85,6 +85,10 @@ internal sealed partial class EventsEndpointHandler
         _drainDeadline = drainDeadline;
         _logger = logger;
     }
+
+    /// <inheritdoc/>
+    public EndpointKind Kind
+        => EndpointKind.Events;
 
     /// <summary>
     /// Drives one accepted <c>events</c> connection: the

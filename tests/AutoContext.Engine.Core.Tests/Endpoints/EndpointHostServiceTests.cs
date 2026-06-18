@@ -107,9 +107,7 @@ public sealed class EndpointHostServiceTests(
                 NullLoggerFactory.Instance,
                 EndpointHostServiceFixture.CreateNotifier(),
                 new FakeUniqueInstanceGuard(),
-                EndpointHostServiceFixture.CreateRpcEndpointHandler(lifetime),
-                EndpointHostServiceFixture.CreateEventsEndpointHandler(lifetime),
-                EndpointHostServiceFixture.CreateLogsEndpointHandler(),
+                EndpointHostServiceFixture.CreateEndpointHandlers(lifetime),
                 EndpointHostServiceFixture.CreateDrainDeadline()));
     }
 
@@ -124,9 +122,7 @@ public sealed class EndpointHostServiceTests(
                 null!,
                 EndpointHostServiceFixture.CreateNotifier(),
                 new FakeUniqueInstanceGuard(),
-                EndpointHostServiceFixture.CreateRpcEndpointHandler(lifetime),
-                EndpointHostServiceFixture.CreateEventsEndpointHandler(lifetime),
-                EndpointHostServiceFixture.CreateLogsEndpointHandler(),
+                EndpointHostServiceFixture.CreateEndpointHandlers(lifetime),
                 EndpointHostServiceFixture.CreateDrainDeadline()));
     }
 
@@ -141,9 +137,7 @@ public sealed class EndpointHostServiceTests(
                 NullLoggerFactory.Instance,
                 null!,
                 new FakeUniqueInstanceGuard(),
-                EndpointHostServiceFixture.CreateRpcEndpointHandler(lifetime),
-                EndpointHostServiceFixture.CreateEventsEndpointHandler(lifetime),
-                EndpointHostServiceFixture.CreateLogsEndpointHandler(),
+                EndpointHostServiceFixture.CreateEndpointHandlers(lifetime),
                 EndpointHostServiceFixture.CreateDrainDeadline()));
     }
 
@@ -158,59 +152,19 @@ public sealed class EndpointHostServiceTests(
                 NullLoggerFactory.Instance,
                 EndpointHostServiceFixture.CreateNotifier(),
                 null!,
-                EndpointHostServiceFixture.CreateRpcEndpointHandler(lifetime),
-                EndpointHostServiceFixture.CreateEventsEndpointHandler(lifetime),
-                EndpointHostServiceFixture.CreateLogsEndpointHandler(),
+                EndpointHostServiceFixture.CreateEndpointHandlers(lifetime),
                 EndpointHostServiceFixture.CreateDrainDeadline()));
     }
 
     [Fact]
-    public void Should_throw_when_constructed_with_null_rpc_endpoint_handler()
+    public void Should_throw_when_constructed_with_null_handlers()
     {
-        using var lifetime = new FakeHostApplicationLifetime();
-
         Assert.Throws<ArgumentNullException>(() =>
             new EndpointHostService(
                 Options.Create(EndpointHostServiceFixture.CreateOptions()),
                 NullLoggerFactory.Instance,
                 EndpointHostServiceFixture.CreateNotifier(),
                 new FakeUniqueInstanceGuard(),
-                null!,
-                EndpointHostServiceFixture.CreateEventsEndpointHandler(lifetime),
-                EndpointHostServiceFixture.CreateLogsEndpointHandler(),
-                EndpointHostServiceFixture.CreateDrainDeadline()));
-    }
-
-    [Fact]
-    public void Should_throw_when_constructed_with_null_events_endpoint_handler()
-    {
-        using var lifetime = new FakeHostApplicationLifetime();
-
-        Assert.Throws<ArgumentNullException>(() =>
-            new EndpointHostService(
-                Options.Create(EndpointHostServiceFixture.CreateOptions()),
-                NullLoggerFactory.Instance,
-                EndpointHostServiceFixture.CreateNotifier(),
-                new FakeUniqueInstanceGuard(),
-                EndpointHostServiceFixture.CreateRpcEndpointHandler(lifetime),
-                null!,
-                EndpointHostServiceFixture.CreateLogsEndpointHandler(),
-                EndpointHostServiceFixture.CreateDrainDeadline()));
-    }
-
-    [Fact]
-    public void Should_throw_when_constructed_with_null_logs_endpoint_handler()
-    {
-        using var lifetime = new FakeHostApplicationLifetime();
-
-        Assert.Throws<ArgumentNullException>(() =>
-            new EndpointHostService(
-                Options.Create(EndpointHostServiceFixture.CreateOptions()),
-                NullLoggerFactory.Instance,
-                EndpointHostServiceFixture.CreateNotifier(),
-                new FakeUniqueInstanceGuard(),
-                EndpointHostServiceFixture.CreateRpcEndpointHandler(lifetime),
-                EndpointHostServiceFixture.CreateEventsEndpointHandler(lifetime),
                 null!,
                 EndpointHostServiceFixture.CreateDrainDeadline()));
     }
@@ -226,9 +180,7 @@ public sealed class EndpointHostServiceTests(
                 NullLoggerFactory.Instance,
                 EndpointHostServiceFixture.CreateNotifier(),
                 new FakeUniqueInstanceGuard(),
-                EndpointHostServiceFixture.CreateRpcEndpointHandler(lifetime),
-                EndpointHostServiceFixture.CreateEventsEndpointHandler(lifetime),
-                EndpointHostServiceFixture.CreateLogsEndpointHandler(),
+                EndpointHostServiceFixture.CreateEndpointHandlers(lifetime),
                 null!));
     }
 

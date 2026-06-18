@@ -536,9 +536,16 @@ public static class EngineHostBuilderExtensions
             ServiceDescriptor.Singleton<IHostedService, InstructionsSubscriptionService>());
 
         builder.Services.TryAddSingleton<DispatchPolicyFactory>();
-        builder.Services.TryAddSingleton<RpcEndpointHandler>();
-        builder.Services.TryAddSingleton<EventsEndpointHandler>();
-        builder.Services.TryAddSingleton<LogsEndpointHandler>();
+
+        // Per-kind connection handlers. EndpointHostService injects the
+        // full IEndpointHandler set and maps each by its Kind; a kind
+        // with no handler (health) is accepted and closed.
+        builder.Services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IEndpointHandler, RpcEndpointHandler>());
+        builder.Services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IEndpointHandler, EventsEndpointHandler>());
+        builder.Services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IEndpointHandler, LogsEndpointHandler>());
 
         // Shared shutdown-drain deadline: the host arms it during
         // StopAsync and the events/logs handlers observe its token so a

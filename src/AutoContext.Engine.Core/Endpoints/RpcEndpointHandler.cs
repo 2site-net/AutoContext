@@ -30,7 +30,7 @@ using Microsoft.Extensions.Logging;
 /// policy owns per-connection frame-stream state.
 /// </para>
 /// </remarks>
-internal sealed class RpcEndpointHandler
+internal sealed class RpcEndpointHandler : IEndpointHandler
 {
     private readonly DispatchPolicyFactory _dispatchPolicyFactory;
     private readonly IdleTimeoutWatchdog _idleTimeoutWatchdog;
@@ -63,6 +63,10 @@ internal sealed class RpcEndpointHandler
         _idleTimeoutWatchdog = idleTimeoutWatchdog;
         _logger = logger;
     }
+
+    /// <inheritdoc/>
+    public EndpointKind Kind
+        => EndpointKind.Rpc;
 
     /// <summary>
     /// Drives one accepted <c>rpc</c> connection: the

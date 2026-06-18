@@ -84,9 +84,7 @@ public sealed class EndpointHostServiceFixture : IAsyncDisposable
             NullLoggerFactory.Instance,
             notifier,
             instanceGuard,
-            rpcEndpointHandler,
-            eventsEndpointHandler,
-            logsEndpointHandler,
+            new IEndpointHandler[] { rpcEndpointHandler, eventsEndpointHandler, logsEndpointHandler },
             drainDeadline);
 
         // Track in reverse dependency order so Dispose tears the
@@ -161,6 +159,14 @@ public sealed class EndpointHostServiceFixture : IAsyncDisposable
             CreateLogsBroadcaster(),
             new ShutdownDrainDeadline(),
             NullLogger<LogsEndpointHandler>.Instance);
+
+    internal static IEndpointHandler[] CreateEndpointHandlers(
+        IHostApplicationLifetime lifetime) =>
+        [
+            CreateRpcEndpointHandler(lifetime),
+            CreateEventsEndpointHandler(lifetime),
+            CreateLogsEndpointHandler(),
+        ];
 
     internal static ShutdownDrainDeadline CreateDrainDeadline() => new();
 

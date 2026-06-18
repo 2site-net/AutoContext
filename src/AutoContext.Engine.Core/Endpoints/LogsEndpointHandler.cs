@@ -5,6 +5,7 @@ using System.Text.Json;
 using AutoContext.Engine.Core.Infrastructure.Events;
 using AutoContext.Engine.Core.Logging;
 
+using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.Messages.Logs;
 using AutoContext.Engine.Protocol.Serialization;
 
@@ -23,7 +24,7 @@ using Microsoft.Extensions.Logging;
 /// (peer disconnected), or the shutdown drain deadline fires (peer
 /// stopped reading during shutdown).
 /// </summary>
-internal sealed partial class LogsEndpointHandler
+internal sealed partial class LogsEndpointHandler : IEndpointHandler
 {
     private readonly ShutdownDrainDeadline _drainDeadline;
     private readonly LogFrameStream _logFrameStream = new();
@@ -57,6 +58,10 @@ internal sealed partial class LogsEndpointHandler
         _logger = logger;
     }
 
+    /// <inheritdoc/>
+    public EndpointKind Kind
+        => EndpointKind.Logs;
+
     /// <summary>
     /// Drives one accepted <c>logs</c> connection: enrols a
     /// broadcaster subscriber and pumps drained log frames onto the
@@ -66,10 +71,15 @@ internal sealed partial class LogsEndpointHandler
     /// <param name="stream">Connected pipe stream. The caller owns
     /// the stream lifetime; this method neither closes nor disposes
     /// it.</param>
+    /// <param name="cancellationToken">Accepted to satisfy
+    /// <see cref="IEndpointHandler"/> but intentionally not observed:
+    /// <c>logs</c> has no establishment phase, and the pump watches
+    /// the shared <see cref="ShutdownDrainDeadline"/> so the terminal
+    /// frames still drain during graceful stop.</param>
     /// <exception cref="ArgumentNullException">
     /// <paramref name="stream"/> is <see langword="null"/>.
     /// </exception>
-    public async Task HandleAsync(Stream stream)
+    public async Task HandleAsync(Stream stream, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(stream);
 

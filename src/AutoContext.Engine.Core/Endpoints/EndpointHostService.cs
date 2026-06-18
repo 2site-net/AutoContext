@@ -31,11 +31,13 @@ using Microsoft.Extensions.Options;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Each accepted connection is delegated whole to a per-kind
-/// handler: <see cref="RpcEndpointHandler"/> for <c>rpc</c>,
+/// Each accepted connection is delegated whole to the
+/// <see cref="IEndpointHandler"/> registered for its kind:
+/// <see cref="RpcEndpointHandler"/> for <c>rpc</c>,
 /// <see cref="EventsEndpointHandler"/> for <c>events</c>, and
-/// <see cref="LogsEndpointHandler"/> for <c>logs</c>. <c>health</c>
-/// is a passive observer surface the service binds but does not
+/// <see cref="LogsEndpointHandler"/> for <c>logs</c>. A kind with
+/// no registered handler — <c>health</c> today — is a passive
+/// accept-and-close observer surface the service binds but does not
 /// author payloads for. The service itself owns only listener
 /// orchestration — the four-pipe bind, the accept loops, and the
 /// graceful-stop sequence that publishes the terminal lifecycle
@@ -73,15 +75,13 @@ internal sealed partial class EndpointHostService : IHostedService, IAsyncDispos
 
     private int _disposed;
     private readonly ShutdownDrainDeadline _drainDeadline;
-    private readonly EventsEndpointHandler _eventsEndpointHandler;
+    private readonly Dictionary<EndpointKind, IEndpointHandler> _handlers;
     private readonly IUniqueInstanceGuard _instanceGuard;
     private readonly LifecycleNotifier _lifecycleNotifier;
     private readonly Dictionary<EndpointKind, BoundPipeListener> _listeners = new(AllKinds.Length);
     private readonly ILogger<EndpointHostService> _logger;
     private readonly ILoggerFactory _loggerFactory;
-    private readonly LogsEndpointHandler _logsEndpointHandler;
     private readonly EngineOptions _options;
-    private readonly RpcEndpointHandler _rpcEndpointHandler;
     private readonly List<Task> _runTasks = new(AllKinds.Length);
     private int _started;
     private int _stopped;
@@ -104,15 +104,12 @@ internal sealed partial class EndpointHostService : IHostedService, IAsyncDispos
     /// <see cref="StartAsync"/> before the four-pipe bind so
     /// the launcher-bug case (fresh-UUID violation) surfaces
     /// as a clear diagnostic instead of an opaque bind error.</param>
-    /// <param name="rpcEndpointHandler">Handler that drives each
-    /// accepted <c>rpc</c> connection end-to-end — handshake, idle
-    /// keep-alive, and the post-handshake JSON-RPC dispatch loop.</param>
-    /// <param name="eventsEndpointHandler">Handler that drives each
-    /// accepted <c>events</c> connection end-to-end — handshake, idle
-    /// keep-alive, and the lifecycle-event subscription pump.</param>
-    /// <param name="logsEndpointHandler">Handler that drives each
-    /// accepted <c>logs</c> connection — the broadcaster subscription
-    /// pump (no handshake, no keep-alive).</param>
+    /// <param name="handlers">The per-kind connection handlers. The
+    /// host builds a kind-to-handler map from each handler's
+    /// <see cref="IEndpointHandler.Kind"/>, so each kind must be
+    /// claimed by at most one handler. A kind absent from the set —
+    /// <c>health</c> today — is accepted and closed without a
+    /// handler.</param>
     /// <param name="drainDeadline">Shared shutdown-drain deadline the
     /// host arms during <see cref="StopAsync"/> and the events/logs
     /// pumps observe so a peer that stops reading mid-shutdown cannot
@@ -125,18 +122,14 @@ internal sealed partial class EndpointHostService : IHostedService, IAsyncDispos
         ILoggerFactory loggerFactory,
         LifecycleNotifier lifecycleNotifier,
         IUniqueInstanceGuard instanceGuard,
-        RpcEndpointHandler rpcEndpointHandler,
-        EventsEndpointHandler eventsEndpointHandler,
-        LogsEndpointHandler logsEndpointHandler,
+        IEnumerable<IEndpointHandler> handlers,
         ShutdownDrainDeadline drainDeadline)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(loggerFactory);
         ArgumentNullException.ThrowIfNull(lifecycleNotifier);
         ArgumentNullException.ThrowIfNull(instanceGuard);
-        ArgumentNullException.ThrowIfNull(rpcEndpointHandler);
-        ArgumentNullException.ThrowIfNull(eventsEndpointHandler);
-        ArgumentNullException.ThrowIfNull(logsEndpointHandler);
+        ArgumentNullException.ThrowIfNull(handlers);
         ArgumentNullException.ThrowIfNull(drainDeadline);
 
         _options = options.Value;
@@ -144,9 +137,7 @@ internal sealed partial class EndpointHostService : IHostedService, IAsyncDispos
         _logger = loggerFactory.CreateLogger<EndpointHostService>();
         _lifecycleNotifier = lifecycleNotifier;
         _instanceGuard = instanceGuard;
-        _rpcEndpointHandler = rpcEndpointHandler;
-        _eventsEndpointHandler = eventsEndpointHandler;
-        _logsEndpointHandler = logsEndpointHandler;
+        _handlers = handlers.ToDictionary(handler => handler.Kind);
         _drainDeadline = drainDeadline;
     }
 
@@ -361,38 +352,13 @@ internal sealed partial class EndpointHostService : IHostedService, IAsyncDispos
     {
         LogConnectionAccepted(_logger, kind);
 
-        // health is a passive observer surface — accept-and-close
-        // until later commits attach a payload.
-        if (kind is EndpointKind.Health)
+        // Each kind claimed by a registered handler is delegated
+        // whole. A kind with no handler — health today — is a
+        // passive accept-and-close observer surface.
+        if (_handlers.TryGetValue(kind, out var handler))
         {
-            return;
+            await handler.HandleAsync(stream, cancellationToken).ConfigureAwait(false);
         }
-
-        // logs is also passive (no handshake) but pumps drained
-        // records out of the broadcaster onto the wire as NDJSON
-        // LogStreamFrame values until the broadcaster completes
-        // (graceful shutdown), the pipe write faults (peer
-        // disconnected), or the drain deadline fires (peer stopped
-        // reading during shutdown).
-        if (kind is EndpointKind.Logs)
-        {
-            await _logsEndpointHandler.HandleAsync(stream).ConfigureAwait(false);
-            return;
-        }
-
-        // rpc owns its full connection lifecycle — handshake, idle
-        // keep-alive, and the post-handshake JSON-RPC dispatch loop —
-        // inside RpcEndpointHandler.
-        if (kind is EndpointKind.Rpc)
-        {
-            await _rpcEndpointHandler.HandleAsync(stream, cancellationToken).ConfigureAwait(false);
-            return;
-        }
-
-        // events owns its full connection lifecycle — handshake, idle
-        // keep-alive, and the lifecycle-event subscription pump —
-        // inside EventsEndpointHandler.
-        await _eventsEndpointHandler.HandleAsync(stream, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task RunAcceptLoopAsync(
