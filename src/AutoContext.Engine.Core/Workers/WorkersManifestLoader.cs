@@ -12,8 +12,10 @@ using AutoContext.Engine.Core.Workers.Format;
 /// <remarks>
 /// The side-car is an engine build artifact, not user input: a missing
 /// file or malformed JSON is a packaging defect, so the loader throws
-/// rather than degrading to a partial manifest. Failing here fails engine
-/// composition loudly, which is the intended behaviour. Field-level
+/// rather than degrading to a partial manifest. The loader runs inside the
+/// lazy <see cref="WorkerManager"/> singleton factory, so a defective
+/// side-car fails loudly the first time a worker is resolved for dispatch —
+/// by construction, before any worker can be launched. Field-level
 /// validation (required ids/commands, duplicate ids) lives in
 /// <see cref="WorkerProcessInfoResolver"/>, which consumes this read-model.
 /// </remarks>
