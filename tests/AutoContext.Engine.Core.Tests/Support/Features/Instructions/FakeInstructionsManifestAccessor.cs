@@ -14,7 +14,7 @@ internal sealed class FakeInstructionsManifestAccessor(params InstructionsFileMa
     : IInstructionsManifestAccessor
 {
     public FakeInstructionsManifestAccessor(
-        IReadOnlyList<InstructionsCategory> categories, params InstructionsFileManifestEntry[] files)
+        IReadOnlyList<InstructionsCategoryEntry> categories, params InstructionsFileManifestEntry[] files)
         : this(files)
     {
         Current = new InstructionsManifestSnapshot(categories, files);

@@ -195,7 +195,7 @@ public sealed class DispatchPolicyInstructionsTests(TempDirectoryFixture tempDir
         // Arrange
         using var lifetime = new FakeHostApplicationLifetime();
         var manifest = new FakeInstructionsManifestAccessor(
-            [new InstructionsCategory { Name = "languages", Description = "Per-language rules." }]);
+            [new InstructionsCategoryEntry { Name = "languages", Description = "Per-language rules." }]);
         var policy = DispatchPolicyTestFactory.Create(lifetime, manifestAccessor: manifest);
         var request = JsonRpcRequestTestFactory.BuildRequest(InstructionsMethods.Categories);
 

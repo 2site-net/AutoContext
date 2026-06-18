@@ -114,18 +114,18 @@ internal static class InstructionsManifestLoader
         return parsed ?? throw Malformed(path, "it deserialised to null.");
     }
 
-    private static List<InstructionsCategory> BuildCategories(
+    private static List<InstructionsCategoryEntry> BuildCategories(
         JsonInstructionsCatalog catalog,
         string catalogPath)
     {
         var rows = catalog.Categories
             ?? throw Malformed(catalogPath, "the 'categories' array is missing.");
 
-        var categories = new List<InstructionsCategory>(rows.Count);
+        var categories = new List<InstructionsCategoryEntry>(rows.Count);
 
         foreach (var row in rows)
         {
-            categories.Add(new InstructionsCategory
+            categories.Add(new InstructionsCategoryEntry
             {
                 Name = Required(row.Name, "categories[].name", catalogPath),
                 Description = Required(row.Description, "categories[].description", catalogPath),

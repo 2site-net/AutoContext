@@ -7,7 +7,7 @@ namespace AutoContext.Engine.Core.Features.Instructions.Snapshot;
 /// <see cref="InstructionsManifestSnapshot"/> taxonomy and surfaced
 /// verbatim by the <c>Instructions.Categories</c> RPC.
 /// </summary>
-internal sealed record InstructionsCategory
+internal sealed record InstructionsCategoryEntry
 {
     /// <summary>
     /// The category name; the value a file's category membership

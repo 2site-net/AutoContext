@@ -39,7 +39,7 @@ internal sealed class InstructionsManifestSnapshot
     /// contains a <see langword="null"/> element or a duplicate file
     /// name.</exception>
     public InstructionsManifestSnapshot(
-        IReadOnlyList<InstructionsCategory> categories,
+        IReadOnlyList<InstructionsCategoryEntry> categories,
         IReadOnlyList<InstructionsFileManifestEntry> files)
     {
         ArgumentNullException.ThrowIfNull(categories);
@@ -67,7 +67,7 @@ internal sealed class InstructionsManifestSnapshot
     /// <summary>
     /// The category taxonomy in document order.
     /// </summary>
-    public IReadOnlyList<InstructionsCategory> Categories { get; }
+    public IReadOnlyList<InstructionsCategoryEntry> Categories { get; }
 
     /// <summary>
     /// The merged corpus rows in document order.
