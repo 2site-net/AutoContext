@@ -1,10 +1,3 @@
 {
-    "json.schemas": [
-        {
-            "fileMatch": [
-                "/src/AutoContext.Engine/Resources/instructions-catalog.json"
-            ],
-            "url": "./src/AutoContext.Engine/Resources/instructions-catalog.schema.json"
-        }
-    ]
 }
+
