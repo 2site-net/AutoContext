@@ -552,7 +552,7 @@ function Test-DotNetSmoke {
 
     Write-Section 'Smoke-test .NET'
 
-    # Caller (Invoke-Compile -Smoke) is responsible for compiling and staging
+    # Caller (Invoke-Build -Smoke) is responsible for compiling and staging
     # the packaged extension layout before invoking this function.
 
     $smokeTestProjects =
@@ -593,7 +593,7 @@ function Test-VsCodeSmoke {
 
     Write-Section 'Smoke-test VS Code extension'
 
-    # Caller (Invoke-Compile -Smoke) is responsible for compiling and staging
+    # Caller (Invoke-Build -Smoke) is responsible for compiling and staging
     # the packaged extension layout before invoking this function.
 
     if ($PSCmdlet.ShouldProcess('vscode-test', 'Run VS Code smoke tests')) {
@@ -1077,7 +1077,7 @@ function Update-ProjectVersion {
 
 # ── Composite actions ────────────────────────────────────────────────────────
 
-function Invoke-Compile {
+function Invoke-Build {
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory)][psobject]$Context,
@@ -1148,7 +1148,7 @@ function Invoke-Prepare {
     # Sync all project files to the canonical version before compiling
     Sync-ProjectVersions -Context $Context
 
-    Invoke-Compile -Context $Context -Scope 'All'
+    Invoke-Build -Context $Context -Scope 'All'
 
     Write-Header 'Prepare'
     Copy-AssetsToExtensionFolder -Context $Context
@@ -1404,7 +1404,7 @@ function Invoke-Tag {
     }
 
     # ── Build gate ──
-    Invoke-Compile -Context $Context -Scope 'All'
+    Invoke-Build -Context $Context -Scope 'All'
 
     # ── Bump versions + commit (only if version changed) ──
     if ($needsBump) {

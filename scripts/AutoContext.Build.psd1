@@ -72,7 +72,7 @@ PowerShellVersion = '7.0'
 FunctionsToExport = 'Initialize-BuildContext', 'Build-TypeScript', 'Build-DotNet', 
                'Test-TypeScript', 'Test-DotNet', 'Test-DotNetFormat', 
                'Test-DotNetSmoke', 'Test-VsCodeSmoke', 'Invoke-Clean', 
-               'Invoke-Compile', 'Invoke-Prepare', 'Invoke-Package', 'Invoke-Publish', 
+               'Invoke-Build', 'Invoke-Prepare', 'Invoke-Package', 'Invoke-Publish', 
                'Invoke-Tag'
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.

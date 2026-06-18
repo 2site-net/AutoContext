@@ -140,5 +140,5 @@ if ($Clean) {
 # A target (including the explicit 'All') opts back into the gate after a clean.
 if ($Target -or -not $Clean) {
     $scope = if ($Target) { $Target } else { 'All' }
-    Invoke-Compile -Context $context -Scope $scope -WhatIf:$WhatIfPreference
+    Invoke-Build -Context $context -Scope $scope -WhatIf:$WhatIfPreference
 }
