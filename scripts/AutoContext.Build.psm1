@@ -309,7 +309,7 @@ function Sync-ProjectVersions {
 
 # ── Core actions ─────────────────────────────────────────────────────────────
 
-function Invoke-NpmInstall {
+function Install-Npm {
     <#
     .SYNOPSIS
         Installs npm dependencies for a project, skipping the install when
@@ -376,7 +376,7 @@ function Build-TypeScript {
 
             Push-Location $libDir
             try {
-                Invoke-NpmInstall -ProjectDir $libDir -InstallCommand $Context.NpmInstallCmd -Label $libName
+                Install-Npm -ProjectDir $libDir -InstallCommand $Context.NpmInstallCmd -Label $libName
 
                 Write-Status "Compiling $libName (src + tests)..." 'INFO'
                 npx tsc -b ./tsconfig.json
@@ -390,7 +390,7 @@ function Build-TypeScript {
 
         Push-Location $Context.ExtensionDir
         try {
-            Invoke-NpmInstall -ProjectDir $Context.ExtensionDir -InstallCommand $Context.NpmInstallCmd -Label 'extension'
+            Install-Npm -ProjectDir $Context.ExtensionDir -InstallCommand $Context.NpmInstallCmd -Label 'extension'
 
             Write-Status 'Generating instructions files metadata...' 'INFO'
             npx tsx src/instructions-files-metadata-generator.ts
@@ -440,7 +440,7 @@ function Build-TypeScript {
             $serverLabel = $server.name
             Push-Location $serverDir
             try {
-                Invoke-NpmInstall -ProjectDir $serverDir -InstallCommand $Context.NpmInstallCmd -Label $serverLabel
+                Install-Npm -ProjectDir $serverDir -InstallCommand $Context.NpmInstallCmd -Label $serverLabel
 
                 $versionTsPath = Join-Path $serverDir 'src' 'version.ts'
                 Write-Status "Generating $serverLabel version..." 'INFO'
