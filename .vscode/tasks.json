@@ -4,7 +4,7 @@
     {
       "label": "build-ts-only",
       "type": "shell",
-      "command": ".\\build.ps1 Compile TS",
+      "command": ".\\build.ps1 TS",
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -18,7 +18,7 @@
     {
       "label": "build-full",
       "type": "shell",
-      "command": ".\\build.ps1 Package -Local",
+      "command": ".\\scripts\\package.ps1 -Local",
       "options": {
         "cwd": "${workspaceFolder}"
       },

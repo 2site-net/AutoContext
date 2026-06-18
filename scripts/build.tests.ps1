@@ -234,292 +234,76 @@ function Write-Summary {
 
 $testCases = @(
 
-    # ── Default (no action) ──────────────────────────────────────────────
+    # ── build.ps1 gate — compile + format + unit tests ───────────────────
 
     @{
-        Name         = 'Default (Compile + unit tests, all)'
+        Name         = 'Default (all) — compile + format + unit tests'
         Arguments    = '-WhatIf'
         ExpectOutput = @('Compile TypeScript.*tsc', 'dotnet build.*AutoContext', 'dotnet format', 'Run TypeScript tests.*vitest', 'dotnet test')
     }
-
-    # ── Compile ──────────────────────────────────────────────────────────
-
     @{
-        Name         = 'Compile (all) — includes unit tests'
-        Arguments    = 'Compile -WhatIf'
+        Name         = 'All (explicit)'
+        Arguments    = 'All -WhatIf'
         ExpectOutput = @('Compile TypeScript', 'dotnet build', 'dotnet format', 'Run TypeScript tests', 'dotnet test')
     }
     @{
-        Name         = 'Compile TS — includes TS tests'
-        Arguments    = 'Compile TS -WhatIf'
+        Name         = 'TS — TypeScript only'
+        Arguments    = 'TS -WhatIf'
         ExpectOutput = @('Compile TypeScript', 'Run TypeScript tests')
         RejectOutput = @('dotnet build', 'dotnet test', 'dotnet format')
     }
     @{
-        Name         = 'Compile TypeScript (alias) — includes TS tests'
-        Arguments    = 'Compile TypeScript -WhatIf'
+        Name         = 'TypeScript (alias)'
+        Arguments    = 'TypeScript -WhatIf'
         ExpectOutput = @('Compile TypeScript', 'Run TypeScript tests')
+        RejectOutput = @('dotnet build')
     }
     @{
-        Name         = 'Compile DotNet — includes .NET tests'
-        Arguments    = 'Compile DotNet -WhatIf'
+        Name         = 'DotNet — .NET only'
+        Arguments    = 'DotNet -WhatIf'
         ExpectOutput = @('dotnet build', 'dotnet format', 'dotnet test')
         RejectOutput = @('Compile TypeScript', 'Run TypeScript tests')
     }
     @{
-        Name         = 'Compile .NET (alias) — includes .NET tests'
-        Arguments    = "Compile '.NET' -WhatIf"
+        Name         = '.NET (alias)'
+        Arguments    = "'.NET' -WhatIf"
         ExpectOutput = @('dotnet build', 'dotnet test')
-    }
-    @{
-        Name         = 'Compile All (explicit) — includes all tests'
-        Arguments    = 'Compile All -WhatIf'
-        ExpectOutput = @('Compile TypeScript', 'dotnet build', 'dotnet format', 'Run TypeScript tests', 'dotnet test')
-    }
-
-    # ── Compile -NoTest (skip unit tests) ─────────────────────────────
-
-    @{
-        Name         = 'Compile -NoTest (all)'
-        Arguments    = 'Compile -NoTest -WhatIf'
-        ExpectOutput = @('Compile TypeScript', 'dotnet build', 'dotnet format')
-        RejectOutput = @('Run TypeScript tests', 'dotnet test')
-    }
-    @{
-        Name         = 'Compile TS -NoTest'
-        Arguments    = 'Compile TS -NoTest -WhatIf'
-        ExpectOutput = @('Compile TypeScript')
-        RejectOutput = @('Run TypeScript tests', 'dotnet build', 'dotnet test')
-    }
-    @{
-        Name         = 'Compile DotNet -NoTest'
-        Arguments    = 'Compile DotNet -NoTest -WhatIf'
-        ExpectOutput = @('dotnet build', 'dotnet format')
-        RejectOutput = @('dotnet test', 'Compile TypeScript')
-    }
-    @{
-        Name         = 'Default -NoTest (no action, just compile)'
-        Arguments    = '-NoTest -WhatIf'
-        ExpectOutput = @('Compile TypeScript', 'dotnet build')
-        RejectOutput = @('Run TypeScript tests', 'dotnet test')
-    }
-
-    # ── Compile -NoLint (skip .NET format gate) ───────────────────────
-
-    @{
-        Name         = 'Compile -NoLint (all)'
-        Arguments    = 'Compile -NoLint -WhatIf'
-        ExpectOutput = @('Compile TypeScript', 'dotnet build', 'dotnet test')
-        RejectOutput = @('dotnet format')
-    }
-    @{
-        Name         = 'Compile DotNet -NoLint'
-        Arguments    = 'Compile DotNet -NoLint -WhatIf'
-        ExpectOutput = @('dotnet build', 'dotnet test')
-        RejectOutput = @('dotnet format')
-    }
-    @{
-        Name         = 'Compile -NoLint -NoTest (compile only)'
-        Arguments    = 'Compile -NoLint -NoTest -WhatIf'
-        ExpectOutput = @('Compile TypeScript', 'dotnet build')
-        RejectOutput = @('dotnet format', 'dotnet test', 'Run TypeScript tests')
+        RejectOutput = @('Compile TypeScript')
     }
 
     # ── Clean ────────────────────────────────────────────────────────────
 
     @{
-        Name         = 'Clean (standalone)'
+        Name         = 'Clean (standalone) — clean only'
         Arguments    = '-Clean -WhatIf'
         ExpectOutput = @('Delete TypeScript output|TypeScript output.*not found', 'Delete Servers|Servers.*not found', 'Delete VSIX packages|VSIX packages.*not found')
+        RejectOutput = @('Compile TypeScript', 'dotnet build', 'dotnet test')
     }
     @{
-        Name         = 'Clean + Compile'
-        Arguments    = '-Clean Compile -WhatIf'
+        Name         = 'Clean + All — clean then run the gate'
+        Arguments    = '-Clean All -WhatIf'
         ExpectOutput = @('Delete TypeScript output', 'Compile TypeScript', 'dotnet build', 'dotnet format', 'Run TypeScript tests', 'dotnet test')
     }
     @{
-        Name         = 'Clean + Compile TS'
-        Arguments    = '-Clean Compile TS -WhatIf'
+        Name         = 'Clean + TS — clean then build + test TypeScript'
+        Arguments    = '-Clean TS -WhatIf'
         ExpectOutput = @('Delete TypeScript output', 'Compile TypeScript', 'Run TypeScript tests')
+        RejectOutput = @('dotnet build', 'dotnet test')
     }
     @{
-        Name         = 'Clean + Compile -NoTest'
-        Arguments    = '-Clean Compile -NoTest -WhatIf'
-        ExpectOutput = @('Delete TypeScript output', 'Compile TypeScript', 'dotnet build')
-        RejectOutput = @('Run TypeScript tests', 'dotnet test')
-    }
-    @{
-        Name         = 'Clean + Compile DotNet'
-        Arguments    = '-Clean Compile DotNet -WhatIf'
+        Name         = 'Clean + DotNet — clean then build + test .NET'
+        Arguments    = '-Clean DotNet -WhatIf'
         ExpectOutput = @('Delete TypeScript output', 'dotnet build', 'dotnet format', 'dotnet test')
-    }
-    @{
-        Name         = 'Clean + Compile -Smoke (Clean is ignored, smoke already cleans)'
-        Arguments    = '-Clean Compile -Smoke -WhatIf'
-        ExpectOutput = @('Delete TypeScript output', 'Compile TypeScript', 'dotnet build', 'Smoke-test')
+        RejectOutput = @('Compile TypeScript', 'Run TypeScript tests')
     }
 
-    # ── Prepare ──────────────────────────────────────────────────────────
+    # ── Invalid arguments (expect errors) ────────────────────────────────
 
-    @{
-        Name         = 'Prepare'
-        Arguments    = 'Prepare -WhatIf'
-        ExpectOutput = @('Delete TypeScript output', 'Compile TypeScript', 'dotnet build', 'Run TypeScript tests', 'dotnet test', 'Copy LICENSE')
-    }
-
-    # ── Package ──────────────────────────────────────────────────────────
-
-    @{
-        Name         = 'Package (auto-detect RID)'
-        Arguments    = 'Package -WhatIf'
-        ExpectOutput = @('Delete TypeScript output', 'Compile TypeScript', 'dotnet build', 'Run TypeScript tests', 'dotnet publish', 'vsce package')
-    }
-    @{
-        Name         = 'Package All (6 platforms)'
-        Arguments    = 'Package All -WhatIf'
-        ExpectOutput = @('win-x64', 'win-arm64', 'linux-x64', 'linux-arm64', 'osx-x64', 'osx-arm64')
-    }
-    @{
-        Name         = 'Package -RuntimeIdentifier win-x64'
-        Arguments    = 'Package -RuntimeIdentifier win-x64 -WhatIf'
-        ExpectOutput = @('dotnet publish.*win-x64', 'vsce package --target win32-x64')
-    }
-    @{
-        Name         = 'Package -RuntimeIdentifier osx-arm64'
-        Arguments    = 'Package -RuntimeIdentifier osx-arm64 -WhatIf'
-        ExpectOutput = @('dotnet publish.*osx-arm64', 'vsce package --target darwin-arm64')
-    }
-    @{
-        Name         = 'Package -RuntimeIdentifier linux-x64'
-        Arguments    = 'Package -RuntimeIdentifier linux-x64 -WhatIf'
-        ExpectOutput = @('dotnet publish.*linux-x64', 'vsce package --target linux-x64')
-    }
-    @{
-        Name         = 'Package -Local'
-        Arguments    = 'Package -Local -WhatIf'
-        ExpectOutput = @('Delete TypeScript output', 'Compile TypeScript', 'dotnet build', 'Copy .NET servers \(local\)', 'Package AutoContext\.Worker\.Web')
-        RejectOutput = @('dotnet publish', 'vsce package')
-    }
-
-    # ── Publish ──────────────────────────────────────────────────────────
-
-    @{
-        Name         = 'Publish (auto-detect RID)'
-        Arguments    = 'Publish -WhatIf'
-        ExpectOutput = @('Delete TypeScript output|TypeScript output.*not found', 'Compile TypeScript', 'dotnet build', 'Run TypeScript tests', 'Copy LICENSE', 'dotnet publish', 'vsce package', 'Publish to Marketplace', 'Publish to Open VSX')
-    }
-    @{
-        Name         = 'Publish All (6 platforms)'
-        Arguments    = 'Publish All -WhatIf'
-        ExpectOutput = @('win-x64', 'linux-x64', 'osx-arm64', 'Publish to Marketplace', 'Publish to Open VSX')
-    }
-
-    # ── Invalid combinations (expect errors) ─────────────────────────────
-
-    @{
-        Name         = 'Clean + Prepare (mutually exclusive)'
-        Arguments    = '-Clean Prepare -WhatIf'
-        ExpectError  = $true
-        ErrorPattern = 'mutually exclusive'
-    }
-    @{
-        Name         = 'Clean + Package (mutually exclusive)'
-        Arguments    = '-Clean Package -WhatIf'
-        ExpectError  = $true
-        ErrorPattern = 'mutually exclusive'
-    }
-    @{
-        Name         = 'Clean + Publish (mutually exclusive)'
-        Arguments    = '-Clean Publish -WhatIf'
-        ExpectError  = $true
-        ErrorPattern = 'mutually exclusive'
-    }
-    @{
-        Name         = 'Package All + RuntimeIdentifier (mutually exclusive)'
-        Arguments    = 'Package All -RuntimeIdentifier win-x64 -WhatIf'
-        ExpectError  = $true
-        ErrorPattern = 'mutually exclusive'
-    }
-    @{
-        Name         = 'Local without Package (invalid)'
-        Arguments    = 'Compile -Local -WhatIf'
-        ExpectError  = $true
-        ErrorPattern = 'only valid with the Package action'
-    }
-    @{
-        Name         = 'Smoke without Compile (invalid)'
-        Arguments    = 'Prepare -Smoke -WhatIf'
-        ExpectError  = $true
-        ErrorPattern = 'only valid with the Compile action'
-    }
-    @{
-        Name         = 'NoTest without Compile (invalid)'
-        Arguments    = 'Prepare -NoTest -WhatIf'
-        ExpectError  = $true
-        ErrorPattern = 'only valid with the Compile action'
-    }
-    @{
-        Name         = 'NoLint without Compile (invalid)'
-        Arguments    = 'Prepare -NoLint -WhatIf'
-        ExpectError  = $true
-        ErrorPattern = 'only valid with the Compile action'
-    }
-    @{
-        Name         = 'Package -Local + RuntimeIdentifier (mutually exclusive)'
-        Arguments    = 'Package -Local -RuntimeIdentifier win-x64 -WhatIf'
-        ExpectError  = $true
-        ErrorPattern = 'mutually exclusive'
-    }
-    @{
-        Name         = 'Package -Local + All (mutually exclusive)'
-        Arguments    = 'Package All -Local -WhatIf'
-        ExpectError  = $true
-        ErrorPattern = 'mutually exclusive'
-    }
-    @{
-        Name         = 'Reject unknown Action'
-        Arguments    = 'InvalidAction -WhatIf'
-        ExpectError  = $true
-        ErrorPattern = 'ValidateSet|cannot be validated'
-    }
     @{
         Name         = 'Reject unknown Target'
-        Arguments    = 'Compile InvalidTarget -WhatIf'
+        Arguments    = 'InvalidTarget -WhatIf'
         ExpectError  = $true
-        ErrorPattern = 'does not belong to the set'
-    }
-
-    # ── Tag ──────────────────────────────────────────────────────────────
-
-    @{
-        Name         = 'Tag without version (error)'
-        Arguments    = 'Tag -WhatIf'
-        ExpectError  = $true
-        ErrorPattern = 'Tag requires a version'
-    }
-    @{
-        Name         = 'Tag with invalid semver (error)'
-        Arguments    = 'Tag abc -WhatIf'
-        ExpectError  = $true
-        ErrorPattern = 'Invalid version'
-    }
-    @{
-        Name         = 'Tag with lower version (error)'
-        Arguments    = 'Tag 0.0.1 -WhatIf'
-        ExpectError  = $true
-        ErrorPattern = 'less than current'
-    }
-    @{
-        Name         = 'Tag + Clean (mutually exclusive)'
-        Arguments    = '-Clean Tag 99.0.0 -WhatIf'
-        ExpectError  = $true
-        ErrorPattern = 'mutually exclusive'
-    }
-    @{
-        Name         = 'Tag + RuntimeIdentifier (invalid)'
-        Arguments    = 'Tag 99.0.0 -RuntimeIdentifier win-x64 -WhatIf'
-        ExpectError  = $true
-        ErrorPattern = 'not valid with Tag'
+        ErrorPattern = 'does not belong to the set|cannot be validated'
     }
 
     # ── Granular wrappers (scripts/*.ps1) ────────────────────────────────
@@ -671,7 +455,7 @@ $testCases = @(
     @{
         Name         = 'Help flag'
         Arguments    = '-Help'
-        ExpectOutput = @('SYNTAX', 'ACTIONS', 'TARGETS', 'SWITCHES', 'EXAMPLES')
+        ExpectOutput = @('SYNTAX', 'TARGETS', 'SWITCHES', 'EXAMPLES')
     }
 )
 
