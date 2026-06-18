@@ -26,23 +26,23 @@ The build logic lives in `scripts/AutoContext.Build.psm1`; `build.ps1` is the or
 
 ### Build Commands
 
-| Task                                            | Command                                |
-|-------------------------------------------------|----------------------------------------|
-| Compile everything + run unit tests (the gate)  | `.\build.ps1`                          |
-| Compile TypeScript + TS tests                   | `.\build.ps1 TS`                       |
-| Compile .NET + .NET tests                       | `.\build.ps1 DotNet`                   |
-| Clean all build artifacts                       | `.\build.ps1 -Clean`                   |
-| Clean then run the gate                         | `.\build.ps1 -Clean All`               |
-| Inner-loop compile (compile only, no tests)     | `.\scripts\compile.ps1 [TS\|DotNet]`   |
-| Inner-loop compile + tests                      | `.\scripts\test.ps1 [TS\|DotNet]`      |
-| Inner-loop tests only (skip the compile)        | `.\scripts\test.ps1 -NoCompile`        |
-| Smoke-test the extension / .NET                 | `.\scripts\test.ps1 -Smoke [DotNet]`   |
-| Inner-loop .NET format gate                     | `.\scripts\format.ps1`                 |
-| Prepare (clean + compile + test + copy assets)  | `.\scripts\prepare.ps1`               |
-| Package                                         | `.\scripts\package.ps1`               |
-| Publish                                         | `.\scripts\publish.ps1`               |
-| Tag a release                                   | `.\scripts\tag.ps1 <version>`         |
-| Run the build self-test suite                   | `.\scripts\build.tests.ps1`            |
+| Command                                | Task                                            |
+|----------------------------------------|-------------------------------------------------|
+| `.\build.ps1`                          | Compile everything + run unit tests (the gate)  |
+| `.\build.ps1 TS`                       | Compile TypeScript + TS tests                   |
+| `.\build.ps1 DotNet`                   | Compile .NET + .NET tests                       |
+| `.\build.ps1 -Clean`                   | Clean all build artifacts                       |
+| `.\build.ps1 -Clean All`               | Clean then run the gate                         |
+| `.\scripts\compile.ps1 [TS\|DotNet]`   | Inner-loop compile (compile only, no tests)     |
+| `.\scripts\test.ps1 [TS\|DotNet]`      | Inner-loop compile + tests                      |
+| `.\scripts\test.ps1 -NoCompile`        | Inner-loop tests only (skip the compile)        |
+| `.\scripts\test.ps1 -Smoke [DotNet]`   | Smoke-test the extension / .NET                 |
+| `.\scripts\format.ps1`                 | Inner-loop .NET format gate                     |
+| `.\scripts\prepare.ps1`                | Prepare (clean + compile + test + copy assets)  |
+| `.\scripts\package.ps1`                | Package                                         |
+| `.\scripts\publish.ps1`                | Publish                                         |
+| `.\scripts\tag.ps1 <version>`          | Tag a release                                   |
+| `.\scripts\build.tests.ps1`            | Run the build self-test suite                   |
 
 > `build.ps1` is the compile + format + unit-test gate; it always runs unit
 > tests. There is no standalone `Test` action — `build.ps1` tests always run
