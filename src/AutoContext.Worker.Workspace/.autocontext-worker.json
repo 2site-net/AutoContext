@@ -1,0 +1,5 @@
+{
+  "id": "workspace",
+  "type": "executable",
+  "command": "${root}/AutoContext.Worker.Workspace"
+}

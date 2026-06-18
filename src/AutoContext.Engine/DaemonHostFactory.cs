@@ -77,6 +77,7 @@ internal static class DaemonHostFactory
                 target.Logging = options.Logging;
                 target.McpServerMode = options.McpServerMode;
                 target.ParentProcessId = options.ParentProcessId;
+                target.ResourcesRootOverride = options.ResourcesRootOverride;
                 target.Retention = options.Retention;
                 target.WorkspacePath = options.WorkspacePath;
             });

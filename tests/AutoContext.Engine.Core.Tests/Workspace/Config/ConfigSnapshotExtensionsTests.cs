@@ -113,12 +113,11 @@ public sealed class ConfigSnapshotExtensionsTests
             Assert.Multiple(
                 () => Assert.Equal("t1", entry.Key),
                 () => Assert.True(entry.Value.Disabled),
-                () => Assert.Null(entry.Value.Version),
-                () => Assert.Null(entry.Value.DisabledTasks));
+                () => Assert.Null(entry.Value.Version));
         }
 
         [Fact]
-        public void Should_emit_object_for_tool_with_disabled_tasks()
+        public void Should_emit_object_for_disabled_tool_with_version()
         {
             // Arrange
             var config = ConfigSnapshot.Empty with
@@ -129,7 +128,7 @@ public sealed class ConfigSnapshotExtensionsTests
                     {
                         Name = "t2",
                         Version = "2.0",
-                        Tasks = [new ConfigMcpTool.McpTask { Name = "k", Disabled = true }],
+                        Disabled = true,
                     },
                 ],
             };
@@ -142,9 +141,8 @@ public sealed class ConfigSnapshotExtensionsTests
 
             Assert.Multiple(
                 () => Assert.Equal("t2", entry.Key),
-                () => Assert.Null(entry.Value.Disabled),
-                () => Assert.Equal("2.0", entry.Value.Version),
-                () => Assert.Equal(["k"], entry.Value.DisabledTasks));
+                () => Assert.True(entry.Value.Disabled),
+                () => Assert.Equal("2.0", entry.Value.Version));
         }
 
         [Fact]
@@ -158,7 +156,7 @@ public sealed class ConfigSnapshotExtensionsTests
                     new ConfigMcpTool
                     {
                         Name = "t3",
-                        Tasks = [new ConfigMcpTool.McpTask { Name = "k", Disabled = null }],
+                        Disabled = null,
                     },
                 ],
             };

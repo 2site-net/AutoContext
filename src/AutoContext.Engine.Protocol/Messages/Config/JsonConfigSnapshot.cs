@@ -6,8 +6,8 @@ using System.Text.Json.Serialization;
 /// Wire shape of the engine's current config snapshot, returned by
 /// the <c>Config.Get</c> RPC. Mirrors the engine-internal config
 /// graph as flat arrays — instructions files and MCP tools each
-/// carry their own enable/disable state plus a nested list of
-/// per-rule / per-task overrides — rather than the
+/// carry their own enable/disable state plus per-file rule overrides
+/// — rather than the
 /// <c>.autocontext.json</c> on-disk encoding (which collapses
 /// "no state" entries and uses a <c>false</c>-or-object shorthand).
 /// Clients read disabled state off this shape; they never write the

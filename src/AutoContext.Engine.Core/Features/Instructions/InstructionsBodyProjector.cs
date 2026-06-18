@@ -3,6 +3,7 @@ namespace AutoContext.Engine.Core.Features.Instructions;
 using System.Text;
 
 using AutoContext.Engine.Core.Features.Instructions.Snapshot;
+using AutoContext.Engine.Core.Infrastructure;
 using AutoContext.Engine.Core.Workspace.Config;
 using AutoContext.Engine.Core.Workspace.Config.Snapshot;
 
@@ -35,38 +36,36 @@ internal sealed class InstructionsBodyProjector
         new HashSet<string>(StringComparer.Ordinal);
 
     private readonly IConfigSnapshotAccessor _configAccessor;
-    private readonly string _instructionsDirectory;
+    private readonly EngineResourcesDirectory _instructions;
     private readonly IInstructionsOverridesAccessor _overrideAccessor;
 
     /// <summary>
     /// Creates a projector that reads bundled bodies from
-    /// <paramref name="instructionsDirectory"/>, prefers workspace
-    /// overrides from <paramref name="overrideAccessor"/>, and filters
-    /// disabled rules from <paramref name="configAccessor"/>.
+    /// <paramref name="instructions"/>, prefers workspace overrides from
+    /// <paramref name="overrideAccessor"/>, and filters disabled rules
+    /// from <paramref name="configAccessor"/>.
     /// </summary>
-    /// <param name="instructionsDirectory">Absolute path of the directory
-    /// holding the bundled <c>*.instructions.md</c> bodies. Must not be
-    /// <see langword="null"/>, empty, or whitespace.</param>
+    /// <param name="instructions">The instructions directory holding the
+    /// bundled <c>*.instructions.md</c> bodies (override copies shadow the
+    /// bundled ones). Must not be <see langword="null"/>.</param>
     /// <param name="overrideAccessor">Read seam over the workspace
     /// override inventory.</param>
     /// <param name="configAccessor">Read seam over the workspace config
     /// snapshot, the source of the disabled-rule set.</param>
-    /// <exception cref="ArgumentException">
-    /// <paramref name="instructionsDirectory"/> is <see langword="null"/>,
-    /// empty, or whitespace.</exception>
     /// <exception cref="ArgumentNullException">
-    /// <paramref name="overrideAccessor"/> or
-    /// <paramref name="configAccessor"/> is <see langword="null"/>.</exception>
+    /// <paramref name="instructions"/>, <paramref name="overrideAccessor"/>,
+    /// or <paramref name="configAccessor"/> is
+    /// <see langword="null"/>.</exception>
     public InstructionsBodyProjector(
-        string instructionsDirectory,
+        EngineResourcesDirectory instructions,
         IInstructionsOverridesAccessor overrideAccessor,
         IConfigSnapshotAccessor configAccessor)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(instructionsDirectory);
+        ArgumentNullException.ThrowIfNull(instructions);
         ArgumentNullException.ThrowIfNull(overrideAccessor);
         ArgumentNullException.ThrowIfNull(configAccessor);
 
-        _instructionsDirectory = instructionsDirectory;
+        _instructions = instructions;
         _overrideAccessor = overrideAccessor;
         _configAccessor = configAccessor;
     }
@@ -317,7 +316,7 @@ internal sealed class InstructionsBodyProjector
     private string ResolveBodySourcePath(string fileName)
         => _overrideAccessor.Current.TryGetPath(fileName, out var overridePath) && overridePath is not null
             ? overridePath
-            : Path.Combine(_instructionsDirectory, fileName);
+            : _instructions.ResolveFile(fileName);
 
     /// <summary>
     /// The outcome of resolving requested section anchors against the

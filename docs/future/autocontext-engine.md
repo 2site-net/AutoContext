@@ -367,9 +367,9 @@ See [Composition contracts](#composition-contracts).
 |---|---|
 | `instructions-catalog.json` | **hand-authored** curatorial layer: category taxonomy (`name` + `description`) and per-file `label`, category membership, and `activationFlags`. Tracked source — not generated. |
 | `instructions-manifest.json` | **build-generated** per-file facts: section maps, parsed `applyTo` extension sets, `version`, `description`, `contentHash`, `hasChangelog`. Carries no body text — full-text search indexes the projected bodies at runtime. |
-| `mcp-tools.json` | wire-shape catalog for `McpTools.List` |
-| `mcp-tools-registry.json` | source-of-truth tool→worker dispatch table (hand-edited) |
-| `mcp-tools-registry-schema.json` | JSON-schema for the registry (hand-edited) |
+| `mcp-tools-catalog.json` | **hand-authored** activation + UI catalog. Answers two questions the registry deliberately does not: **when** each tool activates (category `activationFlags`, accumulated down the tree and ANDed) and **where** it appears in the UI (its category in the presentation tree). Carries no model-facing tool contract; joins the registry by tool `name` + `workerId`. Same curatorial concept as `instructions-catalog.json` (hand-authored layer over a separate facts file) but its own shape. Tracked source — not generated. |
+| `mcp-tools-registry.json` | **hand-authored** execution registry. Describes **what** each tool is for the model and how it dispatches: a flat `tools[]` list, each tool `{ name, workerId (FK to workers.json), description, parameters, editorconfig? }`. The `description` and `parameters` are the model-facing contract surfaced over MCP `tools/list`; `workerId` is the source-of-truth dispatch target. No activation or UI concerns, and no nested worker/task tree. |
+| `mcp-tools-registry.schema.json` | JSON-schema for the registry (hand-edited) |
 | `workers.json` | build-generated worker manifest (id + type + entrypoint per worker) |
 
 See [Resource manifests](#resource-manifests).
@@ -402,7 +402,7 @@ classes:
 | `AutoContext.Mcp.Server` (orchestrator + MCP/stdio + worker dispatch + registry) | Standalone process | **Same `autocontext-engine` binary, MCP-server-only role** (`--mcp-server with-stdio`). Reads workspace state directly from `.autocontext.json` (re-read per MCP request) and bundled side-car corpus; no pipes, no worker dispatch, no registry entry. Concurrent daemon-role engine on the same workspace (when launched by a different host) is the writer; MCP-server role is read-mostly view. |
 | `AutoContextConfigManager` (TS, extension) | Extension process | **Engine internal**: `AutoContextConfigStore` (.NET) |
 | `InstructionsFilesManager` + `InstructionsFileContentProjector` + `instructions-files-metadata-generator` + client-side content trigram index | Extension process | **Engine internal**: `InstructionsManifestService` + `InstructionsBodyProjector` + the build-time `instructions-manifest-gen` generator (now runs **both** at build time — reading the curated `Resources/instructions-catalog.json` and the corpus to emit the `Resources/instructions-manifest.json` side-car — **and** at engine startup, where the engine merges catalog + manifest into an immutable snapshot, applies per-request projection against workspace state, and returns rows via `Instructions.List`) + `InstructionsFullTextSearchService` (replaces the client-side trigram index; built lazily in-memory over the projected bodies `InstructionsBodyProjector` returns) |
-| `servers.json` (TS-side worker/MCP-server inventory) + `mcp-workers-registry.json` (MCP-server–side worker dispatch table) | Extension `resources/` + `AutoContext.Mcp.Server/` | **Replaced** by build-generated `Resources/workers.json` (scan of `src/AutoContext.Worker.*/` projects, id derived by stripping `AutoContext.Worker.` and replacing `.` with `-`, entrypoint written from the actual published path) + `Resources/mcp-tools-registry.json` (renamed from `mcp-workers-registry.json`; tool→worker dispatch table) + `Resources/mcp-tools-registry-schema.json` (its JSON-schema). The old `servers.json` mixed MCP-server identity with worker identity; the MCP server is gone (consolidated into the engine), so the worker-only file is what remains. |
+| `servers.json` (TS-side worker/MCP-server inventory) + `mcp-workers-registry.json` (MCP-server–side worker dispatch table) | Extension `resources/` + `AutoContext.Mcp.Server/` | **Replaced** by build-generated `Resources/workers.json` (scan of `src/AutoContext.Worker.*/` projects, id derived by stripping `AutoContext.Worker.` and replacing `.` with `-`, entrypoint written from the actual published path) + `Resources/mcp-tools-registry.json` (renamed from `mcp-workers-registry.json`; a hand-authored flat `tools[]` dispatch table, each tool carrying a `workerId` FK) + `Resources/mcp-tools-registry.schema.json` (its JSON-schema) + the hand-authored `Resources/mcp-tools-catalog.json` UI catalog. The old `servers.json` mixed MCP-server identity with worker identity; the MCP server is gone (consolidated into the engine), so the worker-only file is what remains. |
 | `LogServer` (sideband pipe) | Extension process | **Engine internal**: the engine binds the `logs` pipe (one of the four pipes — see `### Lifecycle`) as a unified server-streaming sink that fans out engine-emitted records **and** worker-emitted records forwarded through `Engine.WriteLog`, distinguished by the `category` field. The engine also persists every record to `…\<workspaceHash>\<instanceId>\logs\engine.log` (P4 / P5); clients tail the pipe instead of inventing their own log-watcher. |
 | `HealthMonitorServer` (sideband pipe) | Extension process | **Engine internal**: the engine binds the `health` pipe (one of the four pipes — see `### Lifecycle`) as a passive readiness/heartbeat probe — cheap connect-and-read, no `Engine.Hello` required, never counts toward the idle-timeout keep-alive gate. Replaces the extension-side `HealthMonitorServer` that earlier topology had clients dialling back to. |
 | `WorkerControlServer` (sideband pipe) | Extension process | **Engine internal**: engine spawns workers via the same lazy gate |
@@ -625,7 +625,7 @@ The reasons are structural, not incidental:
   directories (each `engine.instructions.overridesRoots` root's
   `instructions/` subfolder, default `<workspace>/.github/instructions/`),
   workspace-context detection results, and the per-file and per-tool
-  `disabled` / `disabledRules` / `disabledTasks` state are all
+  `disabled` / `disabledRules` state are all
   per-workspace. A single process
   serving N workspaces would just be N independent state machines
   glued into one address space — no shared cache, no shared
@@ -1946,8 +1946,8 @@ way to set it.
   state) for diagnostics; it does not duplicate the `Detect`
   payload.
 - **`McpTools.*`** — `List`, `Invoke`. `List` surfaces the engine's
-  MCP tool catalog (filtered by the same per-tool `disabled` /
-  `disabledTasks` state) for hosts that want to introspect what the
+  MCP tool catalog (filtered by the same per-tool `disabled`
+  state) for hosts that want to introspect what the
   engine would advertise to an MCP client.
 
   **`Invoke(name, arguments)`** is the pipe-RPC counterpart of MCP's
@@ -2359,7 +2359,7 @@ protocol event.
 | VS Code LM tool names | snake_case, verb-first, fully self-describing | `list_autocontext_instructions_files`, `get_autocontext_instructions_file` |
 | CLI verbs | lowercase, space-separated `noun verb [args]` | `instructions list`, `config toggle`, `workspace info`, `engine logs` |
 | Log-category prefixes | Dotted; lowercase namespace, PascalCase tail when the tail mirrors an RPC name | `engine.rpc.Instructions.Get`, `engine.lifecycle`, `worker.dotnet.RoslynAnalyzer` |
-| Resource manifest filenames | kebab-case `.json` | `instructions-catalog.json`, `instructions-manifest.json`, `mcp-tools.json`, `mcp-tools-registry.json`, `workers.json` |
+| Resource manifest filenames | kebab-case `.json` | `instructions-catalog.json`, `instructions-manifest.json`, `mcp-tools-catalog.json`, `mcp-tools-registry.json`, `workers.json` |
 | .NET internal classes / services | PascalCase (standard .NET identifier rules) | `AutoContextConfigStore`, `InstructionsManifestService`, `WorkspaceContextDetector` |
 | Placeholder tokens in this doc | `<lowerCamelCase>` inside angle brackets | `<workspaceHash>`, `<instanceId>`, `<name>`, `<workerId>` — see [Identifier tokens](#identifier-tokens) |
 
@@ -3348,9 +3348,10 @@ Decision:
       instructions-manifest.json                   # build-generated per-file facts (section maps,
                                                    #   parsed applyTo extension sets,
                                                    #   version, contentHash, hasChangelog)
-      mcp-tools.json                               # wire-shape catalog for McpTools.List
-      mcp-tools-registry.json                      # source-of-truth tool→worker dispatch table
-      mcp-tools-registry-schema.json               # JSON-schema for the registry
+      mcp-tools-registry.json                      # source-of-truth tool→worker dispatch table (flat tools[])
+      mcp-tools-registry.schema.json               # JSON-schema for the registry
+      mcp-tools-catalog.json                       # hand-authored UI catalog for McpTools.List
+      mcp-tools-catalog.schema.json                # JSON-schema for the catalog
       workers.json                                 # build-generated worker manifest
     Workers/                                       # per-worker subdir, key = workers.json `id`
       workspace/AutoContext.Worker.Workspace[.exe] # self-contained per-RID dotnet worker
@@ -3428,17 +3429,40 @@ mutating the manifests.
   the `Instructions.Categories` taxonomy from it per request. The on-disk
   manifest, the engine-internal snapshot, and the wire envelopes are
   three decoupled representations (P3) — none constrains another's shape.
-- **`mcp-tools.json`** — build-generated wire-shape catalog for
-  `McpTools.List`, projected from `mcp-tools-registry.json` at
-  build time. The engine reads this file directly when answering
-  `McpTools.List`; per-request projection only applies the
-  per-tool `disabled` / `disabledTasks` filter.
-- **`mcp-tools-registry.json`** — source-of-truth tool→worker
-  dispatch table (renamed from today's `mcp-workers-registry.json`).
-  Drives the engine's worker dispatch for `McpTools.Invoke`
-  (Issue #8) and the build-time projection that writes
-  `mcp-tools.json`. Schema-validated at build time against the
-  sibling `mcp-tools-registry-schema.json`; the schema file ships
+- **`mcp-tools-catalog.json`** — **hand-authored** activation + UI
+  catalog for `McpTools.List`, tracked in source under
+  `src/AutoContext.Engine/Resources/`. It is the deliberate complement
+  to the registry: where the registry says **what** each tool is and
+  how it dispatches, the catalog says **when** each tool activates and
+  **where** it lives in the UI. Same curatorial concept as
+  `instructions-catalog.json` (a hand-authored layer over a separate
+  facts file) but its own shape: a hierarchical category tree
+  (`name`, optional `parent`, `description`, optional `workerId` and
+  `activationFlags`) plus per-tool entries (`name`, `description`,
+  `category`). A tool's **UI placement** is its `category`; its
+  **activation** is the `activationFlags` accumulated from that
+  category up its ancestry and ANDed (so C# resolves to
+  `hasDotNet && hasCSharp`). `workerId` is inherited from the nearest
+  ancestor category that defines it, so the catalog's tree mirrors the
+  registry's flat `workerId` join without restating it per tool. The
+  catalog carries **no** model-facing tool contract — descriptions
+  here are human-facing presentation copy, independent of the
+  registry's model-facing `description`. The engine merges registry +
+  catalog at runtime, and per-request projection applies the per-tool
+  `disabled` filter on top of the catalog's activation gating.
+  Schema-validated against the sibling `mcp-tools-catalog.schema.json`.
+  Not generated — there is **no** build-time `mcp-tools.json`
+  projection step (the former `mcp-tools-manifest-gen` projector has
+  been removed from the tree).
+- **`mcp-tools-registry.json`** — **hand-authored** execution
+  registry: it describes **what** each tool is for the model and how
+  it dispatches (renamed from today's `mcp-workers-registry.json`).
+  Each tool's `description` and `parameters` are the model-facing
+  contract surfaced over MCP `tools/list`; its `workerId` is the
+  source-of-truth dispatch target the engine uses for
+  `McpTools.Invoke` (Issue #8). It holds no activation or UI concerns
+  — those live in the catalog. Schema-validated at build time against
+  the sibling `mcp-tools-registry.schema.json`; the schema file ships
   alongside the registry so external tooling (CI lint, IDE
   intellisense in `mcp-tools-registry.json` itself) can validate
   without reaching into the source tree.
@@ -3476,19 +3500,23 @@ Source-side locations for the editable inputs the build consumes:
 
 - `src/AutoContext.Engine/Instructions/` — editable curated corpus.
 - `src/AutoContext.Engine/Resources/mcp-tools-registry.json` (+
-  `mcp-tools-registry-schema.json`) — hand-edited registry and its
+  `mcp-tools-registry.schema.json`) — hand-edited registry and its
   schema. The build copies them as-is into the per-RID staging
   `Resources/` dir.
+- `src/AutoContext.Engine/Resources/mcp-tools-catalog.json` (+
+  `mcp-tools-catalog.schema.json`) — **hand-authored and tracked in
+  source**; the curatorial UI catalog (category tree + per-tool
+  entries) and its schema. The build copies them as-is into the
+  per-RID staging `Resources/` dir; the catalog is never generated.
 - `src/AutoContext.Engine/Resources/instructions-catalog.json` is
   **hand-authored and tracked in source** — it is the curatorial
   layer (categories, `label`, membership, `activationFlags`). The
   build copies it as-is into the per-RID staging `Resources/` dir;
   it is never generated.
-- `Resources/instructions-manifest.json`,
-  `Resources/mcp-tools.json`, and `Resources/workers.json` have **no
-  source-side copy** — they are pure build outputs, regenerated
-  every package run. `instructions-manifest.json` is written by
-  `instructions-manifest-gen` over the corpus + catalog.
+- `Resources/instructions-manifest.json` and `Resources/workers.json`
+  have **no source-side copy** — they are pure build outputs,
+  regenerated every package run. `instructions-manifest.json` is
+  written by `instructions-manifest-gen` over the corpus + catalog.
 
 ## Pitfalls
 

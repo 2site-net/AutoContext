@@ -50,6 +50,7 @@ public sealed class EngineTestProcess : IAsyncDisposable
     private readonly Lock _stderrLock = new();
 
     private Process? _process;
+    private TempDirectory? _ownedWorkspace;
     private bool _spawned;
 
     /// <summary>
@@ -96,7 +97,19 @@ public sealed class EngineTestProcess : IAsyncDisposable
 
         _spawned = true;
         var options = Options;
-        var workspacePath = options.WorkspacePath ?? WorkspaceTestDirectoryFactory.Create();
+        string workspacePath;
+        if (options.WorkspacePath is { } suppliedWorkspacePath)
+        {
+            workspacePath = suppliedWorkspacePath;
+        }
+        else
+        {
+            // No workspace supplied: stage one and own its lifetime so
+            // it is deleted when this process handle is disposed.
+            _ownedWorkspace = WorkspaceTestDirectoryFactory.Create();
+            workspacePath = _ownedWorkspace.Path;
+        }
+
         var instanceId = options.InstanceId ?? Guid.NewGuid();
         WorkspacePath = workspacePath;
         InstanceId = instanceId;
@@ -142,6 +155,12 @@ public sealed class EngineTestProcess : IAsyncDisposable
             {
                 args.Add("--cache-root");
                 args.Add(cacheRoot);
+            }
+
+            if (options.ResourcesRootOverride is { } resourcesRoot)
+            {
+                args.Add("--resources-root");
+                args.Add(resourcesRoot);
             }
 
             if (options.Retention is { } retention)
@@ -198,6 +217,10 @@ public sealed class EngineTestProcess : IAsyncDisposable
             await KillAsync(_process).ConfigureAwait(false);
             _process.Dispose();
         }
+
+        // Delete the staged workspace only after the engine has exited,
+        // so a lingering file lock cannot defeat the cleanup.
+        _ownedWorkspace?.Dispose();
     }
 
     private async Task WaitForReadinessAsync(

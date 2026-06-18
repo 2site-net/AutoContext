@@ -8,7 +8,7 @@ using AutoContext.Engine.Core.Logging;
 
 /// <summary>
 /// <see cref="RootCommand"/> describing the <c>autocontext-engine</c>
-/// binary's CLI surface — nine switches in two disjoint roles (daemon
+/// binary's CLI surface — ten switches in two disjoint roles (daemon
 /// vs <c>--mcp-server with-stdio</c>) as defined in
 /// <c>design § Engine options (CLI surface)</c>.
 /// </summary>
@@ -96,6 +96,12 @@ internal sealed class EngineCommand : RootCommand
         };
         CacheRoot.Validators.Add(ValidateAbsolutePath);
 
+        ResourcesRoot = new Option<string?>("--resources-root")
+        {
+            Description = "Absolute path that overrides the engine resources-root (side-car) location (both roles).",
+        };
+        ResourcesRoot.Validators.Add(ValidateAbsolutePath);
+
         Options.Add(Workspace);
         Options.Add(InstanceId);
         Options.Add(InstanceLabel);
@@ -105,6 +111,7 @@ internal sealed class EngineCommand : RootCommand
         Options.Add(Logging);
         Options.Add(McpServer);
         Options.Add(CacheRoot);
+        Options.Add(ResourcesRoot);
     }
 
     public Option<string> Workspace { get; }
@@ -124,6 +131,8 @@ internal sealed class EngineCommand : RootCommand
     public Option<string?> McpServer { get; }
 
     public Option<string?> CacheRoot { get; }
+
+    public Option<string?> ResourcesRoot { get; }
 
     /// <summary>
     /// Materialises an <see cref="EngineOptions"/> from a
@@ -172,6 +181,12 @@ internal sealed class EngineCommand : RootCommand
         if (cacheRootValue is not null)
         {
             options.CacheRootOverride = cacheRootValue;
+        }
+
+        var resourcesRootValue = parseResult.GetValue(ResourcesRoot);
+        if (resourcesRootValue is not null)
+        {
+            options.ResourcesRootOverride = resourcesRootValue;
         }
 
         if (isMcpRole)
@@ -294,7 +309,7 @@ internal sealed class EngineCommand : RootCommand
         if (string.IsNullOrWhiteSpace(raw) || !Path.IsPathFullyQualified(raw))
         {
             result.AddError(
-                $"switch '--cache-root' expects an absolute path; got '{raw}'");
+                $"switch '{result.Option.Name}' expects an absolute path; got '{raw}'");
         }
     }
 

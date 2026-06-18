@@ -1,6 +1,7 @@
 namespace AutoContext.Engine.Core;
 
 using AutoContext.Engine.Core.Features.Instructions;
+using AutoContext.Engine.Core.Features.McpTools;
 using AutoContext.Engine.Core.Infrastructure;
 using AutoContext.Engine.Core.Infrastructure.Diagnostics;
 using AutoContext.Engine.Core.Infrastructure.Events;
@@ -11,6 +12,7 @@ using AutoContext.Engine.Core.Machine;
 using AutoContext.Engine.Core.Machine.Housekeeping;
 using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Watchdogs;
+using AutoContext.Engine.Core.Workers;
 using AutoContext.Engine.Core.Workspace.Config;
 using AutoContext.Engine.Core.Workspace.Context;
 using AutoContext.Engine.Protocol.Messages.Config;
@@ -301,13 +303,62 @@ public static class EngineHostBuilderExtensions
         // is read-only with no watcher, so the service only loads on
         // start and tears nothing down on stop.
         builder.Services.TryAddSingleton(sp => new InstructionsManifestService(
-            Path.Combine(AppContext.BaseDirectory, "Resources"),
+            ResolveResources(sp),
             sp.GetRequiredService<ILogger<InstructionsManifestService>>()));
         builder.Services.TryAddSingleton<IInstructionsManifestAccessor>(
             sp => sp.GetRequiredService<InstructionsManifestService>());
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, InstructionsManifestService>(
                 sp => sp.GetRequiredService<InstructionsManifestService>()));
+
+        // Bundled MCP-tools registry. The service loads the build-time
+        // side-cars shipped beside the engine binary
+        // (mcp-tools-registry.json + mcp-tools-catalog.json, each with its
+        // schema) into an immutable snapshot at start and holds it for the
+        // McpTools.* RPC handlers, which read it through the
+        // IMcpToolsRegistryAccessor seam. Registered BEFORE LifecycleService
+        // so the snapshot is populated before the first rpc connection can
+        // issue a McpTools.* request. The registry is read-only with no
+        // watcher, so the service only loads on start and tears nothing
+        // down on stop.
+        builder.Services.TryAddSingleton(sp => new McpToolsRegistryService(
+            ResolveResources(sp),
+            sp.GetRequiredService<ILogger<McpToolsRegistryService>>()));
+        builder.Services.TryAddSingleton<IMcpToolsRegistryAccessor>(
+            sp => sp.GetRequiredService<McpToolsRegistryService>());
+        builder.Services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IHostedService, McpToolsRegistryService>(
+                sp => sp.GetRequiredService<McpToolsRegistryService>()));
+
+        // Worker-dispatch substrate. The engine spawns workers lazily —
+        // WorkerManager.EnsureRunningAsync(workerId) starts a worker the
+        // first time a tool routed to it is invoked and reuses the live
+        // process thereafter. The manager's launch specifications are
+        // resolved once here from the build-generated workers.json side-car:
+        // each row's ${root} placeholder expands to that worker's staging
+        // subdir under Workers/, and the engine instance id is threaded onto
+        // every spawn so worker and engine derive the same listen endpoint.
+        // The launcher (process creation) and connection probe (readiness
+        // dial over the shared PipeTransport) are the seams the manager
+        // drives. WorkerManager is an IDisposable singleton the container
+        // disposes on host stop, which kills any workers still running.
+        builder.Services.TryAddSingleton<IProcessLauncher<WorkerProcessInfo>, WorkerProcessLauncher>();
+        builder.Services.TryAddSingleton<IWorkerConnectionProbe, WorkerConnectionProbe>();
+        builder.Services.TryAddSingleton(sp =>
+        {
+            var options = sp.GetRequiredService<IOptions<EngineOptions>>().Value;
+            var workersProcessInfo = WorkerProcessInfoResolver.Resolve(
+                WorkersManifestLoader.Load(ResolveResources(options)),
+                Path.Combine(AppContext.BaseDirectory, "Workers"),
+                options.InstanceId.ToString("D"),
+                options.WorkspacePath);
+
+            return new WorkerManager(
+                workersProcessInfo,
+                sp.GetRequiredService<IProcessLauncher<WorkerProcessInfo>>(),
+                sp.GetRequiredService<IWorkerConnectionProbe>(),
+                sp.GetRequiredService<ILogger<WorkerManager>>());
+        });
 
         // Instructions override inventory. The service performs a one-shot
         // startup scan of the workspace's override directories and exposes
@@ -320,7 +371,7 @@ public static class EngineHostBuilderExtensions
         // through the InstructionsOverridesStalenessInspector and warns on
         // stale overrides.
         builder.Services.TryAddSingleton(sp => new InstructionsOverridesStalenessInspector(
-            Path.Combine(AppContext.BaseDirectory, "Resources", "Instructions"),
+            ResolveResources(sp).SubDirectory("Instructions"),
             sp.GetRequiredService<ILogger<InstructionsOverridesStalenessInspector>>()));
         builder.Services.TryAddSingleton(sp => new InstructionsOverridesService(
             sp.GetRequiredService<IWorkspaceContextAccessor>(),
@@ -339,11 +390,11 @@ public static class EngineHostBuilderExtensions
         // Instructions.Get / GetAll / GetAlwaysAttached / GetRaw /
         // SearchContent handlers.
         builder.Services.TryAddSingleton(sp => new InstructionsBodyProjector(
-            Path.Combine(AppContext.BaseDirectory, "Resources", "Instructions"),
+            ResolveResources(sp).SubDirectory("Instructions"),
             sp.GetRequiredService<IInstructionsOverridesAccessor>(),
             sp.GetRequiredService<IConfigSnapshotAccessor>()));
         builder.Services.TryAddSingleton(sp => new InstructionsFileReader(
-            Path.Combine(AppContext.BaseDirectory, "Resources", "Instructions"),
+            ResolveResources(sp).SubDirectory("Instructions"),
             sp.GetRequiredService<IInstructionsOverridesAccessor>()));
         builder.Services.TryAddSingleton(sp => new InstructionsFullTextSearchService(
             sp.GetRequiredService<IInstructionsManifestAccessor>(),
@@ -447,4 +498,10 @@ public static class EngineHostBuilderExtensions
 
         return builder;
     }
+
+    private static EngineResourcesDirectory ResolveResources(IServiceProvider services)
+        => ResolveResources(services.GetRequiredService<IOptions<EngineOptions>>().Value);
+
+    private static EngineResourcesDirectory ResolveResources(EngineOptions options)
+        => new(Path.Combine(AppContext.BaseDirectory, "Resources"), options.ResourcesRootOverride);
 }

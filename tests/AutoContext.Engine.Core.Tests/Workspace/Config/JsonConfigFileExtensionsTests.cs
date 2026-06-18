@@ -109,19 +109,18 @@ public sealed class JsonConfigFileExtensionsTests
             Assert.Multiple(
                 () => Assert.Equal("t1", tool.Name),
                 () => Assert.True(tool.Disabled),
-                () => Assert.Null(tool.Version),
-                () => Assert.Empty(tool.Tasks));
+                () => Assert.Null(tool.Version));
         }
 
         [Fact]
-        public void Should_map_object_tool_with_disabled_tasks()
+        public void Should_map_object_tool_with_disabled_state_and_version()
         {
             // Arrange
             var json = new JsonConfigFile
             {
                 McpTools = new Dictionary<string, JsonConfigFileMcpToolEntry>
                 {
-                    ["t2"] = new() { Version = "2.0", DisabledTasks = ["k"] },
+                    ["t2"] = new() { Version = "2.0", Disabled = true },
                 },
             };
 
@@ -133,10 +132,8 @@ public sealed class JsonConfigFileExtensionsTests
 
             Assert.Multiple(
                 () => Assert.Equal("t2", tool.Name),
-                () => Assert.Null(tool.Disabled),
-                () => Assert.Equal("2.0", tool.Version),
-                () => Assert.Equal("k", Assert.Single(tool.Tasks).Name),
-                () => Assert.True(Assert.Single(tool.Tasks).Disabled));
+                () => Assert.True(tool.Disabled),
+                () => Assert.Equal("2.0", tool.Version));
         }
     }
 }

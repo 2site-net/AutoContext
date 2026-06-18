@@ -1,0 +1,107 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://autocontext.dev/schemas/mcp-tools-registry.schema.json",
+    "title": "AutoContext MCP Tools registry",
+    "description": "Execution registry: a flat list of MCP Tools, each tagged with the worker that runs it and the EditorConfig keys it consumes.",
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+        "schemaVersion",
+        "tools"
+    ],
+    "properties": {
+        "$schema": {
+            "type": "string",
+            "description": "Path or URL to this schema file. Enables editor IntelliSense."
+        },
+        "schemaVersion": {
+            "type": "string",
+            "const": "1",
+            "description": "Registry format version. Bumped on breaking changes."
+        },
+        "tools": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+                "$ref": "#/$defs/toolDefinition"
+            },
+            "description": "MCP Tool definitions \u2014 one per tool the engine advertises."
+        }
+    },
+    "$defs": {
+        "toolDefinition": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+                "name",
+                "workerId",
+                "description",
+                "parameters"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9_]*$",
+                    "description": "MCP Tool name (snake_case). Unique across the whole registry."
+                },
+                "workerId": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9-]*$",
+                    "description": "Identifier (kebab-case, lowercase) of the worker that runs this tool. Foreign key into workers.json 'id'; also composes the worker's named-pipe service address as 'autocontext.worker-<workerId>[#<instance-id>]'."
+                },
+                "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "MCP Tool description shown to Copilot."
+                },
+                "parameters": {
+                    "type": "object",
+                    "minProperties": 1,
+                    "additionalProperties": {
+                        "$ref": "#/$defs/parameter"
+                    },
+                    "propertyNames": {
+                        "pattern": "^[a-z][a-zA-Z0-9]*$"
+                    },
+                    "description": "Parameter map (camelCase names) \u2192 parameter spec."
+                },
+                "editorconfig": {
+                    "type": "array",
+                    "uniqueItems": true,
+                    "items": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9_]*$"
+                    },
+                    "description": "EditorConfig keys this tool consumes. The engine resolves them and injects the values before dispatching to the worker."
+                }
+            }
+        },
+        "parameter": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+                "type",
+                "description"
+            ],
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "string",
+                        "number",
+                        "boolean",
+                        "array",
+                        "object"
+                    ]
+                },
+                "description": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "required": {
+                    "type": "boolean"
+                }
+            }
+        }
+    }
+}

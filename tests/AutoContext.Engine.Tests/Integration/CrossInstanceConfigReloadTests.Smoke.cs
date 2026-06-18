@@ -49,8 +49,9 @@ public sealed class CrossInstanceConfigReloadTests
     {
         // Arrange
         var ct = TestContext.Current.CancellationToken;
-        var cache = IsolatedCacheRoot.Create();
-        var workspacePath = WorkspaceTestDirectoryFactory.Create();
+        using var cache = IsolatedCacheRoot.Create();
+        using var workspace = WorkspaceTestDirectoryFactory.Create();
+        var workspacePath = workspace.Path;
         var writerInstanceId = Guid.NewGuid();
         var subscriberInstanceId = Guid.NewGuid();
 

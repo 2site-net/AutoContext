@@ -58,8 +58,9 @@ public sealed class InstructionsProjectionTests
         // Arrange — a fresh workspace with no overrides, so every
         // listing row resolves to the engine's bundled corpus.
         var ct = TestContext.Current.CancellationToken;
-        var cache = IsolatedCacheRoot.Create();
-        var workspacePath = WorkspaceTestDirectoryFactory.Create();
+        using var cache = IsolatedCacheRoot.Create();
+        using var workspace = WorkspaceTestDirectoryFactory.Create();
+        var workspacePath = workspace.Path;
 
         await using var engine = new EngineTestProcess
         {

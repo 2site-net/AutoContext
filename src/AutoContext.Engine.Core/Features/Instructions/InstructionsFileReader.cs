@@ -1,5 +1,7 @@
 namespace AutoContext.Engine.Core.Features.Instructions;
 
+using AutoContext.Engine.Core.Infrastructure;
+
 /// <summary>
 /// Reads the verbatim on-disk body of an instructions file, either from the
 /// bundled corpus copy or from a workspace override, without any parsing or
@@ -8,33 +10,30 @@ namespace AutoContext.Engine.Core.Features.Instructions;
 /// </summary>
 internal sealed class InstructionsFileReader
 {
-    private readonly string _instructionsDirectory;
+    private readonly EngineResourcesDirectory _instructions;
     private readonly IInstructionsOverridesAccessor _overridesAccessor;
 
     /// <summary>
     /// Creates a reader that resolves bundled bodies under
-    /// <paramref name="instructionsDirectory"/> and override bodies through
+    /// <paramref name="instructions"/> and override bodies through
     /// <paramref name="overridesAccessor"/>.
     /// </summary>
-    /// <param name="instructionsDirectory">Absolute path of the directory
-    /// holding the bundled <c>*.instructions.md</c> bodies. Must not be
-    /// <see langword="null"/>, empty, or whitespace.</param>
+    /// <param name="instructions">The instructions directory holding the
+    /// bundled <c>*.instructions.md</c> bodies (override copies shadow the
+    /// bundled ones). Must not be <see langword="null"/>.</param>
     /// <param name="overridesAccessor">Read seam over the workspace override
     /// inventory, used to resolve an override file's path.</param>
-    /// <exception cref="ArgumentException">
-    /// <paramref name="instructionsDirectory"/> is <see langword="null"/>,
-    /// empty, or whitespace.</exception>
     /// <exception cref="ArgumentNullException">
-    /// <paramref name="overridesAccessor"/> is
-    /// <see langword="null"/>.</exception>
+    /// <paramref name="instructions"/> or <paramref name="overridesAccessor"/>
+    /// is <see langword="null"/>.</exception>
     public InstructionsFileReader(
-        string instructionsDirectory,
+        EngineResourcesDirectory instructions,
         IInstructionsOverridesAccessor overridesAccessor)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(instructionsDirectory);
+        ArgumentNullException.ThrowIfNull(instructions);
         ArgumentNullException.ThrowIfNull(overridesAccessor);
 
-        _instructionsDirectory = instructionsDirectory;
+        _instructions = instructions;
         _overridesAccessor = overridesAccessor;
     }
 
@@ -57,7 +56,7 @@ internal sealed class InstructionsFileReader
         ArgumentNullException.ThrowIfNull(fileName);
 
         return ReadFileIfExistsAsync(
-            Path.Combine(_instructionsDirectory, fileName),
+            _instructions.ResolveFile(fileName),
             cancellationToken);
     }
 

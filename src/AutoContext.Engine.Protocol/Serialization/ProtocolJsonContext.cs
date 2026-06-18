@@ -10,6 +10,7 @@ using AutoContext.Engine.Protocol.Messages.Config;
 using AutoContext.Engine.Protocol.Messages.Instructions;
 using AutoContext.Engine.Protocol.Messages.Lifecycle;
 using AutoContext.Engine.Protocol.Messages.Logs;
+using AutoContext.Engine.Protocol.Messages.McpTools;
 using AutoContext.Engine.Protocol.Messages.Registry;
 using AutoContext.Engine.Protocol.Messages.Workspace;
 
@@ -76,6 +77,16 @@ using AutoContext.Engine.Protocol.Messages.Workspace;
 [JsonSerializable(typeof(JsonInstructionsStreamFrame))]
 [JsonSerializable(typeof(JsonInstructionsSnapshotFrame))]
 [JsonSerializable(typeof(JsonInstructionsDroppedFrame))]
+[JsonSerializable(typeof(JsonMcpToolsListResult))]
+[JsonSerializable(typeof(JsonMcpToolsListRow))]
+[JsonSerializable(typeof(JsonMcpToolsInvokeParams))]
+[JsonSerializable(typeof(JsonMcpToolsInvokeResult))]
+[JsonSerializable(typeof(JsonMcpToolsInvokeOkResult))]
+[JsonSerializable(typeof(JsonMcpToolsInvokeToolErrorResult))]
+[JsonSerializable(typeof(JsonMcpToolsInvokeSchemaErrorResult))]
+[JsonSerializable(typeof(JsonMcpToolsInvokeDisabledResult))]
+[JsonSerializable(typeof(JsonMcpToolsInvokeNotFoundResult))]
+[JsonSerializable(typeof(JsonMcpToolsSchemaError))]
 [JsonSerializable(typeof(JsonWorkspaceFlags))]
 [JsonSerializable(typeof(JsonWorkspaceDetectResult))]
 [JsonSerializable(typeof(JsonWorkspaceInfoResult))]

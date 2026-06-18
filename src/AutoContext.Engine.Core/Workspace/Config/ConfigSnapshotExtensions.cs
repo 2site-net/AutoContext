@@ -9,7 +9,7 @@ using AutoContext.Engine.Protocol.Messages.Config;
 /// the two wire shapes it crosses to: the on-disk
 /// <see cref="JsonConfigFile"/> format (via <see cref="ToFileFormat"/>),
 /// whose space-saving quirks — dropping entries that carry no state and
-/// the disabled-only encoding of rules and tasks — are kept out of the
+/// the disabled-only encoding of rules and tools — are kept out of the
 /// domain graph; and the <see cref="JsonConfigSnapshot"/> Protocol shape
 /// (via <see cref="ToWireFormat"/>) returned by the <c>Config.Get</c>
 /// RPC, which is a structural, lossless one-for-one projection.
@@ -209,24 +209,16 @@ internal static class ConfigSnapshotExtensions
                 continue;
             }
 
-            var disabledTasks = tool.Tasks
-                .Where(task => task.Disabled is true)
-                .Select(task => task.Name)
-                .OfType<string>()
-                .ToList();
-
             var isDisabled = tool.Disabled is true;
-            var hasTasks = disabledTasks.Count > 0;
 
-            if (!isDisabled && !hasTasks)
+            if (!isDisabled)
             {
                 continue;
             }
 
             result[name] = new JsonConfigFileMcpToolEntry(
                 Disabled: isDisabled ? true : null,
-                Version: tool.Version,
-                DisabledTasks: hasTasks ? disabledTasks : null);
+                Version: tool.Version);
         }
 
         return result.Count == 0 ? null : result;
@@ -254,14 +246,6 @@ internal static class ConfigSnapshotExtensions
             Name = tool.Name,
             Version = tool.Version,
             Disabled = tool.Disabled,
-            Tasks =
-            [
-                .. tool.Tasks.Select(task => new JsonConfigMcpTask
-                {
-                    Name = task.Name,
-                    Disabled = task.Disabled,
-                }),
-            ],
         };
 
     private static ConfigInstructionsFile.InstructionsRule[] UpdateInstructionsRuleState(

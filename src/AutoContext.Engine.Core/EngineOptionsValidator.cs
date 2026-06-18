@@ -109,6 +109,13 @@ internal sealed class EngineOptionsValidator : IValidateOptions<EngineOptions>
                 $"{nameof(EngineOptions.CorpusRootOverride)} must be an absolute path when set; got '{corpusRoot}'.");
         }
 
+        if (options.ResourcesRootOverride is { } resourcesRoot
+            && !Path.IsPathFullyQualified(resourcesRoot))
+        {
+            (failures ??= []).Add(
+                $"{nameof(EngineOptions.ResourcesRootOverride)} must be an absolute path when set; got '{resourcesRoot}'.");
+        }
+
         return failures is null
             ? ValidateOptionsResult.Success
             : ValidateOptionsResult.Fail(failures);

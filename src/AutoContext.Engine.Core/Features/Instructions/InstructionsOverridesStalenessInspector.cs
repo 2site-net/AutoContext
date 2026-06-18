@@ -1,6 +1,7 @@
 namespace AutoContext.Engine.Core.Features.Instructions;
 
 using AutoContext.Engine.Core.Features.Instructions.Snapshot;
+using AutoContext.Engine.Core.Infrastructure;
 
 using Microsoft.Extensions.Logging;
 
@@ -21,29 +22,29 @@ using Microsoft.Extensions.Logging;
 /// </remarks>
 internal sealed partial class InstructionsOverridesStalenessInspector
 {
-    private readonly string _bundledInstructionsDirectory;
+    private readonly EngineResourcesDirectory _bundledInstructions;
     private readonly ILogger _logger;
 
     /// <summary>
     /// Creates an inspector that compares overrides against the bundled
-    /// bodies in <paramref name="bundledInstructionsDirectory"/>.
+    /// bodies in <paramref name="bundledInstructions"/>.
     /// </summary>
-    /// <param name="bundledInstructionsDirectory">Absolute path of the
-    /// directory holding the bundled <c>*.instructions.md</c> files. Must
-    /// not be <see langword="null"/>, empty, or whitespace.</param>
+    /// <param name="bundledInstructions">The instructions directory holding
+    /// the bundled <c>*.instructions.md</c> files (override copies shadow
+    /// the bundled ones). Must not be <see langword="null"/>.</param>
     /// <param name="logger">Diagnostic sink that carries the staleness
     /// warning.</param>
-    /// <exception cref="ArgumentException">
-    /// <paramref name="bundledInstructionsDirectory"/> is
-    /// <see langword="null"/>, empty, or whitespace.</exception>
-    /// <exception cref="ArgumentNullException"><paramref name="logger"/> is
-    /// <see langword="null"/>.</exception>
-    public InstructionsOverridesStalenessInspector(string bundledInstructionsDirectory, ILogger logger)
+    /// <exception cref="ArgumentNullException">
+    /// <paramref name="bundledInstructions"/> or <paramref name="logger"/>
+    /// is <see langword="null"/>.</exception>
+    public InstructionsOverridesStalenessInspector(
+        EngineResourcesDirectory bundledInstructions,
+        ILogger logger)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(bundledInstructionsDirectory);
+        ArgumentNullException.ThrowIfNull(bundledInstructions);
         ArgumentNullException.ThrowIfNull(logger);
 
-        _bundledInstructionsDirectory = bundledInstructionsDirectory;
+        _bundledInstructions = bundledInstructions;
         _logger = logger;
     }
 
@@ -70,7 +71,7 @@ internal sealed partial class InstructionsOverridesStalenessInspector
 
     private void InspectShadowingOverride(string fileName, string overridePath)
     {
-        var bundledPath = Path.Combine(_bundledInstructionsDirectory, fileName);
+        var bundledPath = _bundledInstructions.ResolveFile(fileName);
 
         if (!File.Exists(bundledPath))
         {
