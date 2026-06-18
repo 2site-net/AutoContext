@@ -80,7 +80,7 @@ internal static class DispatchPolicyTestFactory
             search,
             instructionsBroadcaster ?? LifecycleServiceFixture.CreateInstructionsBroadcaster(),
             mcpToolsRegistryAccessor ?? LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
-            logger ?? NullLogger.Instance,
-            mcpToolsInvoker);
+            mcpToolsInvoker ?? LifecycleServiceFixture.CreateMcpToolsInvoker(),
+            logger ?? NullLogger.Instance);
     }
 }

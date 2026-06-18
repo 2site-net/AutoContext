@@ -99,8 +99,8 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
         InstructionsFullTextSearchService instructionsFullTextSearchService,
         SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>> instructionsSnapshotBroadcaster,
         IMcpToolsRegistryAccessor mcpToolsRegistryAccessor,
-        ILogger logger,
-        IMcpToolsInvoker? mcpToolsInvoker = null)
+        IMcpToolsInvoker mcpToolsInvoker,
+        ILogger logger)
     {
         ArgumentNullException.ThrowIfNull(lifetime);
         ArgumentNullException.ThrowIfNull(registryReader);
@@ -117,6 +117,7 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
         ArgumentNullException.ThrowIfNull(instructionsFullTextSearchService);
         ArgumentNullException.ThrowIfNull(instructionsSnapshotBroadcaster);
         ArgumentNullException.ThrowIfNull(mcpToolsRegistryAccessor);
+        ArgumentNullException.ThrowIfNull(mcpToolsInvoker);
         ArgumentNullException.ThrowIfNull(logger);
 
         _lifetime = lifetime;
@@ -138,8 +139,8 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
         _instructionsSnapshotBroadcaster = instructionsSnapshotBroadcaster;
         _instructionsFrameStream = new();
         _mcpToolsRegistryAccessor = mcpToolsRegistryAccessor;
+        _mcpToolsInvoker = mcpToolsInvoker;
         _logger = logger;
-        _mcpToolsInvoker = mcpToolsInvoker ?? McpToolsInvokerNoop.Instance;
     }
 
     public EndpointKind EndpointKind => EndpointKind.Rpc;
