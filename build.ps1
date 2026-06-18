@@ -6,22 +6,20 @@
     Build gate for AutoContext — compile, verify .NET formatting, and run unit tests.
 
 .DESCRIPTION
-    The canonical "is it green?" gate. With no arguments it compiles both stacks
-    (the TypeScript VS Code extension and the .NET solution), verifies .NET
-    formatting, and runs every unit test. Narrow the scope with a target.
+    Runs the AutoContext build gate: compile, verify .NET formatting, and run
+    unit tests for the requested stack.
 
-    This script is intentionally minimal. Packaging, publishing, tagging, and
-    the staged 'Prepare' layout live in the granular wrappers under scripts/
-    (package.ps1, publish.ps1, tag.ps1, prepare.ps1). The same scripts/ folder
-    also holds faster inner-loop wrappers (compile.ps1, test.ps1, format.ps1,
-    clean.ps1) for when you don't need the full gate.
+    A build gate is the quality checkpoint that must pass before work is
+    considered complete or a commit is proposed. With no arguments, this gate
+    covers both stacks: the TypeScript VS Code extension and the .NET solution.
+    Use Target to narrow the run to TypeScript, .NET, or both.
 
-    The build logic lives in scripts/AutoContext.Build.psm1; this script is the
-    thin CLI orchestrator that parses arguments, builds the shared context, and
-    dispatches to the module's action functions.
+    This script is intentionally small: it only runs the gate. Packaging,
+    publishing, tagging, and faster inner-loop wrappers live under scripts/.
+    Shared build logic lives in scripts/AutoContext.Build.psm1.
 
-    After modifying this script, run scripts/build.tests.ps1 to verify all
-    target/switch combinations still work.
+    After modifying this script, run scripts/build.tests.ps1 to verify that all
+    target and switch combinations still work.
 
 .PARAMETER Target
     Narrows the scope of the gate:

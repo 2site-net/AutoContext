@@ -17,12 +17,17 @@
 
 ### Two-tier workflow
 
-The build logic lives in `scripts/AutoContext.Build.psm1`; `build.ps1` is the orchestrator and the `scripts/*.ps1` files are granular wrappers over the same module functions. Use the right tier for the job:
+Shared build logic lives in `scripts/AutoContext.Build.psm1`. The root `build.ps1` script is the top-level orchestrator, and the `scripts/*.ps1` files are focused wrappers over the same module functions.
 
-- **Inner loop (fast, narrow):** use the granular `scripts/*.ps1` wrappers while iterating — e.g. `scripts/compile.ps1 DotNet` (compile only, no tests/format gate), `scripts/test.ps1 TS`, `scripts/format.ps1`, `scripts/clean.ps1`. They skip the composite phases so they return quickly. `scripts/compile.ps1` is **compile-only** and deliberately differs from `build.ps1` (which also runs the format gate and unit tests).
-- **Gate (full, authoritative):** before declaring work done or proposing a commit, run the full composite `.\build.ps1` (both stacks: compile + .NET format gate + unit tests). A green `build.ps1` — not a green inner-loop wrapper — is the bar for "done".
-- **Note:** `scripts/test.ps1` compiles the selected stack(s) before running the unit suites by default, so an inner-loop test run never tests stale output. Pass `-NoCompile` to skip the compile and run `dotnet test`/vitest against the existing build (e.g. immediately after `scripts/compile.ps1` or `build.ps1`). npm installs are hash-gated on `package-lock.json`, so repeated TypeScript compiles skip `npm install` when dependencies are unchanged.
-- **Do** run `scripts/build.tests.ps1` after changing `build.ps1`, the build module, or any wrapper — it exercises every action/target/switch combination (including the wrappers) under `-WhatIf`.
+Throughout this section, **gate** means a required pass/fail quality checkpoint for the selected scope. `build.ps1` is the authoritative gate: if any required check for that scope fails, the whole run fails.
+
+Use the right tier for the job:
+
+- **Inner loop — fast and focused:** use the granular `scripts/*.ps1` wrappers while iterating. For example, use `scripts/compile.ps1 DotNet` for compile-only .NET work, `scripts/test.ps1 TS` for TypeScript tests, `scripts/format.ps1` for formatting, or `scripts/clean.ps1` for cleanup. These wrappers deliberately avoid the full composite gate so they return quickly. In particular, `scripts/compile.ps1` is compile-only and is not equivalent to `build.ps1`.
+- **Gate — full and authoritative:** before declaring work done or proposing a commit, run `.\build.ps1`. With no arguments, it covers both stacks. For TypeScript, it compiles and runs tests. For .NET, it compiles, verifies formatting, and runs tests. A green `build.ps1` run — not just a green inner-loop wrapper — is the bar for “done”.
+- **Testing behavior:** `scripts/test.ps1` compiles the selected stack before running unit tests by default, so inner-loop test runs do not use stale output. Pass `-NoCompile` to test the existing build, for example immediately after `scripts/compile.ps1` or `build.ps1`.
+- **TypeScript dependency restore:** npm installs are hash-gated on `package-lock.json`, so repeated TypeScript compiles skip `npm install` when dependencies are unchanged.
+- **Build-script changes:** after changing `build.ps1`, `scripts/AutoContext.Build.psm1`, or any wrapper, run `scripts/build.tests.ps1`. It exercises every action, target, and switch combination, including the wrappers, under `-WhatIf`.
 
 ### Build Commands
 
