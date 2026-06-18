@@ -71,7 +71,7 @@ internal sealed partial class DispatchPolicy
         // the processor runs in a finally — guaranteeing the
         // broadcaster slot is released even when the peer hangs
         // up mid-stream or the iterator faults.
-        var subscription = _instructionsBroadcaster.Subscribe();
+        var subscription = _instructionsSnapshotBroadcaster.Subscribe();
 
         return new StreamingHandlerResult(
             Payloads: MapInstructionsFramesAsync(subscription),
@@ -299,7 +299,7 @@ internal sealed partial class DispatchPolicy
         try
         {
             var includeDisabled = parameters.IncludeDisabled ?? false;
-            var hits = await _instructionsSearchService
+            var hits = await _instructionsFullTextSearchService
                 .SearchAsync(parameters.Query, parameters.Limit, includeDisabled, cancellationToken)
                 .ConfigureAwait(false);
 

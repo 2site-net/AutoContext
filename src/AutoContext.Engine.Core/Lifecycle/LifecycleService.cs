@@ -106,12 +106,12 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
     private int _stopped;
     private CancellationTokenSource? _stoppingCts;
     private readonly IWorkspaceContextAccessor _workspaceAccessor;
-    private readonly IInstructionsManifestAccessor _manifestAccessor;
-    private readonly IInstructionsOverridesAccessor _overridesAccessor;
-    private readonly InstructionsBodyProjector _bodyProjector;
-    private readonly InstructionsFileReader _fileReader;
-    private readonly InstructionsFullTextSearchService _searchService;
-    private readonly SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>> _instructionsBroadcaster;
+    private readonly IInstructionsManifestAccessor _instructionsManifestAccessor;
+    private readonly IInstructionsOverridesAccessor _instructionsOverridesAccessor;
+    private readonly InstructionsBodyProjector _instructionsBodyProjector;
+    private readonly InstructionsFileReader _instructionsFileReader;
+    private readonly InstructionsFullTextSearchService _instructionsFullTextSearchService;
+    private readonly SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>> _instructionsSnapshotBroadcaster;
     private readonly IMcpToolsInvoker _mcpToolsInvoker;
     private readonly IMcpToolsRegistryAccessor _mcpToolsRegistryAccessor;
 
@@ -171,23 +171,23 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
     /// in-memory workspace detection result; threaded into the RPC
     /// dispatch policy so the <c>Workspace.Detect</c> handler can answer
     /// with the current detection result.</param>
-    /// <param name="manifestAccessor">Read-only view over the immutable
+    /// <param name="instructionsManifestAccessor">Read-only view over the immutable
     /// instructions manifest snapshot; threaded into the RPC dispatch
     /// policy so the <c>Instructions.*</c> handlers can answer corpus
     /// listing and read requests.</param>
-    /// <param name="overridesAccessor">Read-only view over the workspace
+    /// <param name="instructionsOverridesAccessor">Read-only view over the workspace
     /// instructions override inventory; threaded into the RPC dispatch
     /// policy so the <c>Instructions.List</c> handler can mark overridden
     /// files.</param>
-    /// <param name="bodyProjector">Projects instruction bodies for the
+    /// <param name="instructionsBodyProjector">Projects instruction bodies for the
     /// <c>Instructions.Get</c>, <c>GetAll</c>, and <c>GetAlwaysAttached</c>
     /// handlers.</param>
-    /// <param name="fileReader">Reads verbatim on-disk instruction bodies
+    /// <param name="instructionsFileReader">Reads verbatim on-disk instruction bodies
     /// for the <c>Instructions.GetRaw</c> handler.</param>
-    /// <param name="searchService">Full-text search over the projected
+    /// <param name="instructionsFullTextSearchService">Full-text search over the projected
     /// corpus backing the <c>Instructions.SearchContent</c>
     /// handler.</param>
-    /// <param name="instructionsBroadcaster">Fan-out broadcaster backing
+    /// <param name="instructionsSnapshotBroadcaster">Fan-out broadcaster backing
     /// the <c>Instructions.Subscribe</c> snapshot-on-subscribe stream.</param>
     /// <param name="mcpToolsRegistryAccessor">Read-only view over the immutable
     /// MCP-tools registry snapshot; threaded into the RPC dispatch policy
@@ -216,12 +216,12 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         IConfigUpdater configUpdater,
         SnapshotBroadcaster<JsonConfigSnapshot> configBroadcaster,
         IWorkspaceContextAccessor workspaceAccessor,
-        IInstructionsManifestAccessor manifestAccessor,
-        IInstructionsOverridesAccessor overridesAccessor,
-        InstructionsBodyProjector bodyProjector,
-        InstructionsFileReader fileReader,
-        InstructionsFullTextSearchService searchService,
-        SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>> instructionsBroadcaster,
+        IInstructionsManifestAccessor instructionsManifestAccessor,
+        IInstructionsOverridesAccessor instructionsOverridesAccessor,
+        InstructionsBodyProjector instructionsBodyProjector,
+        InstructionsFileReader instructionsFileReader,
+        InstructionsFullTextSearchService instructionsFullTextSearchService,
+        SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>> instructionsSnapshotBroadcaster,
         IMcpToolsRegistryAccessor mcpToolsRegistryAccessor,
         IMcpToolsInvoker mcpToolsInvoker)
     {
@@ -239,12 +239,12 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         ArgumentNullException.ThrowIfNull(configUpdater);
         ArgumentNullException.ThrowIfNull(configBroadcaster);
         ArgumentNullException.ThrowIfNull(workspaceAccessor);
-        ArgumentNullException.ThrowIfNull(manifestAccessor);
-        ArgumentNullException.ThrowIfNull(overridesAccessor);
-        ArgumentNullException.ThrowIfNull(bodyProjector);
-        ArgumentNullException.ThrowIfNull(fileReader);
-        ArgumentNullException.ThrowIfNull(searchService);
-        ArgumentNullException.ThrowIfNull(instructionsBroadcaster);
+        ArgumentNullException.ThrowIfNull(instructionsManifestAccessor);
+        ArgumentNullException.ThrowIfNull(instructionsOverridesAccessor);
+        ArgumentNullException.ThrowIfNull(instructionsBodyProjector);
+        ArgumentNullException.ThrowIfNull(instructionsFileReader);
+        ArgumentNullException.ThrowIfNull(instructionsFullTextSearchService);
+        ArgumentNullException.ThrowIfNull(instructionsSnapshotBroadcaster);
         ArgumentNullException.ThrowIfNull(mcpToolsRegistryAccessor);
         ArgumentNullException.ThrowIfNull(mcpToolsInvoker);
 
@@ -263,12 +263,12 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         _configUpdater = configUpdater;
         _configBroadcaster = configBroadcaster;
         _workspaceAccessor = workspaceAccessor;
-        _manifestAccessor = manifestAccessor;
-        _overridesAccessor = overridesAccessor;
-        _bodyProjector = bodyProjector;
-        _fileReader = fileReader;
-        _searchService = searchService;
-        _instructionsBroadcaster = instructionsBroadcaster;
+        _instructionsManifestAccessor = instructionsManifestAccessor;
+        _instructionsOverridesAccessor = instructionsOverridesAccessor;
+        _instructionsBodyProjector = instructionsBodyProjector;
+        _instructionsFileReader = instructionsFileReader;
+        _instructionsFullTextSearchService = instructionsFullTextSearchService;
+        _instructionsSnapshotBroadcaster = instructionsSnapshotBroadcaster;
         _mcpToolsInvoker = mcpToolsInvoker;
         _mcpToolsRegistryAccessor = mcpToolsRegistryAccessor;
     }
@@ -555,7 +555,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
                 _ = await RpcConnectionProcessor
                     .RunAsync(
                         stream,
-                        new DispatchPolicy(_applicationLifetime, _registryReader, _logFileReader, _logsBroadcaster, _configAccessor, _configUpdater, _configBroadcaster, _workspaceAccessor, _manifestAccessor, _overridesAccessor, _bodyProjector, _fileReader, _searchService, _instructionsBroadcaster, _mcpToolsRegistryAccessor, _logger, _mcpToolsInvoker),
+                        new DispatchPolicy(_applicationLifetime, _registryReader, _logFileReader, _logsBroadcaster, _configAccessor, _configUpdater, _configBroadcaster, _workspaceAccessor, _instructionsManifestAccessor, _instructionsOverridesAccessor, _instructionsBodyProjector, _instructionsFileReader, _instructionsFullTextSearchService, _instructionsSnapshotBroadcaster, _mcpToolsRegistryAccessor, _logger, _mcpToolsInvoker),
                         _logger,
                         cancellationToken)
                     .ConfigureAwait(false);

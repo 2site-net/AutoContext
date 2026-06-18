@@ -75,9 +75,9 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
     private readonly IInstructionsManifestAccessor _instructionsManifestAccessor;
     private readonly InstructionsBodyProjector _instructionsBodyProjector;
     private readonly InstructionsFileReader _instructionsFileReader;
-    private readonly InstructionsFullTextSearchService _instructionsSearchService;
+    private readonly InstructionsFullTextSearchService _instructionsFullTextSearchService;
     private readonly InstructionsListProjector _instructionsListProjector;
-    private readonly SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>> _instructionsBroadcaster;
+    private readonly SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>> _instructionsSnapshotBroadcaster;
     private readonly InstructionsFrameStream _instructionsFrameStream;
     private readonly IMcpToolsRegistryAccessor _mcpToolsRegistryAccessor;
     private readonly IMcpToolsInvoker _mcpToolsInvoker;
@@ -92,12 +92,12 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
         IConfigUpdater configUpdater,
         SnapshotBroadcaster<JsonConfigSnapshot> configBroadcaster,
         IWorkspaceContextAccessor workspaceAccessor,
-        IInstructionsManifestAccessor manifestAccessor,
-        IInstructionsOverridesAccessor overridesAccessor,
-        InstructionsBodyProjector bodyProjector,
-        InstructionsFileReader fileReader,
-        InstructionsFullTextSearchService searchService,
-        SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>> instructionsBroadcaster,
+        IInstructionsManifestAccessor instructionsManifestAccessor,
+        IInstructionsOverridesAccessor instructionsOverridesAccessor,
+        InstructionsBodyProjector instructionsBodyProjector,
+        InstructionsFileReader instructionsFileReader,
+        InstructionsFullTextSearchService instructionsFullTextSearchService,
+        SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>> instructionsSnapshotBroadcaster,
         IMcpToolsRegistryAccessor mcpToolsRegistryAccessor,
         ILogger logger,
         IMcpToolsInvoker? mcpToolsInvoker = null)
@@ -110,12 +110,12 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
         ArgumentNullException.ThrowIfNull(configUpdater);
         ArgumentNullException.ThrowIfNull(configBroadcaster);
         ArgumentNullException.ThrowIfNull(workspaceAccessor);
-        ArgumentNullException.ThrowIfNull(manifestAccessor);
-        ArgumentNullException.ThrowIfNull(overridesAccessor);
-        ArgumentNullException.ThrowIfNull(bodyProjector);
-        ArgumentNullException.ThrowIfNull(fileReader);
-        ArgumentNullException.ThrowIfNull(searchService);
-        ArgumentNullException.ThrowIfNull(instructionsBroadcaster);
+        ArgumentNullException.ThrowIfNull(instructionsManifestAccessor);
+        ArgumentNullException.ThrowIfNull(instructionsOverridesAccessor);
+        ArgumentNullException.ThrowIfNull(instructionsBodyProjector);
+        ArgumentNullException.ThrowIfNull(instructionsFileReader);
+        ArgumentNullException.ThrowIfNull(instructionsFullTextSearchService);
+        ArgumentNullException.ThrowIfNull(instructionsSnapshotBroadcaster);
         ArgumentNullException.ThrowIfNull(mcpToolsRegistryAccessor);
         ArgumentNullException.ThrowIfNull(logger);
 
@@ -129,13 +129,13 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
         _configBroadcaster = configBroadcaster;
         _configFrameStream = new();
         _workspaceAccessor = workspaceAccessor;
-        _instructionsManifestAccessor = manifestAccessor;
-        _instructionsBodyProjector = bodyProjector;
-        _instructionsFileReader = fileReader;
-        _instructionsSearchService = searchService;
+        _instructionsManifestAccessor = instructionsManifestAccessor;
+        _instructionsBodyProjector = instructionsBodyProjector;
+        _instructionsFileReader = instructionsFileReader;
+        _instructionsFullTextSearchService = instructionsFullTextSearchService;
         _instructionsListProjector = new InstructionsListProjector(
-            manifestAccessor, overridesAccessor, configAccessor, workspaceAccessor);
-        _instructionsBroadcaster = instructionsBroadcaster;
+            instructionsManifestAccessor, instructionsOverridesAccessor, configAccessor, workspaceAccessor);
+        _instructionsSnapshotBroadcaster = instructionsSnapshotBroadcaster;
         _instructionsFrameStream = new();
         _mcpToolsRegistryAccessor = mcpToolsRegistryAccessor;
         _logger = logger;
