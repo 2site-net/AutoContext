@@ -13,8 +13,8 @@
     scenarios.
 
 .EXAMPLE
-    .\build.tests.ps1            # Run all tests
-    .\build.tests.ps1 -Verbose   # Show WhatIf output for each passing test
+    .\scripts\build.tests.ps1            # Run all tests
+    .\scripts\build.tests.ps1 -Verbose   # Show WhatIf output for each passing test
 #>
 
 [CmdletBinding()]
@@ -43,6 +43,7 @@ function Invoke-TestCase {
     param(
         [Parameter(Mandatory)][string]$Name,
         [Parameter(Mandatory)][string]$Arguments,
+        [string]$Script = 'build.ps1',
         [switch]$ExpectError,
         [string]$ErrorPattern,
         [string[]]$ExpectOutput,
@@ -53,7 +54,11 @@ function Invoke-TestCase {
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
 
     # Run in a child process so that all streams (including host/WhatIf) are captured.
-    $scriptPath = Join-Path $PSScriptRoot 'build.ps1'
+    # $Script may target the orchestrator (build.ps1) or a granular scripts/*.ps1 wrapper.
+    # $Script paths are repo-root-relative; this harness lives in scripts/, so
+    # resolve against the repository root (the parent of $PSScriptRoot).
+    $repoRoot = Split-Path $PSScriptRoot -Parent
+    $scriptPath = Join-Path $repoRoot $Script
     $output = pwsh -NoProfile -NonInteractive -Command "& '$scriptPath' $Arguments" 2>&1 | Out-String
     $exitCode = $LASTEXITCODE
 
@@ -517,6 +522,130 @@ $testCases = @(
         ErrorPattern = 'not valid with Tag'
     }
 
+    # ── Granular wrappers (scripts/*.ps1) ────────────────────────────────
+
+    @{
+        Name         = 'scripts/compile.ps1 (all) — compile only, no tests/format'
+        Script       = 'scripts/compile.ps1'
+        Arguments    = '-WhatIf'
+        ExpectOutput = @('Compile TypeScript', 'dotnet build')
+        RejectOutput = @('dotnet format', 'dotnet test', 'Run TypeScript tests')
+    }
+    @{
+        Name         = 'scripts/compile.ps1 TS'
+        Script       = 'scripts/compile.ps1'
+        Arguments    = 'TS -WhatIf'
+        ExpectOutput = @('Compile TypeScript')
+        RejectOutput = @('dotnet build')
+    }
+    @{
+        Name         = 'scripts/compile.ps1 DotNet'
+        Script       = 'scripts/compile.ps1'
+        Arguments    = 'DotNet -WhatIf'
+        ExpectOutput = @('dotnet build')
+        RejectOutput = @('Compile TypeScript')
+    }
+    @{
+        Name         = 'scripts/test.ps1 (all)'
+        Script       = 'scripts/test.ps1'
+        Arguments    = '-WhatIf'
+        ExpectOutput = @('Run TypeScript tests', 'dotnet test')
+        RejectOutput = @('Compile TypeScript', 'dotnet build')
+    }
+    @{
+        Name         = 'scripts/test.ps1 TS'
+        Script       = 'scripts/test.ps1'
+        Arguments    = 'TS -WhatIf'
+        ExpectOutput = @('Run TypeScript tests')
+        RejectOutput = @('dotnet test')
+    }
+    @{
+        Name         = 'scripts/test.ps1 DotNet'
+        Script       = 'scripts/test.ps1'
+        Arguments    = 'DotNet -WhatIf'
+        ExpectOutput = @('dotnet test')
+        RejectOutput = @('Run TypeScript tests')
+    }
+    @{
+        Name         = 'scripts/format.ps1'
+        Script       = 'scripts/format.ps1'
+        Arguments    = '-WhatIf'
+        ExpectOutput = @('dotnet format')
+        RejectOutput = @('dotnet build', 'dotnet test')
+    }
+    @{
+        Name         = 'scripts/clean.ps1'
+        Script       = 'scripts/clean.ps1'
+        Arguments    = '-WhatIf'
+        ExpectOutput = @('Delete TypeScript output|TypeScript output.*not found', 'Delete Servers|Servers.*not found', 'Delete VSIX packages|VSIX packages.*not found')
+    }
+    @{
+        Name         = 'scripts/prepare.ps1'
+        Script       = 'scripts/prepare.ps1'
+        Arguments    = '-WhatIf'
+        ExpectOutput = @('Compile TypeScript', 'dotnet build', 'Run TypeScript tests', 'dotnet test', 'Copy LICENSE')
+    }
+    @{
+        Name         = 'scripts/package.ps1 (auto-detect RID)'
+        Script       = 'scripts/package.ps1'
+        Arguments    = '-WhatIf'
+        ExpectOutput = @('Compile TypeScript', 'dotnet build', 'dotnet publish', 'vsce package')
+    }
+    @{
+        Name         = 'scripts/package.ps1 All (6 platforms)'
+        Script       = 'scripts/package.ps1'
+        Arguments    = 'All -WhatIf'
+        ExpectOutput = @('win-x64', 'win-arm64', 'linux-x64', 'linux-arm64', 'osx-x64', 'osx-arm64')
+    }
+    @{
+        Name         = 'scripts/package.ps1 -Local'
+        Script       = 'scripts/package.ps1'
+        Arguments    = '-Local -WhatIf'
+        ExpectOutput = @('Compile TypeScript', 'dotnet build', 'Copy .NET servers \(local\)')
+        RejectOutput = @('dotnet publish', 'vsce package')
+    }
+    @{
+        Name         = 'scripts/package.ps1 -Local + RuntimeIdentifier (mutually exclusive)'
+        Script       = 'scripts/package.ps1'
+        Arguments    = '-Local -RuntimeIdentifier win-x64 -WhatIf'
+        ExpectError  = $true
+        ErrorPattern = 'mutually exclusive'
+    }
+    @{
+        Name         = 'scripts/package.ps1 All + RuntimeIdentifier (mutually exclusive)'
+        Script       = 'scripts/package.ps1'
+        Arguments    = 'All -RuntimeIdentifier win-x64 -WhatIf'
+        ExpectError  = $true
+        ErrorPattern = 'mutually exclusive'
+    }
+    @{
+        Name         = 'scripts/publish.ps1 (auto-detect RID)'
+        Script       = 'scripts/publish.ps1'
+        Arguments    = '-WhatIf'
+        ExpectOutput = @('dotnet publish', 'vsce package', 'Publish to Marketplace', 'Publish to Open VSX')
+    }
+    @{
+        Name         = 'scripts/publish.ps1 All + RuntimeIdentifier (mutually exclusive)'
+        Script       = 'scripts/publish.ps1'
+        Arguments    = 'All -RuntimeIdentifier win-x64 -WhatIf'
+        ExpectError  = $true
+        ErrorPattern = 'mutually exclusive'
+    }
+    @{
+        Name         = 'scripts/tag.ps1 with invalid semver (error)'
+        Script       = 'scripts/tag.ps1'
+        Arguments    = 'abc -WhatIf'
+        ExpectError  = $true
+        ErrorPattern = 'Invalid version'
+    }
+    @{
+        Name         = 'scripts/tag.ps1 with lower version (error)'
+        Script       = 'scripts/tag.ps1'
+        Arguments    = '0.0.1 -WhatIf'
+        ExpectError  = $true
+        ErrorPattern = 'less than current'
+    }
+
     # ── Help ─────────────────────────────────────────────────────────────
 
     @{
@@ -542,6 +671,7 @@ foreach ($case in $testCases) {
         Name      = $case.Name
         Arguments = $case.Arguments
     }
+    if ($case.ContainsKey('Script')       -and $case.Script)       { $params.Script        = $case.Script }
     if ($case.ContainsKey('ExpectError')  -and $case.ExpectError)  { $params.ExpectError  = [switch]$true }
     if ($case.ContainsKey('ErrorPattern') -and $case.ErrorPattern) { $params.ErrorPattern  = $case.ErrorPattern }
     if ($case.ContainsKey('ExpectOutput') -and $case.ExpectOutput) { $params.ExpectOutput  = $case.ExpectOutput }

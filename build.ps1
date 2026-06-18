@@ -15,9 +15,10 @@
     The granular scripts/*.ps1 wrappers expose the same functions one phase at a
     time for fast inner-loop iteration.
 
-    After modifying this script, run build.tests.ps1 to verify all action/target
-    combinations still work. If a test fails, determine whether the script has a
-    bug or the test expectations need updating to match the new behaviour.
+    After modifying this script, run scripts/build.tests.ps1 to verify all
+    action/target combinations still work. If a test fails, determine whether
+    the script has a bug or the test expectations need updating to match the
+    new behaviour.
 
 .PARAMETER Action
     The build action to perform:
