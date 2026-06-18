@@ -93,7 +93,7 @@ public sealed class McpToolDispatchTests
         var codec = new LengthPrefixedFrameCodec(rpc);
 
         await EngineWireTestClient.SendHelloAsync(codec, ProtocolVersion.Current, ct);
-        await EngineWireTestClient.ReadResponseAsync(codec, ct);
+        await EngineWireTestClient.ReadResponseAsync(codec, "Engine.Hello response", ct);
 
         // Act — warm the lazily-spawned worker (see WarmUpWorkerAsync for the
         // cold-spawn race it absorbs), list the projected catalog, dispatch
@@ -190,7 +190,7 @@ public sealed class McpToolDispatchTests
             LengthPrefixedFrameCodec codec, int id, CancellationToken cancellationToken)
         {
             await EngineWireTestClient.SendRequestAsync(codec, id, McpToolsMethods.List, cancellationToken);
-            var response = await EngineWireTestClient.ReadResponseAsync(codec, cancellationToken);
+            var response = await EngineWireTestClient.ReadResponseAsync(codec, "McpTools.List response", cancellationToken);
             Assert.Null(response.Error);
             var result = response.Result!.Value.Deserialize(
                 ProtocolJsonContext.Default.JsonMcpToolsListResult);
@@ -216,7 +216,7 @@ public sealed class McpToolDispatchTests
             using var paramsDocument = JsonDocument.Parse(paramsNode.ToJsonString());
             await EngineWireTestClient.SendRequestAsync(
                 codec, id, McpToolsMethods.Invoke, paramsDocument.RootElement, cancellationToken);
-            var response = await EngineWireTestClient.ReadResponseAsync(codec, readTimeout, cancellationToken);
+            var response = await EngineWireTestClient.ReadResponseAsync(codec, readTimeout, "McpTools.Invoke response", cancellationToken);
             Assert.Null(response.Error);
             var result = response.Result!.Value.Deserialize(
                 ProtocolJsonContext.Default.JsonMcpToolsInvokeResult);

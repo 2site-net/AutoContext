@@ -81,7 +81,7 @@ public sealed class InstructionsProjectionTests
         var subscriberCodec = new LengthPrefixedFrameCodec(subscriberRpc);
 
         await EngineWireTestClient.SendHelloAsync(subscriberCodec, ProtocolVersion.Current, ct);
-        await EngineWireTestClient.ReadResponseAsync(subscriberCodec, ct);
+        await EngineWireTestClient.ReadResponseAsync(subscriberCodec, "subscriber Engine.Hello response", ct);
         await EngineWireTestClient.SendRequestAsync(
             subscriberCodec, id: 2, InstructionsMethods.Subscribe, ct);
         var seed = await ReadSnapshotFrameAsync(subscriberCodec, ct);
@@ -92,7 +92,7 @@ public sealed class InstructionsProjectionTests
         var clientCodec = new LengthPrefixedFrameCodec(clientRpc);
 
         await EngineWireTestClient.SendHelloAsync(clientCodec, ProtocolVersion.Current, ct);
-        await EngineWireTestClient.ReadResponseAsync(clientCodec, ct);
+        await EngineWireTestClient.ReadResponseAsync(clientCodec, "client Engine.Hello response", ct);
 
         // Act — read the projected body before the toggle (active),
         // flip the file disabled, observe the rebroadcast listing, then
@@ -139,7 +139,7 @@ public sealed class InstructionsProjectionTests
                 ProtocolJsonContext.Default.JsonInstructionsGetParams);
             await EngineWireTestClient.SendRequestAsync(
                 codec, id, InstructionsMethods.Get, parameters, cancellationToken);
-            var response = await EngineWireTestClient.ReadResponseAsync(codec, cancellationToken);
+            var response = await EngineWireTestClient.ReadResponseAsync(codec, "Instructions.Get response", cancellationToken);
             Assert.Null(response.Error);
             var result = response.Result!.Value.Deserialize(
                 ProtocolJsonContext.Default.JsonInstructionsGetResult);
@@ -155,14 +155,14 @@ public sealed class InstructionsProjectionTests
                 ProtocolJsonContext.Default.JsonConfigToggleFileParams);
             await EngineWireTestClient.SendRequestAsync(
                 codec, id, ConfigMethods.ToggleFile, parameters, cancellationToken);
-            var response = await EngineWireTestClient.ReadResponseAsync(codec, cancellationToken);
+            var response = await EngineWireTestClient.ReadResponseAsync(codec, "Config.ToggleFile response", cancellationToken);
             Assert.Null(response.Error);
         }
 
         static async Task<JsonInstructionsSnapshotFrame> ReadSnapshotFrameAsync(
             LengthPrefixedFrameCodec codec, CancellationToken cancellationToken)
         {
-            var frame = await EngineWireTestClient.ReadStreamFrameAsync(codec, cancellationToken);
+            var frame = await EngineWireTestClient.ReadStreamFrameAsync(codec, "Instructions snapshot stream frame", cancellationToken);
             var next = Assert.IsType<JsonRpcStreamNext>(frame);
             var payload = next.Result.Deserialize(
                 ProtocolJsonContext.Default.JsonInstructionsStreamFrame);

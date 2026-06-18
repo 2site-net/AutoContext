@@ -86,7 +86,7 @@ public sealed class CrossInstanceConfigReloadTests
         var subscriberCodec = new LengthPrefixedFrameCodec(subscriberRpc);
 
         await EngineWireTestClient.SendHelloAsync(subscriberCodec, ProtocolVersion.Current, ct);
-        await EngineWireTestClient.ReadResponseAsync(subscriberCodec, ct);
+        await EngineWireTestClient.ReadResponseAsync(subscriberCodec, "subscriber Engine.Hello response", ct);
         await EngineWireTestClient.SendRequestAsync(
             subscriberCodec, id: 2, ConfigMethods.Subscribe, ct);
         var seed = await ReadSnapshotFrameAsync(subscriberCodec, ct);
@@ -98,7 +98,7 @@ public sealed class CrossInstanceConfigReloadTests
         var writerCodec = new LengthPrefixedFrameCodec(writerRpc);
 
         await EngineWireTestClient.SendHelloAsync(writerCodec, ProtocolVersion.Current, ct);
-        await EngineWireTestClient.ReadResponseAsync(writerCodec, ct);
+        await EngineWireTestClient.ReadResponseAsync(writerCodec, "writer Engine.Hello response", ct);
 
         // Act — first peer write. The writer toggles one file; the
         // resulting atomic-rename burst on disk must collapse to a
@@ -141,14 +141,14 @@ public sealed class CrossInstanceConfigReloadTests
                 ProtocolJsonContext.Default.JsonConfigToggleFileParams);
             await EngineWireTestClient.SendRequestAsync(
                 codec, id, ConfigMethods.ToggleFile, parameters, cancellationToken);
-            var response = await EngineWireTestClient.ReadResponseAsync(codec, cancellationToken);
+            var response = await EngineWireTestClient.ReadResponseAsync(codec, "Config.ToggleFile response", cancellationToken);
             Assert.Null(response.Error);
         }
 
         static async Task<JsonConfigSnapshot> ReadSnapshotFrameAsync(
             LengthPrefixedFrameCodec codec, CancellationToken cancellationToken)
         {
-            var frame = await EngineWireTestClient.ReadStreamFrameAsync(codec, cancellationToken);
+            var frame = await EngineWireTestClient.ReadStreamFrameAsync(codec, "Config snapshot stream frame", cancellationToken);
             var next = Assert.IsType<JsonRpcStreamNext>(frame);
             var payload = next.Result.Deserialize(
                 ProtocolJsonContext.Default.JsonConfigStreamFrame);

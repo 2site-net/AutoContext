@@ -67,12 +67,12 @@ public sealed class DaemonLifecycleTests
             var codec = new LengthPrefixedFrameCodec(rpc);
 
             await EngineWireTestClient.SendHelloAsync(codec, ProtocolVersion.Current, ct);
-            var helloResponse = await EngineWireTestClient.ReadResponseAsync(codec, ct);
+            var helloResponse = await EngineWireTestClient.ReadResponseAsync(codec, "Engine.Hello response", ct);
 
             // Act — request shutdown and read the acknowledgement.
             await EngineWireTestClient.SendRequestAsync(
                 codec, id: 42, method: ProtocolMethods.Shutdown, ct);
-            var shutdownResponse = await EngineWireTestClient.ReadResponseAsync(codec, ct);
+            var shutdownResponse = await EngineWireTestClient.ReadResponseAsync(codec, "Engine.Shutdown response", ct);
             var shutdownResult = shutdownResponse.Result!.Value.Deserialize(
                 ProtocolJsonContext.Default.JsonShutdownResult);
 

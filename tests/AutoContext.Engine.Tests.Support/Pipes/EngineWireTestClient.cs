@@ -160,20 +160,25 @@ public static class EngineWireTestClient
         var codec = new LengthPrefixedFrameCodec(rpc);
 
         await SendHelloAsync(codec, ProtocolVersion.Current, cancellationToken).ConfigureAwait(false);
-        await ReadResponseAsync(codec, cancellationToken).ConfigureAwait(false);
+        await ReadResponseAsync(codec, "Engine.Hello response", cancellationToken).ConfigureAwait(false);
         await SendRequestAsync(codec, id: 2, ProtocolMethods.Shutdown, cancellationToken).ConfigureAwait(false);
-        await ReadResponseAsync(codec, cancellationToken).ConfigureAwait(false);
+        await ReadResponseAsync(codec, "Engine.Shutdown response", cancellationToken).ConfigureAwait(false);
 
         await engine.Process
             .WaitForExitAsync(cancellationToken)
             .WaitAsync(TimeSpan.FromSeconds(10), cancellationToken).ConfigureAwait(false);
     }
 
-    /// <summary>Reads exactly one JSON-RPC response frame.</summary>
+    /// <summary>
+    /// Reads exactly one JSON-RPC response frame, naming <paramref name="context"/>
+    /// in any timeout failure so a wedged engine fails fast with a diagnostic
+    /// rather than hanging the run.
+    /// </summary>
     public static Task<JsonRpcResponse> ReadResponseAsync(
         LengthPrefixedFrameCodec codec,
+        string context,
         CancellationToken cancellationToken)
-        => ReadResponseAsync(codec, ReadResponseTimeout, cancellationToken);
+        => ReadResponseAsync(codec, ReadResponseTimeout, context, cancellationToken);
 
     /// <summary>
     /// Reads exactly one JSON-RPC response frame, bounding the read with
@@ -187,38 +192,85 @@ public static class EngineWireTestClient
     public static async Task<JsonRpcResponse> ReadResponseAsync(
         LengthPrefixedFrameCodec codec,
         TimeSpan timeout,
+        string context,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(codec);
 
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        cts.CancelAfter(timeout);
-
-        var bytes = await codec.ReadAsync(cts.Token).ConfigureAwait(false);
-        Assert.NotNull(bytes);
+        var bytes = await ReadFrameBytesAsync(codec, timeout, context, cancellationToken)
+            .ConfigureAwait(false);
 
         var response = JsonSerializer.Deserialize(
-            bytes!, ProtocolJsonContext.Default.JsonRpcResponse);
+            bytes, ProtocolJsonContext.Default.JsonRpcResponse);
         Assert.NotNull(response);
         return response!;
     }
 
-    /// <summary>Reads exactly one server-streaming JSON-RPC frame.</summary>
+    /// <summary>
+    /// Reads exactly one server-streaming JSON-RPC frame, naming
+    /// <paramref name="context"/> in any timeout failure.
+    /// </summary>
     public static async Task<JsonRpcStreamFrame> ReadStreamFrameAsync(
         LengthPrefixedFrameCodec codec,
+        string context,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(codec);
 
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        cts.CancelAfter(ReadResponseTimeout);
-
-        var bytes = await codec.ReadAsync(cts.Token).ConfigureAwait(false);
-        Assert.NotNull(bytes);
+        var bytes = await ReadFrameBytesAsync(codec, ReadResponseTimeout, context, cancellationToken)
+            .ConfigureAwait(false);
 
         var frame = JsonSerializer.Deserialize(
-            bytes!, ProtocolJsonContext.Default.JsonRpcStreamFrame);
+            bytes, ProtocolJsonContext.Default.JsonRpcStreamFrame);
         Assert.NotNull(frame);
         return frame!;
     }
+
+    /// <summary>
+    /// Reads one length-prefixed frame, racing the pipe read against a
+    /// <see cref="Task.Delay(TimeSpan, CancellationToken)"/> backstop so the
+    /// harness never hangs silently when the engine stops responding. The
+    /// backstop fires independently of whether the pipe read observes
+    /// cancellation; a timeout throws a <see cref="TimeoutException"/> naming
+    /// <paramref name="context"/>, while caller cancellation surfaces as an
+    /// <see cref="OperationCanceledException"/> instead of a false timeout.
+    /// </summary>
+    private static async Task<byte[]> ReadFrameBytesAsync(
+        LengthPrefixedFrameCodec codec,
+        TimeSpan timeout,
+        string context,
+        CancellationToken cancellationToken)
+    {
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+
+        var readTask = codec.ReadAsync(cts.Token);
+        var completed = await Task
+            .WhenAny(readTask, Task.Delay(timeout, cts.Token))
+            .ConfigureAwait(false);
+
+        if (completed != readTask)
+        {
+            // The read lost the race (timed out or the caller cancelled).
+            // Cancel to nudge the pipe read, then observe the orphaned task so
+            // its eventual fault — when the owning stream is disposed during
+            // unwind — does not escalate to an UnobservedTaskException.
+            await cts.CancelAsync().ConfigureAwait(false);
+            ObserveOrphanedRead(readTask);
+
+            cancellationToken.ThrowIfCancellationRequested();
+            throw new TimeoutException(
+                $"No frame within {timeout.TotalSeconds:0}s waiting for {context}.");
+        }
+
+        var bytes = await readTask.ConfigureAwait(false);
+        Assert.NotNull(bytes);
+        return bytes!;
+    }
+
+    private static void ObserveOrphanedRead(Task<byte[]?> readTask)
+        => _ = readTask.ContinueWith(
+            static t => _ = t.Exception,
+            CancellationToken.None,
+            TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
+            TaskScheduler.Default);
 }

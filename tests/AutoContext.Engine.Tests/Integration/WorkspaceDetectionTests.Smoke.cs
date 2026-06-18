@@ -70,11 +70,11 @@ public sealed class WorkspaceDetectionTests
         var codec = new LengthPrefixedFrameCodec(rpc);
 
         await EngineWireTestClient.SendHelloAsync(codec, ProtocolVersion.Current, ct);
-        await EngineWireTestClient.ReadResponseAsync(codec, ct);
+        await EngineWireTestClient.ReadResponseAsync(codec, "Engine.Hello response", ct);
 
         // Act
         await EngineWireTestClient.SendRequestAsync(codec, id: 2, WorkspaceMethods.Detect, ct);
-        var response = await EngineWireTestClient.ReadResponseAsync(codec, ct);
+        var response = await EngineWireTestClient.ReadResponseAsync(codec, "Workspace.Detect response", ct);
 
         // Assert
         var envelope = response.Result!.Value;
@@ -116,11 +116,11 @@ public sealed class WorkspaceDetectionTests
         var codec = new LengthPrefixedFrameCodec(rpc);
 
         await EngineWireTestClient.SendHelloAsync(codec, ProtocolVersion.Current, ct);
-        await EngineWireTestClient.ReadResponseAsync(codec, ct);
+        await EngineWireTestClient.ReadResponseAsync(codec, "Engine.Hello response", ct);
 
         // Act
         await EngineWireTestClient.SendRequestAsync(codec, id: 2, WorkspaceMethods.Info, ct);
-        var response = await EngineWireTestClient.ReadResponseAsync(codec, ct);
+        var response = await EngineWireTestClient.ReadResponseAsync(codec, "Workspace.Info response", ct);
 
         // Assert — Info carries engine-process identity distinct from
         // Detect's content shape: the spawned instance id, a non-empty
