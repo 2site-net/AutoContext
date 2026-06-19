@@ -54,7 +54,7 @@ internal sealed class WorkspaceRpcHandler : IRpcMethodHandler
     private UnaryHandlerResult HandleWorkspaceDetect()
     {
         var result = _workspaceAccessor.Current.ToWireFormat();
-        return RpcResults.Success(result, ProtocolJsonContext.Default.JsonWorkspaceDetectResult);
+        return RpcMethodResults.Success(result, ProtocolJsonContext.Default.JsonWorkspaceDetectResult);
     }
 
     private UnaryHandlerResult HandleWorkspaceInfo()
@@ -67,6 +67,6 @@ internal sealed class WorkspaceRpcHandler : IRpcMethodHandler
             InstanceLabel = _workspaceAccessor.EngineInfo.InstanceLabel,
             Revision = _workspaceAccessor.Revision,
         };
-        return RpcResults.Success(result, ProtocolJsonContext.Default.JsonWorkspaceInfoResult);
+        return RpcMethodResults.Success(result, ProtocolJsonContext.Default.JsonWorkspaceInfoResult);
     }
 }

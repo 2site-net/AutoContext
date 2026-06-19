@@ -70,7 +70,7 @@ internal sealed partial class McpToolsRpcHandler : IRpcMethodHandler
     }
 
     private static UnaryHandlerResult InvokeResult(JsonMcpToolsInvokeResult result)
-        => RpcResults.Success(result, ProtocolJsonContext.Default.JsonMcpToolsInvokeResult);
+        => RpcMethodResults.Success(result, ProtocolJsonContext.Default.JsonMcpToolsInvokeResult);
 
     private static bool IsTypeMatch(JsonValueKind valueKind, string expectedType)
         => expectedType switch
@@ -185,7 +185,7 @@ internal sealed partial class McpToolsRpcHandler : IRpcMethodHandler
         JsonRpcRequest request,
         CancellationToken cancellationToken)
     {
-        if (RpcResults.TryDeserialize(
+        if (RpcMethodResults.TryDeserialize(
                 request,
                 McpToolsMethods.Invoke,
                 ProtocolJsonContext.Default.JsonMcpToolsInvokeParams,
@@ -197,7 +197,7 @@ internal sealed partial class McpToolsRpcHandler : IRpcMethodHandler
 
         if (string.IsNullOrWhiteSpace(parameters?.Name))
         {
-            return RpcResults.InvalidParams(McpToolsMethods.Invoke);
+            return RpcMethodResults.InvalidParams(McpToolsMethods.Invoke);
         }
 
         var name = parameters.Name;
@@ -236,7 +236,7 @@ internal sealed partial class McpToolsRpcHandler : IRpcMethodHandler
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             LogMcpToolsFailed(_logger, McpToolsMethods.Invoke, ex);
-            return RpcResults.InternalError("Failed to invoke the MCP tool.");
+            return RpcMethodResults.InternalError("Failed to invoke the MCP tool.");
         }
     }
 
@@ -267,12 +267,12 @@ internal sealed partial class McpToolsRpcHandler : IRpcMethodHandler
             }
 
             var result = new JsonMcpToolsListResult { Tools = rows };
-            return RpcResults.Success(result, ProtocolJsonContext.Default.JsonMcpToolsListResult);
+            return RpcMethodResults.Success(result, ProtocolJsonContext.Default.JsonMcpToolsListResult);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             LogMcpToolsFailed(_logger, McpToolsMethods.List, ex);
-            return RpcResults.InternalError("Failed to list the MCP tools catalog.");
+            return RpcMethodResults.InternalError("Failed to list the MCP tools catalog.");
         }
     }
 

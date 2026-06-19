@@ -16,7 +16,7 @@ using Microsoft.Extensions.Logging;
 /// (<see cref="Continuation.Continue"/>) — recoverable faults are surfaced
 /// as JSON-RPC errors rather than tearing the connection down.
 /// </summary>
-internal static partial class RpcResults
+internal static partial class RpcMethodResults
 {
     /// <summary>
     /// Builds an <see cref="JsonRpcErrorCodes.InternalError"/> reply with

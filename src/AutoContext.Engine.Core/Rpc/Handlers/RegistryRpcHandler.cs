@@ -53,12 +53,12 @@ internal sealed partial class RegistryRpcHandler : IRpcMethodHandler
                 .ConfigureAwait(false);
 
             var result = new JsonRegistryEntriesResult { Entries = entries };
-            return RpcResults.Success(result, ProtocolJsonContext.Default.JsonRegistryEntriesResult);
+            return RpcMethodResults.Success(result, ProtocolJsonContext.Default.JsonRegistryEntriesResult);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             LogRegistryEntriesFailed(_logger, ex);
-            return RpcResults.InternalError("Failed to read the engine registry.");
+            return RpcMethodResults.InternalError("Failed to read the engine registry.");
         }
     }
 

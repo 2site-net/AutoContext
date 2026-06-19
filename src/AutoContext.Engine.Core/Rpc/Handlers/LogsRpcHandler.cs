@@ -76,7 +76,7 @@ internal sealed partial class LogsRpcHandler : IRpcMethodHandler
     private async Task<RpcHandlerResult> HandleLogsGetEngineAsync(
         JsonRpcRequest request, CancellationToken cancellationToken)
     {
-        if (RpcResults.TryDeserialize(
+        if (RpcMethodResults.TryDeserialize(
                 request,
                 LogsMethods.GetEngine,
                 ProtocolJsonContext.Default.JsonLogsGetEngineParams,
@@ -112,12 +112,12 @@ internal sealed partial class LogsRpcHandler : IRpcMethodHandler
                 Truncated = read.Truncated,
             };
 
-            return RpcResults.Success(result, ProtocolJsonContext.Default.JsonLogsGetEngineResult);
+            return RpcMethodResults.Success(result, ProtocolJsonContext.Default.JsonLogsGetEngineResult);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             LogLogsGetEngineFailed(_logger, ex);
-            return RpcResults.InternalError("Failed to read the engine log.");
+            return RpcMethodResults.InternalError("Failed to read the engine log.");
         }
     }
 

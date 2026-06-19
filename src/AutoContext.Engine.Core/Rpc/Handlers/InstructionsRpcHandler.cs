@@ -108,7 +108,7 @@ internal sealed partial class InstructionsRpcHandler : IRpcMethodHandler
     }
 
     private static UnaryHandlerResult GetResult(JsonInstructionsGetResult result)
-        => RpcResults.Success(result, ProtocolJsonContext.Default.JsonInstructionsGetResult);
+        => RpcMethodResults.Success(result, ProtocolJsonContext.Default.JsonInstructionsGetResult);
 
     [LoggerMessage(EventId = 1, Level = LogLevel.Warning,
         Message = "Instructions handler '{Method}' failed.")]
@@ -140,7 +140,7 @@ internal sealed partial class InstructionsRpcHandler : IRpcMethodHandler
     }
 
     private static UnaryHandlerResult RawNotFound(string name)
-        => RpcResults.Success(
+        => RpcMethodResults.Success(
             new JsonInstructionsGetRawNotFoundResult { Name = name },
             ProtocolJsonContext.Default.JsonInstructionsGetRawResult);
 
@@ -148,7 +148,7 @@ internal sealed partial class InstructionsRpcHandler : IRpcMethodHandler
         InstructionsFileManifestEntry entry,
         InstructionsSource source,
         string content)
-        => RpcResults.Success(
+        => RpcMethodResults.Success(
             new JsonInstructionsGetRawOkResult
             {
                 Name = entry.Name,
@@ -173,7 +173,7 @@ internal sealed partial class InstructionsRpcHandler : IRpcMethodHandler
         }
 
         var result = new JsonInstructionsCategoriesResult { Categories = mapped };
-        return RpcResults.Success(result, ProtocolJsonContext.Default.JsonInstructionsCategoriesResult);
+        return RpcMethodResults.Success(result, ProtocolJsonContext.Default.JsonInstructionsCategoriesResult);
     }
 
     private async Task<RpcHandlerResult> HandleInstructionsGetAllAsync(
@@ -185,12 +185,12 @@ internal sealed partial class InstructionsRpcHandler : IRpcMethodHandler
                 entry => !IsFileDisabled(entry.Key), cancellationToken).ConfigureAwait(false);
 
             var result = new JsonInstructionsFilesResult { Files = files };
-            return RpcResults.Success(result, ProtocolJsonContext.Default.JsonInstructionsFilesResult);
+            return RpcMethodResults.Success(result, ProtocolJsonContext.Default.JsonInstructionsFilesResult);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             LogInstructionsFailed(_logger, InstructionsMethods.GetAll, ex);
-            return RpcResults.InternalError("Failed to read the instruction corpus.");
+            return RpcMethodResults.InternalError("Failed to read the instruction corpus.");
         }
     }
 
@@ -204,19 +204,19 @@ internal sealed partial class InstructionsRpcHandler : IRpcMethodHandler
                 cancellationToken).ConfigureAwait(false);
 
             var result = new JsonInstructionsFilesResult { Files = files };
-            return RpcResults.Success(result, ProtocolJsonContext.Default.JsonInstructionsFilesResult);
+            return RpcMethodResults.Success(result, ProtocolJsonContext.Default.JsonInstructionsFilesResult);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             LogInstructionsFailed(_logger, InstructionsMethods.GetAlwaysAttached, ex);
-            return RpcResults.InternalError("Failed to read the instruction corpus.");
+            return RpcMethodResults.InternalError("Failed to read the instruction corpus.");
         }
     }
 
     private async Task<RpcHandlerResult> HandleInstructionsGetAsync(
         JsonRpcRequest request, CancellationToken cancellationToken)
     {
-        if (RpcResults.TryDeserialize(
+        if (RpcMethodResults.TryDeserialize(
                 request,
                 InstructionsMethods.Get,
                 ProtocolJsonContext.Default.JsonInstructionsGetParams,
@@ -228,7 +228,7 @@ internal sealed partial class InstructionsRpcHandler : IRpcMethodHandler
 
         if (string.IsNullOrWhiteSpace(parameters?.Name))
         {
-            return RpcResults.InvalidParams(InstructionsMethods.Get);
+            return RpcMethodResults.InvalidParams(InstructionsMethods.Get);
         }
 
         var name = parameters.Name;
@@ -268,14 +268,14 @@ internal sealed partial class InstructionsRpcHandler : IRpcMethodHandler
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             LogInstructionsFailed(_logger, InstructionsMethods.Get, ex);
-            return RpcResults.InternalError("Failed to read the instruction file.");
+            return RpcMethodResults.InternalError("Failed to read the instruction file.");
         }
     }
 
     private async Task<RpcHandlerResult> HandleInstructionsGetRawAsync(
         JsonRpcRequest request, CancellationToken cancellationToken)
     {
-        if (RpcResults.TryDeserialize(
+        if (RpcMethodResults.TryDeserialize(
                 request,
                 InstructionsMethods.GetRaw,
                 ProtocolJsonContext.Default.JsonInstructionsGetRawParams,
@@ -287,7 +287,7 @@ internal sealed partial class InstructionsRpcHandler : IRpcMethodHandler
 
         if (string.IsNullOrWhiteSpace(parameters?.Name))
         {
-            return RpcResults.InvalidParams(InstructionsMethods.GetRaw);
+            return RpcMethodResults.InvalidParams(InstructionsMethods.GetRaw);
         }
 
         var name = parameters.Name;
@@ -340,13 +340,13 @@ internal sealed partial class InstructionsRpcHandler : IRpcMethodHandler
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             LogInstructionsFailed(_logger, InstructionsMethods.GetRaw, ex);
-            return RpcResults.InternalError("Failed to read the instruction source.");
+            return RpcMethodResults.InternalError("Failed to read the instruction source.");
         }
     }
 
     private UnaryHandlerResult HandleInstructionsList(JsonRpcRequest request)
     {
-        if (RpcResults.TryDeserialize(
+        if (RpcMethodResults.TryDeserialize(
                 request,
                 InstructionsMethods.List,
                 ProtocolJsonContext.Default.JsonInstructionsListParams,
@@ -367,19 +367,19 @@ internal sealed partial class InstructionsRpcHandler : IRpcMethodHandler
             var rows = _instructionsListProjector.Project(includeSections, applyWorkspaceFilter, hintExtensions);
 
             var result = new JsonInstructionsListResult { Files = rows };
-            return RpcResults.Success(result, ProtocolJsonContext.Default.JsonInstructionsListResult);
+            return RpcMethodResults.Success(result, ProtocolJsonContext.Default.JsonInstructionsListResult);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             LogInstructionsFailed(_logger, InstructionsMethods.List, ex);
-            return RpcResults.InternalError("Failed to list the instruction corpus.");
+            return RpcMethodResults.InternalError("Failed to list the instruction corpus.");
         }
     }
 
     private async Task<RpcHandlerResult> HandleInstructionsSearchContentAsync(
         JsonRpcRequest request, CancellationToken cancellationToken)
     {
-        if (RpcResults.TryDeserialize(
+        if (RpcMethodResults.TryDeserialize(
                 request,
                 InstructionsMethods.SearchContent,
                 ProtocolJsonContext.Default.JsonInstructionsSearchContentParams,
@@ -391,7 +391,7 @@ internal sealed partial class InstructionsRpcHandler : IRpcMethodHandler
 
         if (string.IsNullOrWhiteSpace(parameters?.Query))
         {
-            return RpcResults.InvalidParams(InstructionsMethods.SearchContent);
+            return RpcMethodResults.InvalidParams(InstructionsMethods.SearchContent);
         }
 
         try
@@ -409,12 +409,12 @@ internal sealed partial class InstructionsRpcHandler : IRpcMethodHandler
             }
 
             var result = new JsonInstructionsSearchContentResult { Hits = mapped };
-            return RpcResults.Success(result, ProtocolJsonContext.Default.JsonInstructionsSearchContentResult);
+            return RpcMethodResults.Success(result, ProtocolJsonContext.Default.JsonInstructionsSearchContentResult);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             LogInstructionsFailed(_logger, InstructionsMethods.SearchContent, ex);
-            return RpcResults.InternalError("Failed to search the instruction corpus.");
+            return RpcMethodResults.InternalError("Failed to search the instruction corpus.");
         }
     }
 

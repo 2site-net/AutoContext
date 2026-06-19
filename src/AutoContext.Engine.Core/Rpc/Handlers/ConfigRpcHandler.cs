@@ -90,7 +90,7 @@ internal sealed partial class ConfigRpcHandler : IRpcMethodHandler
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             LogConfigEditFailed(_logger, method, ex);
-            return RpcResults.InternalError("Failed to update the engine config.");
+            return RpcMethodResults.InternalError("Failed to update the engine config.");
         }
 
         return ConfigSnapshotResult();
@@ -99,7 +99,7 @@ internal sealed partial class ConfigRpcHandler : IRpcMethodHandler
     private UnaryHandlerResult ConfigSnapshotResult()
     {
         var snapshot = _configAccessor.Current.ToWireFormat();
-        return RpcResults.Success(snapshot, ProtocolJsonContext.Default.JsonConfigSnapshot);
+        return RpcMethodResults.Success(snapshot, ProtocolJsonContext.Default.JsonConfigSnapshot);
     }
 
     private UnaryHandlerResult HandleConfigGet()
@@ -128,7 +128,7 @@ internal sealed partial class ConfigRpcHandler : IRpcMethodHandler
     private async Task<RpcHandlerResult> HandleConfigToggleFileAsync(
         JsonRpcRequest request, CancellationToken cancellationToken)
     {
-        if (RpcResults.TryDeserialize(
+        if (RpcMethodResults.TryDeserialize(
                 request,
                 ConfigMethods.ToggleFile,
                 ProtocolJsonContext.Default.JsonConfigToggleFileParams,
@@ -140,7 +140,7 @@ internal sealed partial class ConfigRpcHandler : IRpcMethodHandler
 
         if (string.IsNullOrWhiteSpace(parameters?.Name))
         {
-            return RpcResults.InvalidParams(ConfigMethods.ToggleFile);
+            return RpcMethodResults.InvalidParams(ConfigMethods.ToggleFile);
         }
 
         var name = parameters.Name;
@@ -153,7 +153,7 @@ internal sealed partial class ConfigRpcHandler : IRpcMethodHandler
     private async Task<RpcHandlerResult> HandleConfigToggleRuleAsync(
         JsonRpcRequest request, CancellationToken cancellationToken)
     {
-        if (RpcResults.TryDeserialize(
+        if (RpcMethodResults.TryDeserialize(
                 request,
                 ConfigMethods.ToggleRule,
                 ProtocolJsonContext.Default.JsonConfigToggleRuleParams,
@@ -166,7 +166,7 @@ internal sealed partial class ConfigRpcHandler : IRpcMethodHandler
         if (string.IsNullOrWhiteSpace(parameters?.Name)
             || string.IsNullOrWhiteSpace(parameters.RuleId))
         {
-            return RpcResults.InvalidParams(ConfigMethods.ToggleRule);
+            return RpcMethodResults.InvalidParams(ConfigMethods.ToggleRule);
         }
 
         var name = parameters.Name;
