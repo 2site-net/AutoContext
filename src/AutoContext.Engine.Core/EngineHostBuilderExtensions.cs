@@ -545,6 +545,14 @@ public static class EngineHostBuilderExtensions
             ServiceDescriptor.Singleton<IRpcMethodHandler, McpToolsRpcHandler>());
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IRpcMethodHandler, InstructionsRpcHandler>());
+        builder.Services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IRpcMethodHandler, ConfigRpcHandler>());
+        builder.Services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IRpcMethodHandler, LogsRpcHandler>());
+        builder.Services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IRpcMethodHandler, RegistryRpcHandler>());
+        builder.Services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IRpcMethodHandler, WorkspaceRpcHandler>());
 
         // Per-kind connection handlers. EndpointHostService injects the
         // full IEndpointHandler set and maps each by its Kind; a kind

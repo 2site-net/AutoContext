@@ -115,13 +115,6 @@ public sealed class EndpointHostServiceFixture : IAsyncDisposable
         Broadcaster<JsonLogRecord>? logsBroadcaster = null) =>
         new(
             lifetime,
-            registryReader ?? CreateRegistryReader(),
-            logFileReader ?? CreateLogFileReader(),
-            logsBroadcaster ?? CreateLogsBroadcaster(),
-            CreateConfigAccessor(),
-            CreateConfigUpdater(),
-            CreateConfigBroadcaster(),
-            CreateWorkspaceAccessor(),
             new IRpcMethodHandler[]
             {
                 new McpToolsRpcHandler(
@@ -138,6 +131,19 @@ public sealed class EndpointHostServiceFixture : IAsyncDisposable
                     CreateInstructionsBroadcaster(),
                     CreateConfigAccessor(),
                     NullLogger<InstructionsRpcHandler>.Instance),
+                new ConfigRpcHandler(
+                    CreateConfigAccessor(),
+                    CreateConfigUpdater(),
+                    CreateConfigBroadcaster(),
+                    NullLogger<ConfigRpcHandler>.Instance),
+                new LogsRpcHandler(
+                    logFileReader ?? CreateLogFileReader(),
+                    logsBroadcaster ?? CreateLogsBroadcaster(),
+                    NullLogger<LogsRpcHandler>.Instance),
+                new RegistryRpcHandler(
+                    registryReader ?? CreateRegistryReader(),
+                    NullLogger<RegistryRpcHandler>.Instance),
+                new WorkspaceRpcHandler(CreateWorkspaceAccessor()),
             },
             NullLogger<DispatchPolicy>.Instance);
 

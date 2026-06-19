@@ -43,51 +43,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
     {
         // Arrange + Act + Assert
         Assert.Throws<ArgumentNullException>(
-            () => new DispatchPolicy(null!, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), EndpointHostServiceFixture.CreateLogFileReader(), EndpointHostServiceFixture.CreateLogsBroadcaster(), EndpointHostServiceFixture.CreateConfigAccessor(), EndpointHostServiceFixture.CreateConfigUpdater(), EndpointHostServiceFixture.CreateConfigBroadcaster(), EndpointHostServiceFixture.CreateWorkspaceAccessor(), Array.Empty<IRpcMethodHandler>(), NullLogger.Instance));
-    }
-
-    [Fact]
-    public void Should_throw_when_constructed_with_null_registryReader()
-    {
-        // Arrange
-        using var lifetime = new FakeHostApplicationLifetime();
-
-        // Act + Assert
-        Assert.Throws<ArgumentNullException>(
-            () => new DispatchPolicy(lifetime, registryReader: null!, EndpointHostServiceFixture.CreateLogFileReader(), EndpointHostServiceFixture.CreateLogsBroadcaster(), EndpointHostServiceFixture.CreateConfigAccessor(), EndpointHostServiceFixture.CreateConfigUpdater(), EndpointHostServiceFixture.CreateConfigBroadcaster(), EndpointHostServiceFixture.CreateWorkspaceAccessor(), Array.Empty<IRpcMethodHandler>(), NullLogger.Instance));
-    }
-
-    [Fact]
-    public void Should_throw_when_constructed_with_null_log_file_reader()
-    {
-        // Arrange
-        using var lifetime = new FakeHostApplicationLifetime();
-
-        // Act + Assert
-        Assert.Throws<ArgumentNullException>(
-            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), logFileReader: null!, EndpointHostServiceFixture.CreateLogsBroadcaster(), EndpointHostServiceFixture.CreateConfigAccessor(), EndpointHostServiceFixture.CreateConfigUpdater(), EndpointHostServiceFixture.CreateConfigBroadcaster(), EndpointHostServiceFixture.CreateWorkspaceAccessor(), Array.Empty<IRpcMethodHandler>(), NullLogger.Instance));
-    }
-
-    [Fact]
-    public void Should_throw_when_constructed_with_null_logsBroadcaster()
-    {
-        // Arrange
-        using var lifetime = new FakeHostApplicationLifetime();
-
-        // Act + Assert
-        Assert.Throws<ArgumentNullException>(
-            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), EndpointHostServiceFixture.CreateLogFileReader(), logsBroadcaster: null!, EndpointHostServiceFixture.CreateConfigAccessor(), EndpointHostServiceFixture.CreateConfigUpdater(), EndpointHostServiceFixture.CreateConfigBroadcaster(), EndpointHostServiceFixture.CreateWorkspaceAccessor(), Array.Empty<IRpcMethodHandler>(), NullLogger.Instance));
-    }
-
-    [Fact]
-    public void Should_throw_when_constructed_with_null_logger()
-    {
-        // Arrange
-        using var lifetime = new FakeHostApplicationLifetime();
-
-        // Act + Assert
-        Assert.Throws<ArgumentNullException>(
-            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), EndpointHostServiceFixture.CreateLogFileReader(), EndpointHostServiceFixture.CreateLogsBroadcaster(), EndpointHostServiceFixture.CreateConfigAccessor(), EndpointHostServiceFixture.CreateConfigUpdater(), EndpointHostServiceFixture.CreateConfigBroadcaster(), EndpointHostServiceFixture.CreateWorkspaceAccessor(), Array.Empty<IRpcMethodHandler>(), logger: null!));
+            () => new DispatchPolicy(null!, Array.Empty<IRpcMethodHandler>(), NullLogger.Instance));
     }
 
     [Fact]
@@ -98,51 +54,18 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
 
         // Act + Assert
         Assert.Throws<ArgumentNullException>(
-            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), EndpointHostServiceFixture.CreateLogFileReader(), EndpointHostServiceFixture.CreateLogsBroadcaster(), EndpointHostServiceFixture.CreateConfigAccessor(), EndpointHostServiceFixture.CreateConfigUpdater(), EndpointHostServiceFixture.CreateConfigBroadcaster(), EndpointHostServiceFixture.CreateWorkspaceAccessor(), methodHandlers: null!, NullLogger.Instance));
+            () => new DispatchPolicy(lifetime, methodHandlers: null!, NullLogger.Instance));
     }
 
     [Fact]
-    public void Should_throw_when_constructed_with_null_configAccessor()
+    public void Should_throw_when_constructed_with_null_logger()
     {
         // Arrange
         using var lifetime = new FakeHostApplicationLifetime();
 
         // Act + Assert
         Assert.Throws<ArgumentNullException>(
-            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), EndpointHostServiceFixture.CreateLogFileReader(), EndpointHostServiceFixture.CreateLogsBroadcaster(), configAccessor: null!, EndpointHostServiceFixture.CreateConfigUpdater(), EndpointHostServiceFixture.CreateConfigBroadcaster(), EndpointHostServiceFixture.CreateWorkspaceAccessor(), Array.Empty<IRpcMethodHandler>(), NullLogger.Instance));
-    }
-
-    [Fact]
-    public void Should_throw_when_constructed_with_null_configUpdater()
-    {
-        // Arrange
-        using var lifetime = new FakeHostApplicationLifetime();
-
-        // Act + Assert
-        Assert.Throws<ArgumentNullException>(
-            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), EndpointHostServiceFixture.CreateLogFileReader(), EndpointHostServiceFixture.CreateLogsBroadcaster(), EndpointHostServiceFixture.CreateConfigAccessor(), configUpdater: null!, EndpointHostServiceFixture.CreateConfigBroadcaster(), EndpointHostServiceFixture.CreateWorkspaceAccessor(), Array.Empty<IRpcMethodHandler>(), NullLogger.Instance));
-    }
-
-    [Fact]
-    public void Should_throw_when_constructed_with_null_configBroadcaster()
-    {
-        // Arrange
-        using var lifetime = new FakeHostApplicationLifetime();
-
-        // Act + Assert
-        Assert.Throws<ArgumentNullException>(
-            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), EndpointHostServiceFixture.CreateLogFileReader(), EndpointHostServiceFixture.CreateLogsBroadcaster(), EndpointHostServiceFixture.CreateConfigAccessor(), EndpointHostServiceFixture.CreateConfigUpdater(), configBroadcaster: null!, EndpointHostServiceFixture.CreateWorkspaceAccessor(), Array.Empty<IRpcMethodHandler>(), NullLogger.Instance));
-    }
-
-    [Fact]
-    public void Should_throw_when_constructed_with_null_workspaceAccessor()
-    {
-        // Arrange
-        using var lifetime = new FakeHostApplicationLifetime();
-
-        // Act + Assert
-        Assert.Throws<ArgumentNullException>(
-            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), EndpointHostServiceFixture.CreateLogFileReader(), EndpointHostServiceFixture.CreateLogsBroadcaster(), EndpointHostServiceFixture.CreateConfigAccessor(), EndpointHostServiceFixture.CreateConfigUpdater(), EndpointHostServiceFixture.CreateConfigBroadcaster(), workspaceAccessor: null!, Array.Empty<IRpcMethodHandler>(), NullLogger.Instance));
+            () => new DispatchPolicy(lifetime, Array.Empty<IRpcMethodHandler>(), logger: null!));
     }
 
     [Fact]

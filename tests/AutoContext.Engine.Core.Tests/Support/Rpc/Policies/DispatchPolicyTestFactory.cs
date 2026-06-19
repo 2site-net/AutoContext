@@ -79,17 +79,31 @@ internal static class DispatchPolicyTestFactory
             instructionsBroadcaster ?? EndpointHostServiceFixture.CreateInstructionsBroadcaster(),
             config,
             NullLogger<InstructionsRpcHandler>.Instance);
-
-        return new DispatchPolicy(
-            lifetime,
-            registryReader ?? EndpointHostServiceFixture.CreateRegistryReader(),
-            logFileReader ?? EndpointHostServiceFixture.CreateLogFileReader(),
-            logsBroadcaster ?? EndpointHostServiceFixture.CreateLogsBroadcaster(),
+        var configHandler = new ConfigRpcHandler(
             config,
             configUpdater ?? EndpointHostServiceFixture.CreateConfigUpdater(),
             configBroadcaster ?? EndpointHostServiceFixture.CreateConfigBroadcaster(),
-            workspace,
-            new IRpcMethodHandler[] { mcpToolsHandler, instructionsHandler },
+            NullLogger<ConfigRpcHandler>.Instance);
+        var logsHandler = new LogsRpcHandler(
+            logFileReader ?? EndpointHostServiceFixture.CreateLogFileReader(),
+            logsBroadcaster ?? EndpointHostServiceFixture.CreateLogsBroadcaster(),
+            NullLogger<LogsRpcHandler>.Instance);
+        var registryHandler = new RegistryRpcHandler(
+            registryReader ?? EndpointHostServiceFixture.CreateRegistryReader(),
+            NullLogger<RegistryRpcHandler>.Instance);
+        var workspaceHandler = new WorkspaceRpcHandler(workspace);
+
+        return new DispatchPolicy(
+            lifetime,
+            new IRpcMethodHandler[]
+            {
+                mcpToolsHandler,
+                instructionsHandler,
+                configHandler,
+                logsHandler,
+                registryHandler,
+                workspaceHandler,
+            },
             logger ?? NullLogger.Instance);
     }
 }
