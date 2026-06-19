@@ -1,6 +1,5 @@
 namespace AutoContext.Engine.Core.Rpc.Policies;
 
-using AutoContext.Engine.Core.Features.Instructions;
 using AutoContext.Engine.Core.Infrastructure.Events;
 using AutoContext.Engine.Core.Logging;
 using AutoContext.Engine.Core.Registry;
@@ -8,7 +7,6 @@ using AutoContext.Engine.Core.Rpc.Handlers;
 using AutoContext.Engine.Core.Workspace.Config;
 using AutoContext.Engine.Core.Workspace.Context;
 using AutoContext.Engine.Protocol.Messages.Config;
-using AutoContext.Engine.Protocol.Messages.Instructions;
 using AutoContext.Engine.Protocol.Messages.Logs;
 
 using Microsoft.Extensions.Hosting;
@@ -37,12 +35,6 @@ internal sealed class DispatchPolicyFactory
     private readonly IConfigUpdater _configUpdater;
     private readonly SnapshotBroadcaster<JsonConfigSnapshot> _configBroadcaster;
     private readonly IWorkspaceContextAccessor _workspaceAccessor;
-    private readonly IInstructionsManifestAccessor _instructionsManifestAccessor;
-    private readonly IInstructionsOverridesAccessor _instructionsOverridesAccessor;
-    private readonly InstructionsBodyProjector _instructionsBodyProjector;
-    private readonly InstructionsFileReader _instructionsFileReader;
-    private readonly InstructionsFullTextSearchService _instructionsFullTextSearchService;
-    private readonly SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>> _instructionsSnapshotBroadcaster;
     private readonly IEnumerable<IRpcMethodHandler> _methodHandlers;
     private readonly ILogger<DispatchPolicy> _logger;
 
@@ -55,12 +47,6 @@ internal sealed class DispatchPolicyFactory
         IConfigUpdater configUpdater,
         SnapshotBroadcaster<JsonConfigSnapshot> configBroadcaster,
         IWorkspaceContextAccessor workspaceAccessor,
-        IInstructionsManifestAccessor instructionsManifestAccessor,
-        IInstructionsOverridesAccessor instructionsOverridesAccessor,
-        InstructionsBodyProjector instructionsBodyProjector,
-        InstructionsFileReader instructionsFileReader,
-        InstructionsFullTextSearchService instructionsFullTextSearchService,
-        SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>> instructionsSnapshotBroadcaster,
         IEnumerable<IRpcMethodHandler> methodHandlers,
         ILogger<DispatchPolicy> logger)
     {
@@ -72,12 +58,6 @@ internal sealed class DispatchPolicyFactory
         ArgumentNullException.ThrowIfNull(configUpdater);
         ArgumentNullException.ThrowIfNull(configBroadcaster);
         ArgumentNullException.ThrowIfNull(workspaceAccessor);
-        ArgumentNullException.ThrowIfNull(instructionsManifestAccessor);
-        ArgumentNullException.ThrowIfNull(instructionsOverridesAccessor);
-        ArgumentNullException.ThrowIfNull(instructionsBodyProjector);
-        ArgumentNullException.ThrowIfNull(instructionsFileReader);
-        ArgumentNullException.ThrowIfNull(instructionsFullTextSearchService);
-        ArgumentNullException.ThrowIfNull(instructionsSnapshotBroadcaster);
         ArgumentNullException.ThrowIfNull(methodHandlers);
         ArgumentNullException.ThrowIfNull(logger);
 
@@ -89,12 +69,6 @@ internal sealed class DispatchPolicyFactory
         _configUpdater = configUpdater;
         _configBroadcaster = configBroadcaster;
         _workspaceAccessor = workspaceAccessor;
-        _instructionsManifestAccessor = instructionsManifestAccessor;
-        _instructionsOverridesAccessor = instructionsOverridesAccessor;
-        _instructionsBodyProjector = instructionsBodyProjector;
-        _instructionsFileReader = instructionsFileReader;
-        _instructionsFullTextSearchService = instructionsFullTextSearchService;
-        _instructionsSnapshotBroadcaster = instructionsSnapshotBroadcaster;
         _methodHandlers = methodHandlers;
         _logger = logger;
     }
@@ -113,12 +87,6 @@ internal sealed class DispatchPolicyFactory
             _configUpdater,
             _configBroadcaster,
             _workspaceAccessor,
-            _instructionsManifestAccessor,
-            _instructionsOverridesAccessor,
-            _instructionsBodyProjector,
-            _instructionsFileReader,
-            _instructionsFullTextSearchService,
-            _instructionsSnapshotBroadcaster,
             _methodHandlers,
             _logger);
 }

@@ -58,6 +58,7 @@ internal static class DispatchPolicyTestFactory
             ?? EndpointHostServiceFixture.CreateInstructionsOverridesAccessor();
         var manifest = manifestAccessor
             ?? EndpointHostServiceFixture.CreateInstructionsManifestAccessor();
+        var workspace = workspaceAccessor ?? EndpointHostServiceFixture.CreateWorkspaceAccessor();
         var projector = bodyProjector
             ?? EndpointHostServiceFixture.CreateInstructionsBodyProjector(overrides, config);
         var reader = fileReader
@@ -69,6 +70,15 @@ internal static class DispatchPolicyTestFactory
             mcpToolsInvoker ?? EndpointHostServiceFixture.CreateMcpToolsInvoker(),
             config,
             NullLogger<McpToolsRpcHandler>.Instance);
+        var instructionsHandler = new InstructionsRpcHandler(
+            manifest,
+            EndpointHostServiceFixture.CreateInstructionsListProjector(manifest, overrides, config, workspace),
+            projector,
+            reader,
+            search,
+            instructionsBroadcaster ?? EndpointHostServiceFixture.CreateInstructionsBroadcaster(),
+            config,
+            NullLogger<InstructionsRpcHandler>.Instance);
 
         return new DispatchPolicy(
             lifetime,
@@ -78,14 +88,8 @@ internal static class DispatchPolicyTestFactory
             config,
             configUpdater ?? EndpointHostServiceFixture.CreateConfigUpdater(),
             configBroadcaster ?? EndpointHostServiceFixture.CreateConfigBroadcaster(),
-            workspaceAccessor ?? EndpointHostServiceFixture.CreateWorkspaceAccessor(),
-            manifest,
-            overrides,
-            projector,
-            reader,
-            search,
-            instructionsBroadcaster ?? EndpointHostServiceFixture.CreateInstructionsBroadcaster(),
-            new IRpcMethodHandler[] { mcpToolsHandler },
+            workspace,
+            new IRpcMethodHandler[] { mcpToolsHandler, instructionsHandler },
             logger ?? NullLogger.Instance);
     }
 }

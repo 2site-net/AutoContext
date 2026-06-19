@@ -543,6 +543,8 @@ public static class EngineHostBuilderExtensions
         // handler declares the JSON-RPC methods it serves.
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IRpcMethodHandler, McpToolsRpcHandler>());
+        builder.Services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IRpcMethodHandler, InstructionsRpcHandler>());
 
         // Per-kind connection handlers. EndpointHostService injects the
         // full IEndpointHandler set and maps each by its Kind; a kind

@@ -122,12 +122,6 @@ public sealed class EndpointHostServiceFixture : IAsyncDisposable
             CreateConfigUpdater(),
             CreateConfigBroadcaster(),
             CreateWorkspaceAccessor(),
-            CreateInstructionsManifestAccessor(),
-            CreateInstructionsOverridesAccessor(),
-            CreateInstructionsBodyProjector(),
-            CreateInstructionsFileReader(),
-            CreateInstructionsSearchService(),
-            CreateInstructionsBroadcaster(),
             new IRpcMethodHandler[]
             {
                 new McpToolsRpcHandler(
@@ -135,6 +129,15 @@ public sealed class EndpointHostServiceFixture : IAsyncDisposable
                     CreateMcpToolsInvoker(),
                     CreateConfigAccessor(),
                     NullLogger<McpToolsRpcHandler>.Instance),
+                new InstructionsRpcHandler(
+                    CreateInstructionsManifestAccessor(),
+                    CreateInstructionsListProjector(),
+                    CreateInstructionsBodyProjector(),
+                    CreateInstructionsFileReader(),
+                    CreateInstructionsSearchService(),
+                    CreateInstructionsBroadcaster(),
+                    CreateConfigAccessor(),
+                    NullLogger<InstructionsRpcHandler>.Instance),
             },
             NullLogger<DispatchPolicy>.Instance);
 
