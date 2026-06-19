@@ -536,8 +536,6 @@ public static class EngineHostBuilderExtensions
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, InstructionsSubscriptionService>());
 
-        builder.Services.TryAddSingleton<DispatchPolicyFactory>();
-
         // Per-feature RPC method handlers. DispatchPolicy injects the full
         // IRpcMethodHandler set and builds a method-keyed router; each
         // handler declares the JSON-RPC methods it serves.
@@ -553,6 +551,14 @@ public static class EngineHostBuilderExtensions
             ServiceDescriptor.Singleton<IRpcMethodHandler, RegistryRpcHandler>());
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IRpcMethodHandler, WorkspaceRpcHandler>());
+
+        // The dispatch router is a stateless singleton: its method table is
+        // built once from the handler set above and shared across every rpc
+        // connection.
+        builder.Services.TryAddSingleton(serviceProvider => new DispatchPolicy(
+            serviceProvider.GetRequiredService<IHostApplicationLifetime>(),
+            serviceProvider.GetServices<IRpcMethodHandler>(),
+            serviceProvider.GetRequiredService<ILogger<DispatchPolicy>>()));
 
         // Per-kind connection handlers. EndpointHostService injects the
         // full IEndpointHandler set and maps each by its Kind; a kind

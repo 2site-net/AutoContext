@@ -32,6 +32,12 @@ using Microsoft.Extensions.Logging;
 /// (<see cref="FrameFailurePolicy.Recover"/>).
 /// </para>
 /// <para>
+/// The router holds no per-connection state — the method table is
+/// built once from the injected handlers at construction — so a
+/// single instance is registered as a singleton and shared across
+/// every concurrent rpc connection.
+/// </para>
+/// <para>
 /// <c>Engine.Shutdown</c> returns <c>{ accepted: true }</c> with a
 /// <see cref="Continuation.Complete"/> continuation and a
 /// <see cref="RpcHandlerResult.PostFlush"/> that calls
@@ -98,24 +104,22 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
             return await handler.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
         }
 
-        switch (request.Method)
+        if (request.Method == ProtocolMethods.Shutdown)
         {
-            case ProtocolMethods.Shutdown:
-                return HandleShutdown();
-
-            default:
-                LogMethodNotFound(_logger, request.Method);
-                return new UnaryHandlerResult(
-                    Response: new JsonRpcResponse
-                    {
-                        Error = new JsonRpcError
-                        {
-                            Code = JsonRpcErrorCodes.MethodNotFound,
-                            Message = $"Unknown method '{request.Method}'.",
-                        },
-                    },
-                    Continuation: Continuation.Continue);
+            return HandleShutdown();
         }
+
+        LogMethodNotFound(_logger, request.Method);
+        return new UnaryHandlerResult(
+            Response: new JsonRpcResponse
+            {
+                Error = new JsonRpcError
+                {
+                    Code = JsonRpcErrorCodes.MethodNotFound,
+                    Message = $"Unknown method '{request.Method}'.",
+                },
+            },
+            Continuation: Continuation.Continue);
     }
 
     private UnaryHandlerResult HandleShutdown()

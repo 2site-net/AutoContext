@@ -25,23 +25,25 @@ using Microsoft.Extensions.Logging;
 /// long as the dispatch loop runs, then releases it on exit.
 /// </para>
 /// <para>
-/// A fresh <see cref="DispatchPolicy"/> is built per connection via
-/// the injected <see cref="DispatchPolicyFactory"/> because the
-/// policy owns per-connection frame-stream state.
+/// The <see cref="DispatchPolicy"/> is a stateless router shared
+/// across every rpc connection — its per-method handler table is
+/// built once at construction — so the handler injects the single
+/// registered instance directly rather than building one per
+/// connection.
 /// </para>
 /// </remarks>
 internal sealed class RpcEndpointHandler : IEndpointHandler
 {
-    private readonly DispatchPolicyFactory _dispatchPolicyFactory;
+    private readonly DispatchPolicy _dispatchPolicy;
     private readonly IdleTimeoutWatchdog _idleTimeoutWatchdog;
     private readonly ILogger<RpcEndpointHandler> _logger;
 
     /// <summary>
     /// Creates a new <see cref="RpcEndpointHandler"/>.
     /// </summary>
-    /// <param name="dispatchPolicyFactory">Factory that builds a
-    /// fresh <see cref="DispatchPolicy"/> for each accepted
-    /// connection.</param>
+    /// <param name="dispatchPolicy">Shared, stateless router that
+    /// dispatches each post-handshake JSON-RPC request to the
+    /// handler that serves its method.</param>
     /// <param name="idleTimeoutWatchdog">Watchdog the handler
     /// acquires a keep-alive token from for the lifetime of the
     /// post-handshake dispatch loop.</param>
@@ -51,15 +53,15 @@ internal sealed class RpcEndpointHandler : IEndpointHandler
     /// Any constructor argument is <see langword="null"/>.
     /// </exception>
     public RpcEndpointHandler(
-        DispatchPolicyFactory dispatchPolicyFactory,
+        DispatchPolicy dispatchPolicy,
         IdleTimeoutWatchdog idleTimeoutWatchdog,
         ILogger<RpcEndpointHandler> logger)
     {
-        ArgumentNullException.ThrowIfNull(dispatchPolicyFactory);
+        ArgumentNullException.ThrowIfNull(dispatchPolicy);
         ArgumentNullException.ThrowIfNull(idleTimeoutWatchdog);
         ArgumentNullException.ThrowIfNull(logger);
 
-        _dispatchPolicyFactory = dispatchPolicyFactory;
+        _dispatchPolicy = dispatchPolicy;
         _idleTimeoutWatchdog = idleTimeoutWatchdog;
         _logger = logger;
     }
@@ -113,7 +115,7 @@ internal sealed class RpcEndpointHandler : IEndpointHandler
             _ = await RpcConnectionProcessor
                 .RunAsync(
                     stream,
-                    _dispatchPolicyFactory.Create(),
+                    _dispatchPolicy,
                     _logger,
                     cancellationToken)
                 .ConfigureAwait(false);

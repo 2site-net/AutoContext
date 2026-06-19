@@ -64,11 +64,11 @@ public sealed class EndpointHostServiceFixture : IAsyncDisposable
             NullLogger<Broadcaster<JsonLogRecord>>.Instance, "logs-pipe");
         var logFileReader = new EngineLogFileReader(
             EngineCacheLayoutTestFactory.Create(resolvedOptions));
-        var dispatchPolicyFactory = CreateDispatchPolicyFactory(
+        var dispatchPolicy = CreateDispatchPolicy(
             lifetime, reader, logFileReader, logsBroadcaster);
         var drainDeadline = new ShutdownDrainDeadline();
         var rpcEndpointHandler = new RpcEndpointHandler(
-            dispatchPolicyFactory,
+            dispatchPolicy,
             watchdog,
             NullLogger<RpcEndpointHandler>.Instance);
         var eventsEndpointHandler = new EventsEndpointHandler(
@@ -108,7 +108,7 @@ public sealed class EndpointHostServiceFixture : IAsyncDisposable
         "Reliability",
         "CA2000:Dispose objects before losing scope",
         Justification = "The full-text search service is owned by the constructed DispatchPolicy, whose owning host the fixture tracks and disposes during teardown.")]
-    internal static DispatchPolicyFactory CreateDispatchPolicyFactory(
+    internal static DispatchPolicy CreateDispatchPolicy(
         IHostApplicationLifetime lifetime,
         RegistryFileReader? registryReader = null,
         EngineLogFileReader? logFileReader = null,
@@ -154,7 +154,7 @@ public sealed class EndpointHostServiceFixture : IAsyncDisposable
     internal static RpcEndpointHandler CreateRpcEndpointHandler(
         IHostApplicationLifetime lifetime) =>
         new(
-            CreateDispatchPolicyFactory(lifetime),
+            CreateDispatchPolicy(lifetime),
             CreateWatchdog(CreateOptions(), lifetime),
             NullLogger<RpcEndpointHandler>.Instance);
 
