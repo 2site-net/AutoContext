@@ -6,11 +6,11 @@ using System.Text.Json;
 
 using AutoContext.Engine.Core.Features.Instructions;
 using AutoContext.Engine.Core.Features.Instructions.Snapshot;
-using AutoContext.Engine.Core.Features.McpTools;
 using AutoContext.Engine.Core.Infrastructure;
 using AutoContext.Engine.Core.Infrastructure.Events;
 using AutoContext.Engine.Core.Logging;
 using AutoContext.Engine.Core.Registry;
+using AutoContext.Engine.Core.Rpc.Handlers;
 using AutoContext.Engine.Core.Rpc.Results;
 using AutoContext.Engine.Core.Workspace.Config;
 using AutoContext.Engine.Core.Workspace.Config.Snapshot;
@@ -21,7 +21,6 @@ using AutoContext.Engine.Protocol.Messages;
 using AutoContext.Engine.Protocol.Messages.Config;
 using AutoContext.Engine.Protocol.Messages.Instructions;
 using AutoContext.Engine.Protocol.Messages.Logs;
-using AutoContext.Engine.Protocol.Messages.McpTools;
 using AutoContext.Engine.Protocol.Messages.Registry;
 using AutoContext.Engine.Protocol.Messages.Workspace;
 using AutoContext.Engine.Protocol.Serialization;
@@ -79,8 +78,7 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
     private readonly InstructionsListProjector _instructionsListProjector;
     private readonly SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>> _instructionsSnapshotBroadcaster;
     private readonly InstructionsFrameStream _instructionsFrameStream;
-    private readonly IMcpToolsRegistryAccessor _mcpToolsRegistryAccessor;
-    private readonly IMcpToolsInvoker _mcpToolsInvoker;
+    private readonly Dictionary<string, IRpcMethodHandler> _methodHandlers;
     private readonly ILogger _logger;
 
     public DispatchPolicy(
@@ -98,8 +96,7 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
         InstructionsFileReader instructionsFileReader,
         InstructionsFullTextSearchService instructionsFullTextSearchService,
         SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>> instructionsSnapshotBroadcaster,
-        IMcpToolsRegistryAccessor mcpToolsRegistryAccessor,
-        IMcpToolsInvoker mcpToolsInvoker,
+        IEnumerable<IRpcMethodHandler> methodHandlers,
         ILogger logger)
     {
         ArgumentNullException.ThrowIfNull(lifetime);
@@ -116,8 +113,7 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
         ArgumentNullException.ThrowIfNull(instructionsFileReader);
         ArgumentNullException.ThrowIfNull(instructionsFullTextSearchService);
         ArgumentNullException.ThrowIfNull(instructionsSnapshotBroadcaster);
-        ArgumentNullException.ThrowIfNull(mcpToolsRegistryAccessor);
-        ArgumentNullException.ThrowIfNull(mcpToolsInvoker);
+        ArgumentNullException.ThrowIfNull(methodHandlers);
         ArgumentNullException.ThrowIfNull(logger);
 
         _lifetime = lifetime;
@@ -138,8 +134,9 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
             instructionsManifestAccessor, instructionsOverridesAccessor, configAccessor, workspaceAccessor);
         _instructionsSnapshotBroadcaster = instructionsSnapshotBroadcaster;
         _instructionsFrameStream = new();
-        _mcpToolsRegistryAccessor = mcpToolsRegistryAccessor;
-        _mcpToolsInvoker = mcpToolsInvoker;
+        _methodHandlers = methodHandlers
+            .SelectMany(handler => handler.Methods, (handler, method) => (method, handler))
+            .ToDictionary(entry => entry.method, entry => entry.handler, StringComparer.Ordinal);
         _logger = logger;
     }
 
@@ -170,6 +167,11 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
         JsonRpcRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
+
+        if (_methodHandlers.TryGetValue(request.Method, out var handler))
+        {
+            return await handler.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
+        }
 
         switch (request.Method)
         {
@@ -232,13 +234,6 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
 
             case InstructionsMethods.Subscribe:
                 return HandleInstructionsSubscribe();
-
-            case McpToolsMethods.List:
-                return HandleMcpToolsList();
-
-            case McpToolsMethods.Invoke:
-                return await HandleMcpToolsInvokeAsync(request, cancellationToken)
-                    .ConfigureAwait(false);
 
             case ProtocolMethods.Shutdown:
                 return HandleShutdown();

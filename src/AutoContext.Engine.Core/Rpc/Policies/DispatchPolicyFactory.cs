@@ -1,10 +1,10 @@
 namespace AutoContext.Engine.Core.Rpc.Policies;
 
 using AutoContext.Engine.Core.Features.Instructions;
-using AutoContext.Engine.Core.Features.McpTools;
 using AutoContext.Engine.Core.Infrastructure.Events;
 using AutoContext.Engine.Core.Logging;
 using AutoContext.Engine.Core.Registry;
+using AutoContext.Engine.Core.Rpc.Handlers;
 using AutoContext.Engine.Core.Workspace.Config;
 using AutoContext.Engine.Core.Workspace.Context;
 using AutoContext.Engine.Protocol.Messages.Config;
@@ -43,8 +43,7 @@ internal sealed class DispatchPolicyFactory
     private readonly InstructionsFileReader _instructionsFileReader;
     private readonly InstructionsFullTextSearchService _instructionsFullTextSearchService;
     private readonly SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>> _instructionsSnapshotBroadcaster;
-    private readonly IMcpToolsRegistryAccessor _mcpToolsRegistryAccessor;
-    private readonly IMcpToolsInvoker _mcpToolsInvoker;
+    private readonly IEnumerable<IRpcMethodHandler> _methodHandlers;
     private readonly ILogger<DispatchPolicy> _logger;
 
     public DispatchPolicyFactory(
@@ -62,8 +61,7 @@ internal sealed class DispatchPolicyFactory
         InstructionsFileReader instructionsFileReader,
         InstructionsFullTextSearchService instructionsFullTextSearchService,
         SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>> instructionsSnapshotBroadcaster,
-        IMcpToolsRegistryAccessor mcpToolsRegistryAccessor,
-        IMcpToolsInvoker mcpToolsInvoker,
+        IEnumerable<IRpcMethodHandler> methodHandlers,
         ILogger<DispatchPolicy> logger)
     {
         ArgumentNullException.ThrowIfNull(lifetime);
@@ -80,8 +78,7 @@ internal sealed class DispatchPolicyFactory
         ArgumentNullException.ThrowIfNull(instructionsFileReader);
         ArgumentNullException.ThrowIfNull(instructionsFullTextSearchService);
         ArgumentNullException.ThrowIfNull(instructionsSnapshotBroadcaster);
-        ArgumentNullException.ThrowIfNull(mcpToolsRegistryAccessor);
-        ArgumentNullException.ThrowIfNull(mcpToolsInvoker);
+        ArgumentNullException.ThrowIfNull(methodHandlers);
         ArgumentNullException.ThrowIfNull(logger);
 
         _lifetime = lifetime;
@@ -98,8 +95,7 @@ internal sealed class DispatchPolicyFactory
         _instructionsFileReader = instructionsFileReader;
         _instructionsFullTextSearchService = instructionsFullTextSearchService;
         _instructionsSnapshotBroadcaster = instructionsSnapshotBroadcaster;
-        _mcpToolsRegistryAccessor = mcpToolsRegistryAccessor;
-        _mcpToolsInvoker = mcpToolsInvoker;
+        _methodHandlers = methodHandlers;
         _logger = logger;
     }
 
@@ -123,7 +119,6 @@ internal sealed class DispatchPolicyFactory
             _instructionsFileReader,
             _instructionsFullTextSearchService,
             _instructionsSnapshotBroadcaster,
-            _mcpToolsRegistryAccessor,
-            _mcpToolsInvoker,
+            _methodHandlers,
             _logger);
 }

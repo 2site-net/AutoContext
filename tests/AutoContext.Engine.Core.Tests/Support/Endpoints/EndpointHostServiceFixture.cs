@@ -11,6 +11,7 @@ using AutoContext.Engine.Core.Lifecycle;
 using AutoContext.Engine.Core.Logging;
 using AutoContext.Engine.Core.Machine;
 using AutoContext.Engine.Core.Registry;
+using AutoContext.Engine.Core.Rpc.Handlers;
 using AutoContext.Engine.Core.Rpc.Policies;
 using AutoContext.Engine.Core.Tests.Support;
 using AutoContext.Engine.Core.Tests.Support.Features.Instructions;
@@ -127,8 +128,14 @@ public sealed class EndpointHostServiceFixture : IAsyncDisposable
             CreateInstructionsFileReader(),
             CreateInstructionsSearchService(),
             CreateInstructionsBroadcaster(),
-            CreateMcpToolsRegistryAccessor(),
-            CreateMcpToolsInvoker(),
+            new IRpcMethodHandler[]
+            {
+                new McpToolsRpcHandler(
+                    CreateMcpToolsRegistryAccessor(),
+                    CreateMcpToolsInvoker(),
+                    CreateConfigAccessor(),
+                    NullLogger<McpToolsRpcHandler>.Instance),
+            },
             NullLogger<DispatchPolicy>.Instance);
 
     [SuppressMessage(

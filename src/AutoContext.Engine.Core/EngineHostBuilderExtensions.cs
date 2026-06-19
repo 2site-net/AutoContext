@@ -13,6 +13,7 @@ using AutoContext.Engine.Core.Logging;
 using AutoContext.Engine.Core.Machine;
 using AutoContext.Engine.Core.Machine.Housekeeping;
 using AutoContext.Engine.Core.Registry;
+using AutoContext.Engine.Core.Rpc.Handlers;
 using AutoContext.Engine.Core.Rpc.Policies;
 using AutoContext.Engine.Core.Watchdogs;
 using AutoContext.Engine.Core.Workers;
@@ -536,6 +537,12 @@ public static class EngineHostBuilderExtensions
             ServiceDescriptor.Singleton<IHostedService, InstructionsSubscriptionService>());
 
         builder.Services.TryAddSingleton<DispatchPolicyFactory>();
+
+        // Per-feature RPC method handlers. DispatchPolicy injects the full
+        // IRpcMethodHandler set and builds a method-keyed router; each
+        // handler declares the JSON-RPC methods it serves.
+        builder.Services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IRpcMethodHandler, McpToolsRpcHandler>());
 
         // Per-kind connection handlers. EndpointHostService injects the
         // full IEndpointHandler set and maps each by its Kind; a kind

@@ -7,6 +7,7 @@ using AutoContext.Engine.Core.Features.McpTools;
 using AutoContext.Engine.Core.Infrastructure.Events;
 using AutoContext.Engine.Core.Logging;
 using AutoContext.Engine.Core.Registry;
+using AutoContext.Engine.Core.Rpc.Handlers;
 using AutoContext.Engine.Core.Rpc.Policies;
 using AutoContext.Engine.Core.Tests.Support.Endpoints;
 using AutoContext.Engine.Core.Workspace.Config;
@@ -63,6 +64,11 @@ internal static class DispatchPolicyTestFactory
             ?? EndpointHostServiceFixture.CreateInstructionsFileReader(overrides);
         var search = searchService
             ?? EndpointHostServiceFixture.CreateInstructionsSearchService(manifest, projector, config);
+        var mcpToolsHandler = new McpToolsRpcHandler(
+            mcpToolsRegistryAccessor ?? EndpointHostServiceFixture.CreateMcpToolsRegistryAccessor(),
+            mcpToolsInvoker ?? EndpointHostServiceFixture.CreateMcpToolsInvoker(),
+            config,
+            NullLogger<McpToolsRpcHandler>.Instance);
 
         return new DispatchPolicy(
             lifetime,
@@ -79,8 +85,7 @@ internal static class DispatchPolicyTestFactory
             reader,
             search,
             instructionsBroadcaster ?? EndpointHostServiceFixture.CreateInstructionsBroadcaster(),
-            mcpToolsRegistryAccessor ?? EndpointHostServiceFixture.CreateMcpToolsRegistryAccessor(),
-            mcpToolsInvoker ?? EndpointHostServiceFixture.CreateMcpToolsInvoker(),
+            new IRpcMethodHandler[] { mcpToolsHandler },
             logger ?? NullLogger.Instance);
     }
 }
