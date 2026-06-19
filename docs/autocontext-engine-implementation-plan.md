@@ -181,7 +181,7 @@ before merge.
   tenant) — the engine still boots without any of them, but without
   them nothing can consume anything. Everything outside `Features/` is
   infrastructure: required for the engine to run, whether a substantial
-  subsystem (`Workspace/`, `Lifecycle/`, `Machine/`) or plumbing
+  subsystem (`Workspace/`, `Endpoints/`, `Machine/`) or plumbing
   (`Watchdogs/`, `Logging/`, `Infrastructure/`). A folder earns the
   `Features/` tier only when (a) the engine still runs without it *and*
   (b) it directly serves an outward consumer; `Workspace/` and the
@@ -380,7 +380,7 @@ src/
     Infrastructure/                            # horizontal-axis substrate (cross-cutting plumbing); subdivided by kind, not by feature
       EngineResourcesDirectory.cs              # resolves the engine's Resources/ side-car directory, with an optional per-file override overlay
       EngineVersion.cs                         # resolves the running engine version from the AutoContext.Engine.Core assembly
-      IUniqueInstanceGuard.cs                  # contract for the pre-bind "another engine already owns this <workspaceHash>#<instanceId>?" sanity check; production impl is Lifecycle/PerWorkspaceInstanceGuard.cs
+      IUniqueInstanceGuard.cs                  # contract for the pre-bind "another engine already owns this <workspaceHash>#<instanceId>?" sanity check; production impl is Endpoints/PerWorkspaceInstanceGuard.cs
       IWorkspaceEngineInfo.cs                  # read-only view of engine metadata (workspace path, instance id, idle timeout) for services that need identity without taking EngineOptions
       Storage/                                 # cache-root vocabulary — identity coordinates and path resolution; leaf, consumed by Machine/ (EngineCacheLayout, Housekeeping) and Registry/ (RegistryEntryBuilder), depends on nothing engine-side itself
         CacheRoot.cs                           # per-instance identity bundle — composes EngineOptions into resolved cache-root subtree paths (FullPath / WorkspaceBucketPath / InstancePath / WorkspaceUserPath); the DI singleton every on-disk path resolves through
@@ -407,10 +407,15 @@ src/
         TrailingEdgeDebouncer.cs               # capacity-one channel + TimeProvider quiet window (P3 row 4); wrapped by Infrastructure/IO/FileChangeWatcher
       IO/                                      # filesystem-watch substrate
         FileChangeWatcher.cs                   # debounced FileSystemWatcher (via TrailingEdgeDebouncer) firing a callback on external edits; armed by the Config + Instructions-overrides watchers
-    Lifecycle/                                 # this engine's own lifecycle: pipe accept loops, startup/shutdown, the lifecycle-event stream
-      LifecycleService.cs                      # hosted service — owns the four-pipe accept loops and drives startup/registration/shutdown; the Engine.Hello handshake + Engine.Shutdown handling now live in Rpc/Policies/ (HandshakePolicy + DispatchPolicy), not in dedicated handler classes
+    Endpoints/                                 # this engine's endpoint surface: the four-pipe host, the per-EndpointKind connection handlers, and the pre-bind instance guard
+      EndpointHostService.cs                   # hosted service — binds the four pipes as an atomic unit and runs their accept loops; drives startup/registration/graceful-shutdown and hands each accepted connection to the IEndpointHandler registered for its EndpointKind (health is accept-and-close, so it has no handler)
+      IEndpointHandler.cs                      # per-EndpointKind connection contract — Kind + HandleAsync(Stream, CancellationToken); the ct governs connection establishment only, while the events/logs writer pumps observe the shared ShutdownDrainDeadline once streaming starts
+      RpcEndpointHandler.cs                    # rpc handler — runs the Engine.Hello handshake (HandshakePolicy) + idle keep-alive, then drives RpcConnectionProcessor against the shared singleton DispatchPolicy router
+      EventsEndpointHandler.cs                 # events handler — handshake + keep-alive, then pumps LifecycleFrameStream frames as Engine.Lifecycle notifications until the drain deadline
+      LogsEndpointHandler.cs                   # logs handler — passive (no handshake, no keep-alive); subscribes the log broadcaster and pumps NDJSON log frames until the drain deadline
+      ShutdownDrainDeadline.cs                 # host-owned drain-deadline wrapper over a CancellationTokenSource (Reset on host start, StartDeadlineAsync to arm --shutdown-drain-timeout on stop, Release after drain); the seam the events/logs pumps watch so a graceful stop flushes terminal frames before teardown
       PerWorkspaceInstanceGuard.cs             # IUniqueInstanceGuard impl — dials the would-be `rpc` endpoint before bind; throws IOException when a live peer answers (P4 launcher-bug guard); not a hosted service
-      # — Engine.Lifecycle.Subscribe events stream (P10) — thin domain layer over Infrastructure/Events/ —
+    Lifecycle/                                 # the Engine.Lifecycle.Subscribe events-stream domain (P10) — a thin layer over Infrastructure/Events/; holds no pipe-hosting code (that moved to Endpoints/)
       LifecycleEventStream.cs                  # singleton fan-out backing Engine.Lifecycle.Subscribe — wraps a shared Infrastructure/Events/Broadcaster<T>; layers on the `started` seed + terminal-event replay (Subscribe / TryPublish / TryComplete)
       LifecycleFrameStream.cs                  # BroadcasterFrameStream<JsonLifecycleEvent, JsonLifecycleEvent> (IBroadcasterFrameStream impl): drains a BroadcasterSubscription<JsonLifecycleEvent> and yields each event as a wire frame, emitting a terminal `dropped` frame when the subscriber was dropped
       LifecycleNotifier.cs                     # stamps the engine's identity (InstanceId, Revision) onto each transition and publishes through LifecycleEventStream — the stream itself constructs only the seeded `started` event
@@ -426,15 +431,15 @@ src/
       RegistryEntryReader.cs                   # composes over RegistryFileReader; applies a Process.StartTime peer-liveness probe, tagging each entry Live/Stale — consumed by Machine/Housekeeping/ (CacheRootScanner) as the registration half of its classification
       RegistryEntryProbeResult.cs              # an entry paired with its liveness verdict (Live / Stale)
       RegistryEntryProbeState.cs               # enum: Live (pid + start-time match) | Stale (pid recycled / crashed)
-    Watchdogs/                                 # process-lifetime guards — peers of Lifecycle/; each is a hosted service that signals IHostApplicationLifetime.StopApplication on its own trigger
+    Watchdogs/                                 # process-lifetime guards — peers of Endpoints/; each is a hosted service that signals IHostApplicationLifetime.StopApplication on its own trigger
       IdleTimeoutWatchdog.cs                   # --idle-timeout
       HostWatchdog.cs                          # --parent-pid; clamps engine lifetime to spawner via Infrastructure/Diagnostics handle (Process.StartTime pid-reuse defeat)
-      # NOTE: per-workspace unique-instance guard is NOT a watchdog (one-shot pre-bind probe, not a long-running monitor); see Lifecycle/PerWorkspaceInstanceGuard.cs
+      # NOTE: per-workspace unique-instance guard is NOT a watchdog (one-shot pre-bind probe, not a long-running monitor); see Endpoints/PerWorkspaceInstanceGuard.cs
     Machine/                                   # engine's on-disk residency: the cache-root subtree this engine owns and the housekeeping that walks the cache root as a whole; consumes Infrastructure/Storage vocabulary, owns no protocol surface of its own
       EngineCacheLayout.cs                     # single source of truth for every on-disk path the engine owns under its cache root (engine.log / crash.log + the shared registry file); composes off the CacheRoot singleton and freezes the resolved paths at construction
       EngineCrashWriter.cs                     # paranoid last-gasp writer of crash.log — sync File.AppendAllText, no DI, no ILogger, no async, allocation-light; wired into DaemonHostFactory.RunAsync top-level try/catch + AppDomain.UnhandledException + TaskScheduler.UnobservedTaskException; never invoked from graceful shutdown paths
       Housekeeping/                            # cache-root upkeep: peer-registration liveness, orphan reaping, retention, foreign-subtree eviction (P5)
-        HousekeepingService.cs                 # hosted service — shutdown sweep only, runs after LifecycleService removes own entry + closes pipes; ≤ 1 s deadline budget
+        HousekeepingService.cs                 # hosted service — shutdown sweep only, runs after EndpointHostService removes own entry + closes pipes; ≤ 1 s deadline budget
         SubtreeRegistryStatus.cs               # discriminated record hierarchy (Registered | StaleRegistration | Unregistered | Foreign) — P2-shaped contract between scanner, policy, and cleaner
         CacheRootScanner.cs                    # walks the engine cache root, produces SubtreeRegistryStatus per child (pure — no deletion here)
         StaleSubtreeCleaner.cs                 # pattern-matches SubtreeRegistryStatus, deletes with concurrent-sweep tolerance (DirectoryNotFoundException counts as success); applies Logging/RetentionPolicy per arm
@@ -450,7 +455,7 @@ src/
       EngineLogFileReader.cs                   # forward-pass NDJSON reader over engine.log with since / lastN filtering (backs Logs.GetEngine)
       EngineLogReadResult.cs                   # output record (Records, Truncated) of EngineLogFileReader.ReadAsync
       LogFrameStream.cs                        # BroadcasterFrameStream<JsonLogRecord, JsonLogStreamFrame> (IBroadcasterFrameStream impl) for Logs.Tail*: drains a BroadcasterSubscription<JsonLogRecord> (fanned out by LogFileSinkService over the shared Infrastructure/Events/Broadcaster<T>) and yields record/dropped frames
-      # Logs.{GetEngine,TailEngine,GetWorker,TailWorker} are routed by Rpc/Policies/DispatchPolicy.cs (no dedicated LogsHandlers class)
+      # Logs.{GetEngine,TailEngine} are served by Rpc/Handlers/LogsRpcHandler.cs (Logs.{GetWorker,TailWorker} not yet built)
     Workspace/                                 # workspace-scoped state — everything keyed by the current workspace root
       Config/                                  # .autocontext.json owner (Config.* wire surface)
         Snapshot/                              # immutable domain graph (engine-internal source of truth)
@@ -470,11 +475,11 @@ src/
         ConfigFileFormat.cs                    # stateless .autocontext.json serializer (mirrors RegistryFileFormat)
         ConfigFileManager.cs                   # store/manager — port of TS AutoContextConfigManager; owns the snapshot, FS-watch (Watch/ReconcileFromWatcherAsync), and signature-based self-write suppressor; implements IConfigSnapshotAccessor + IConfigUpdater
         ConfigFileService.cs                   # hosted service — initial disk load then arms the watcher at engine start
-        IConfigSnapshotAccessor.cs             # lock-free read seam (Current) that DispatchPolicy reads for Config.Get
+        IConfigSnapshotAccessor.cs             # lock-free read seam (Current) that ConfigRpcHandler reads for Config.Get
         IConfigChangeNotifier.cs               # change-notification seam (Changed event) the ConfigFileService bridges to the broadcaster
         ConfigBatchWriter.cs                   # micro-batch write coalescer behind IConfigUpdater (P3 row 6, DONE)
         IConfigUpdater.cs                      # one-method write seam the manager satisfies (P3 row 6, DONE)
-        ConfigFrameStream.cs                   # BroadcasterFrameStream<JsonConfigSnapshot, JsonConfigStreamFrame> (IBroadcasterFrameStream impl) for Config.Subscribe: drains a BroadcasterSubscription<JsonConfigSnapshot> (fanned out by ConfigFileService over a shared Infrastructure/Events/SnapshotBroadcaster<T> — snapshot-on-subscribe + per-subscriber bounded buffer, P3 row 9, DONE) and yields snapshot/dropped frames; Config.Subscribe is served by DispatchPolicy, Config.Get/ToggleFile/ToggleRule also via DispatchPolicy (the latter two via ConfigToggle + IConfigUpdater)
+        ConfigFrameStream.cs                   # BroadcasterFrameStream<JsonConfigSnapshot, JsonConfigStreamFrame> (IBroadcasterFrameStream impl) for Config.Subscribe: drains a BroadcasterSubscription<JsonConfigSnapshot> (fanned out by ConfigFileService over a shared Infrastructure/Events/SnapshotBroadcaster<T> — snapshot-on-subscribe + per-subscriber bounded buffer, P3 row 9, DONE) and yields snapshot/dropped frames; Config.{Subscribe,Get,ToggleFile,ToggleRule} are served by Rpc/Handlers/ConfigRpcHandler.cs (the two toggles via IConfigUpdater)
       Context/                                 # ~60-flag detection (Workspace.* wire surface)
         WorkspaceDetectionService.cs           # hosted service — scans the workspace at startup and re-runs on watched changes, publishing the result
         WorkspaceContextDetector.cs            # detector core — injected with the three rule-data lists below; runs them, emits a WorkspaceDetectionResult
@@ -483,7 +488,7 @@ src/
         IWorkspaceContextAccessor.cs           # read-only accessor exposing the latest WorkspaceDetectionResult
         WorkspaceDetectionResult.cs            # immutable outcome — the FrozenSet of raised flag names
         WorkspaceDetectionResultExtensions.cs  # projects the result onto the Workspace.Detect wire shape
-        # Workspace.{Detect,Info} are routed by Rpc/Policies/DispatchPolicy.cs (no dedicated WorkspaceHandlers class)
+        # Workspace.{Detect,Info} are served by Rpc/Handlers/WorkspaceRpcHandler.cs
         # — Rule data (plain records; each file holds a `static readonly`
         #   table registered in DI as the corresponding `IReadOnlyList<T>`
         #   singleton; no interfaces — substitution is over the data, not
@@ -515,7 +520,7 @@ src/
         InstructionsFullTextSearchService.cs     # in-memory full-text search over instruction bodies
         InstructionsSubscriptionService.cs       # hosted service — primes the broadcaster and bridges config edits into Instructions.Subscribe
         InstructionsFrameStream.cs               # BroadcasterFrameStream for Instructions.Subscribe: drains a BroadcasterSubscription (fanned out over a shared Infrastructure/Events/SnapshotBroadcaster<T> — snapshot-on-subscribe + disabled-flag re-evaluation) and yields snapshot/dropped frames
-        # Instructions.{List,Get,GetAll,GetAlwaysAttached,GetRaw,SearchContent,Subscribe} are routed by Rpc/Policies/DispatchPolicy.Instructions.cs (no dedicated InstructionsHandlers class)
+        # Instructions.{List,Get,GetAll,GetAlwaysAttached,GetRaw,SearchContent,Subscribe} are served by Rpc/Handlers/InstructionsRpcHandler.cs
         Snapshot/                              # immutable snapshots + section/manifest records
           InstructionsManifestSnapshot.cs        # immutable merged corpus snapshot
           InstructionsOverridesSnapshot.cs       # immutable overrides-root inventory (paths + basenames)
@@ -545,7 +550,7 @@ src/
           JsonMcpToolsRegistry.cs / JsonMcpToolsRegistryTool.cs / JsonMcpToolsRegistryParameter.cs
           JsonMcpToolsCatalog.cs / JsonMcpToolsCatalogCategory.cs / JsonMcpToolsCatalogTool.cs
           McpToolsRegistryJsonContext.cs / McpToolsCatalogJsonContext.cs
-        # McpTools.{List,Invoke} are routed by Rpc/Policies/DispatchPolicy.McpTools.cs
+        # McpTools.{List,Invoke} are served by Rpc/Handlers/McpToolsRpcHandler.cs
     Workers/                                   # worker process lifecycle (absorbs AutoContext.Mcp.Server/Workers/)
       WorkerProcessService.cs                  # lazy manager — EnsureRunningAsync(workerId) gate; spawns on first use, respawns on exit (was WorkerManager)
       WorkerProcessLauncher.cs                 # production launcher — starts a worker via System.Diagnostics.Process (over Infrastructure/Diagnostics seams)
@@ -581,9 +586,16 @@ src/
       JsonRpcId.cs                             # JSON-RPC 2.0 id normalization + null-handling helpers
       Policies/                              # the two connection policies
         HandshakePolicy.cs                     # enforces the mandatory Engine.Hello handshake at the pipe head
-        DispatchPolicy.cs                      # post-handshake JSON-RPC dispatch — routes Engine.RegistryEntries, Engine.Shutdown, Config.*, Logs.*, Workspace.* (partial class)
-        DispatchPolicy.Instructions.cs         # Instructions.* handlers (partial)
-        DispatchPolicy.McpTools.cs             # McpTools.* handlers (partial)
+        DispatchPolicy.cs                      # post-handshake JSON-RPC dispatch — a stateless shared-singleton pure router: composes the injected IRpcMethodHandler set into a method→handler map and dispatches each request; owns only Engine.Shutdown inline (MethodNotFound when no handler claims the method)
+      Handlers/                              # per-feature RPC method handlers — each owns its own feature deps and is DI-registered as an IRpcMethodHandler the DispatchPolicy router composes
+        IRpcMethodHandler.cs                   # contract — Methods (the wire-method names it serves) + InvokeAsync(JsonRpcRequest, CancellationToken)
+        RpcMethodResults.cs                    # shared result builders — Success<T> / InvalidParams / InternalError + TryDeserialize<T> (params-parse failure → InvalidParams with a logged reason)
+        ConfigRpcHandler.cs                    # Config.{Get,ToggleFile,ToggleRule,Subscribe}
+        InstructionsRpcHandler.cs              # Instructions.{List,Get,GetAll,GetAlwaysAttached,GetRaw,SearchContent,Subscribe}
+        LogsRpcHandler.cs                      # Logs.{GetEngine,TailEngine}
+        McpToolsRpcHandler.cs                  # McpTools.{List,Invoke}
+        RegistryRpcHandler.cs                  # Engine.RegistryEntries
+        WorkspaceRpcHandler.cs                 # Workspace.{Detect,Info}
       Results/                               # handler outcome shapes the processor flushes
         RpcHandlerResult.cs                    # base — carries a Continuation + optional post-flush side effect
         UnaryHandlerResult.cs                  # single JsonRpcResponse frame
@@ -673,17 +685,17 @@ documents and is not enumerated here.
 
 **One type per file.** Each `*.cs` filename above names exactly one
 top-level type (class, record, enum, or interface). The RPC handlers
-are the deliberate exception: rather than a `*Handlers.cs` class per
-RPC family, the post-handshake methods are private handler methods on
-the single `Rpc/Policies/DispatchPolicy` class, split across partial
-files by family (`DispatchPolicy.cs`, `DispatchPolicy.Instructions.cs`,
-`DispatchPolicy.McpTools.cs`) and reached from its method-name →
-handler switch; `Rpc/RpcConnectionProcessor.cs` drives the per-frame
-loop against the active `IRpcConnectionPolicy`. The bundled-by-feature
-handler shape (one dispatch policy with partials per RPC family rather
-than one class per RPC method) is the deliberate trade-off: cohesion
-over file count, matched to the connection-policy dispatcher and to the
-rest of the codebase's vertical-feature folder axis.
+follow the same rule: each RPC family is a single
+`Rpc/Handlers/<Family>RpcHandler` implementing `IRpcMethodHandler`
+(one class per family, one file per class). `Rpc/Policies/DispatchPolicy`
+is a stateless shared-singleton pure router — it composes the injected
+handler set into a method-name → handler map and owns only
+`Engine.Shutdown` inline; `Rpc/RpcConnectionProcessor.cs` drives the
+per-frame loop against the active `IRpcConnectionPolicy`. The
+handler-per-family shape (cohesion by RPC family rather than one class
+per RPC method) is the deliberate trade-off: cohesion over file count,
+matched to the connection-policy dispatcher and to the rest of the
+codebase's vertical-feature folder axis.
 
 > **Renames since this plan was first written.** The source tree above
 > reflects the *current* code; several types were renamed or
@@ -695,11 +707,19 @@ rest of the codebase's vertical-feature folder axis.
 >   `WorkerControlClient` → `Workers/WorkerConnectionProbe`; supervisor
 >   + task-dispatch responsibilities folded into `WorkerProcessService`
 >   / `WorkerProcessLauncher` and `Features/McpTools/McpToolsInvoker`.
-> - `HelloHandler` / `ShutdownHandler` and the per-family `*Handlers`
->   classes (`WorkspaceHandlers`, `LogsHandlers`, `InstructionsHandlers`,
->   `McpToolsHandlers`) → `Rpc/Policies/HandshakePolicy` +
->   `DispatchPolicy` (partials); `RpcDispatcher` → `RpcConnectionProcessor`
->   + `IRpcConnectionPolicy`.
+> - `HelloHandler` / `ShutdownHandler` → `Rpc/Policies/HandshakePolicy`
+>   + the `Engine.Shutdown`-inline path on `DispatchPolicy`;
+>   `RpcDispatcher` → `RpcConnectionProcessor` + `IRpcConnectionPolicy`.
+>   `DispatchPolicy` was briefly a partial-per-family class, then split
+>   back into one `Rpc/Handlers/<Family>RpcHandler` (`IRpcMethodHandler`)
+>   per RPC family (`ConfigRpcHandler`, `InstructionsRpcHandler`,
+>   `LogsRpcHandler`, `McpToolsRpcHandler`, `RegistryRpcHandler`,
+>   `WorkspaceRpcHandler`), leaving `DispatchPolicy` a pure router.
+> - `LifecycleService` → `Endpoints/EndpointHostService` (the four-pipe
+>   host); the per-EndpointKind connection handlers
+>   (`RpcEndpointHandler`, `EventsEndpointHandler`, `LogsEndpointHandler`)
+>   and `PerWorkspaceInstanceGuard` moved from `Lifecycle/` into the new
+>   `Endpoints/` tier, leaving `Lifecycle/` as the events-stream domain.
 > - The engine registry moved out of `Lifecycle/` into its own
 >   `Registry/` tier; the `Mcp/` folder became `Features/McpTools/`.
 > - `AddAutoContextEngine.cs` → `EngineHostBuilderExtensions.cs` (the
@@ -985,7 +1005,7 @@ participates in the shared liveness registry.
   contract (P4); the engine fails loudly on pipe-bind collision
   with a non-zero exit. `PerWorkspaceInstanceGuard` (the sole
   production `IUniqueInstanceGuard` impl, called at the top of
-  `LifecycleService.StartAsync` before any pipe bind) is the
+  `EndpointHostService.StartAsync` before any pipe bind) is the
   fail-fast sanity check enforcing this contract; it probes the
   would-be `rpc` endpoint and throws `IOException` when a peer
   already holds the address. The design does **not** treat the
@@ -1161,10 +1181,10 @@ is explicit and exclusive).
   Cleanup of any peer's leftover subtree happens at this engine's
   own graceful shutdown, after `RegistryFileService` has removed
   this engine's own entry (via its own `StopAsync` prefix) and
-  `LifecycleService` has closed the four pipes. Hosted-service
+  `EndpointHostService` has closed the four pipes. Hosted-service
   registration order pins the invariant: register
   `HousekeepingService` **after** `RegistryFileService` (and
-  before `LifecycleService`) so its `StopAsync` runs *before*
+  before `EndpointHostService`) so its `StopAsync` runs *before*
   the file service's — reverse-registration order — letting
   the sweep traverse the still-live `RegistryFileService.WriteAsync`
   channel before it's torn down, while still observing the
@@ -1243,7 +1263,7 @@ is explicit and exclusive).
   root yields after the budget elapses without blocking shutdown.
 - Shutdown sweep runs after `RegistryFileService` has removed this
   engine's own entry (during its own `StopAsync`) and after
-  `LifecycleService` has closed the four pipes — a peer that
+  `EndpointHostService` has closed the four pipes — a peer that
   starts mid-shutdown does not observe this engine's entry as live.
 - Integration: spawn two engines against the same cache root,
   hard-kill one (skipping its shutdown sweep), then gracefully
@@ -1312,10 +1332,10 @@ its dependency on Phase 1's `RegistryFileReader` /
   clients without a streaming subscription: `ConfigFileManager`
   exposes its lock-free `Current` snapshot through an
   `IConfigSnapshotAccessor` seam, and `ConfigFileService` (a hosted
-  service registered before `LifecycleService`) performs the initial
+  service registered before `EndpointHostService`) performs the initial
   disk load and arms the watcher at engine start so the snapshot is
-  populated before the first request can land. `DispatchPolicy` routes
-  `Config.Get` to a unary handler that projects the current snapshot
+  populated before the first request can land. `ConfigRpcHandler`
+  serves `Config.Get`, projecting the current snapshot
   onto the `Config.*` wire DTOs via
   `ConfigSnapshotExtensions.ToWireFormat`. The revision counter and
   the `Config.Subscribe` fan-out stay deferred to rows 8-9.
