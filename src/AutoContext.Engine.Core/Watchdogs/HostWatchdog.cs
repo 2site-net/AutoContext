@@ -46,7 +46,7 @@ using Microsoft.Extensions.Options;
 /// same path SIGTERM and the idle gate take. The shutdown
 /// sequence (emit <c>shutting-down</c> on <c>events</c>, drain
 /// <c>rpc</c>, run the housekeeping sweep) is owned by
-/// <see cref="LifecycleService"/>; this watchdog only signals.
+/// <see cref="Endpoints.EndpointHostService"/>; this watchdog only signals.
 /// </para>
 /// </remarks>
 internal sealed partial class HostWatchdog : IHostedService, IAsyncDisposable

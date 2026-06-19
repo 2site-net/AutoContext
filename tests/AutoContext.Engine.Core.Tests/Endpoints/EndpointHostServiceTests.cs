@@ -30,7 +30,7 @@ using Microsoft.Extensions.Options;
 
 public sealed class EndpointHostServiceTests(
     TempDirectoryFixture tempDirectory,
-    EndpointHostServiceFixture lifecycle)
+    EndpointHostServiceFixture host)
     : IClassFixture<TempDirectoryFixture>, IClassFixture<EndpointHostServiceFixture>
 {
     private const string RegistryFileName = "engine-registry.json";
@@ -38,7 +38,7 @@ public sealed class EndpointHostServiceTests(
     [Fact]
     public async Task Should_throw_when_StartAsync_is_invoked_twice()
     {
-        var context = lifecycle.Create();
+        var context = host.Create();
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         await Assert.ThrowsAsync<InvalidOperationException>(
@@ -52,7 +52,7 @@ public sealed class EndpointHostServiceTests(
     [InlineData(EndpointKind.Logs)]
     public async Task Should_bind_endpoint_on_StartAsync(EndpointKind kind)
     {
-        var context = lifecycle.Create();
+        var context = host.Create();
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         await using var client = await EngineRpcTestClient.ConnectAsync(
@@ -65,7 +65,7 @@ public sealed class EndpointHostServiceTests(
     public async Task Should_stop_accepting_new_connections_on_StopAsync()
     {
         // Arrange
-        var context = lifecycle.Create();
+        var context = host.Create();
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         var workspaceHash = WorkspaceHash.Compute(context.EngineOptions.WorkspacePath);
@@ -89,7 +89,7 @@ public sealed class EndpointHostServiceTests(
     [Fact]
     public async Task Should_be_idempotent_when_DisposeAsync_is_invoked_before_start()
     {
-        var context = lifecycle.Create();
+        var context = host.Create();
 
         // Act + Assert — must not throw.
         await context.Service.DisposeAsync();
@@ -188,7 +188,7 @@ public sealed class EndpointHostServiceTests(
     public async Task Should_accept_rpc_handshake_when_protocol_version_matches()
     {
         // Arrange
-        var context = lifecycle.Create();
+        var context = host.Create();
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         await using var client = await EngineRpcTestClient.ConnectAsync(
@@ -217,7 +217,7 @@ public sealed class EndpointHostServiceTests(
     public async Task Should_accept_events_handshake_when_protocol_version_matches()
     {
         // Arrange
-        var context = lifecycle.Create();
+        var context = host.Create();
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         await using var client = await EngineRpcTestClient.ConnectAsync(
@@ -238,7 +238,7 @@ public sealed class EndpointHostServiceTests(
     public async Task Should_refuse_rpc_handshake_when_protocol_version_mismatches()
     {
         // Arrange
-        var context = lifecycle.Create();
+        var context = host.Create();
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         await using var client = await EngineRpcTestClient.ConnectAsync(
@@ -262,7 +262,7 @@ public sealed class EndpointHostServiceTests(
     public async Task Should_refuse_rpc_handshake_when_first_frame_is_not_hello()
     {
         // Arrange
-        var context = lifecycle.Create();
+        var context = host.Create();
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         await using var client = await EngineRpcTestClient.ConnectAsync(
@@ -294,7 +294,7 @@ public sealed class EndpointHostServiceTests(
     public async Task Should_refuse_rpc_handshake_when_hello_params_omit_protocol_version()
     {
         // Arrange
-        var context = lifecycle.Create();
+        var context = host.Create();
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         await using var client = await EngineRpcTestClient.ConnectAsync(
@@ -329,7 +329,7 @@ public sealed class EndpointHostServiceTests(
     public async Task Should_accept_health_connection_without_handshake()
     {
         // Arrange
-        var context = lifecycle.Create();
+        var context = host.Create();
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         // Act
@@ -348,7 +348,7 @@ public sealed class EndpointHostServiceTests(
     public async Task Should_accept_logs_connection_without_handshake()
     {
         // Arrange
-        var context = lifecycle.Create();
+        var context = host.Create();
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         // Act
@@ -371,7 +371,7 @@ public sealed class EndpointHostServiceTests(
     public async Task Should_stream_published_log_record_to_logs_pipe_subscriber()
     {
         // Arrange
-        var context = lifecycle.Create();
+        var context = host.Create();
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         await using var client = await EngineRpcTestClient.ConnectAsync(
@@ -424,7 +424,7 @@ public sealed class EndpointHostServiceTests(
     public async Task Should_drop_slow_logs_pipe_subscriber_with_terminal_frame()
     {
         // Arrange
-        var context = lifecycle.Create();
+        var context = host.Create();
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         await using var client = await EngineRpcTestClient.ConnectAsync(
@@ -488,7 +488,7 @@ public sealed class EndpointHostServiceTests(
         };
         RegistryFileTestWriter.Write(registryPath, seeded);
 
-        var context = lifecycle.Create(
+        var context = host.Create(
             registryReader: RegistryFileReaderTestFactory.Create(registryPath));
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
@@ -521,7 +521,7 @@ public sealed class EndpointHostServiceTests(
     public async Task Should_reply_method_not_found_for_unknown_rpc_method()
     {
         // Arrange
-        var context = lifecycle.Create();
+        var context = host.Create();
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         await using var client = await EngineRpcTestClient.ConnectAsync(
@@ -553,7 +553,7 @@ public sealed class EndpointHostServiceTests(
         var registryPath = tempDirectory.CreatePath(RegistryFileName);
         RegistryFileTestWriter.Write(registryPath);
 
-        var context = lifecycle.Create(
+        var context = host.Create(
             registryReader: RegistryFileReaderTestFactory.Create(registryPath));
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
@@ -591,7 +591,7 @@ public sealed class EndpointHostServiceTests(
     public async Task Should_accept_Engine_Shutdown_and_stop_the_application()
     {
         // Arrange
-        var context = lifecycle.Create();
+        var context = host.Create();
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         await using var client = await EngineRpcTestClient.ConnectAsync(
@@ -632,7 +632,7 @@ public sealed class EndpointHostServiceTests(
     public async Task Should_push_started_notification_on_events_pipe_after_handshake()
     {
         // Arrange
-        var context = lifecycle.Create();
+        var context = host.Create();
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         await using var client = await EngineRpcTestClient.ConnectAsync(
@@ -658,7 +658,7 @@ public sealed class EndpointHostServiceTests(
     public async Task Should_push_shutting_down_notification_on_events_pipe_on_graceful_stop()
     {
         // Arrange
-        var context = lifecycle.Create();
+        var context = host.Create();
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         await using var client = await EngineRpcTestClient.ConnectAsync(
@@ -690,7 +690,7 @@ public sealed class EndpointHostServiceTests(
         // Arrange
         var options = EndpointHostServiceFixture.CreateOptions();
         options.ShutdownDrainTimeout = TimeSpan.FromMilliseconds(250);
-        var context = lifecycle.Create(options);
+        var context = host.Create(options);
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         await using var client = await EngineRpcTestClient.ConnectAsync(
@@ -713,7 +713,7 @@ public sealed class EndpointHostServiceTests(
     public async Task Should_recover_with_ParseError_on_malformed_rpc_frame_post_handshake_and_keep_serving()
     {
         // Arrange
-        var context = lifecycle.Create();
+        var context = host.Create();
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         await using var client = await EngineRpcTestClient.ConnectAsync(
@@ -748,7 +748,7 @@ public sealed class EndpointHostServiceTests(
     public async Task Should_recover_with_InvalidRequest_on_wrong_jsonrpc_version_post_handshake_and_keep_serving()
     {
         // Arrange
-        var context = lifecycle.Create();
+        var context = host.Create();
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         await using var client = await EngineRpcTestClient.ConnectAsync(
@@ -781,7 +781,7 @@ public sealed class EndpointHostServiceTests(
     public async Task Should_terminate_rpc_connection_on_malformed_first_frame_with_ParseError_reply()
     {
         // Arrange
-        var context = lifecycle.Create();
+        var context = host.Create();
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         await using var client = await EngineRpcTestClient.ConnectAsync(
@@ -807,7 +807,7 @@ public sealed class EndpointHostServiceTests(
     public async Task Should_terminate_rpc_connection_on_invalid_first_frame_with_InvalidRequest_reply()
     {
         // Arrange
-        var context = lifecycle.Create();
+        var context = host.Create();
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         await using var client = await EngineRpcTestClient.ConnectAsync(
@@ -832,7 +832,7 @@ public sealed class EndpointHostServiceTests(
     public async Task Should_reply_with_Null_id_when_post_handshake_request_omits_id()
     {
         // Arrange
-        var context = lifecycle.Create();
+        var context = host.Create();
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         await using var client = await EngineRpcTestClient.ConnectAsync(

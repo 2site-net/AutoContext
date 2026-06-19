@@ -12,7 +12,7 @@ using Microsoft.Extensions.Hosting;
 /// singleton owns its own teardown (it is an <see cref="IDisposable"/> the
 /// container disposes on host stop), so
 /// <see cref="StopAsync(CancellationToken)"/> is a no-op. Registered
-/// before <c>LifecycleService</c> so its scan completes before the RPC
+/// before <c>EndpointHostService</c> so its scan completes before the RPC
 /// dispatcher begins accepting connections.
 /// </summary>
 internal sealed class WorkspaceDetectionService : IHostedService

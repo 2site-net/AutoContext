@@ -23,10 +23,10 @@ using Microsoft.Extensions.Logging;
 /// <para>
 /// Registration order pins the invariant: this service is
 /// registered <i>after</i> <c>RegistryFileService</c> (and before
-/// <c>LifecycleService</c>) so the host stops it <i>before</i> the
+/// <c>EndpointHostService</c>) so the host stops it <i>before</i> the
 /// registry file service — the sweep can still observe the
 /// on-disk registry in its post-pipe-close shape, while
-/// <c>LifecycleService</c> has already torn down the four pipes.
+/// <c>EndpointHostService</c> has already torn down the four pipes.
 /// </para>
 /// <para>
 /// Sweeps are best-effort. Cancellation (the host's shutdown

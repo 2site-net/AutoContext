@@ -56,7 +56,7 @@ public sealed class EngineOptions : IWorkspaceEngineInfo
     public static readonly TimeSpan DefaultRetention = TimeSpan.FromDays(1);
 
     /// <summary>
-    /// Default upper bound on how long <c>LifecycleService.StopAsync</c>
+    /// Default upper bound on how long <c>EndpointHostService.StopAsync</c>
     /// waits for connected <c>events</c>-pipe subscribers to drain
     /// the terminal <c>shutting-down</c> frame off the wire before
     /// the service tears the connection down regardless. Five
@@ -162,7 +162,7 @@ public sealed class EngineOptions : IWorkspaceEngineInfo
     public TimeSpan Retention { get; set; } = DefaultRetention;
 
     /// <summary>
-    /// Upper bound on how long <c>LifecycleService.StopAsync</c>
+    /// Upper bound on how long <c>EndpointHostService.StopAsync</c>
     /// waits for connected <c>events</c>-pipe subscribers to read
     /// the terminal <c>shutting-down</c> frame off the wire before
     /// the service forcibly tears the connection down. Bounds

@@ -20,7 +20,7 @@ using Microsoft.Extensions.Options;
 /// must not pin the engine alive. The watchdog enforces this by
 /// exposing a single counter surface
 /// (<see cref="AcquireKeepAliveAsync"/>) — the caller decides which
-/// connections register, and <see cref="LifecycleService"/> only
+/// connections register, and <see cref="Endpoints.EndpointHostService"/> only
 /// registers <c>rpc</c> and <c>events</c>.
 /// </para>
 /// <para>
