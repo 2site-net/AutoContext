@@ -6,7 +6,7 @@ namespace AutoContext.Worker.Workspace.Hosting;
 /// </summary>
 /// <remarks>
 /// The shared host options (<c>--pipe</c>, ready marker) live on
-/// <see cref="Framework.Workers.WorkerHostOptions"/>. Currently no task
+/// <see cref="Workers.Core.WorkerHostOptions"/>. Currently no task
 /// in this worker reads <see cref="WorkspaceRoot"/>; the property and
 /// the <c>--workspace-root</c> switch are accepted for backward
 /// compatibility with the extension and reserved for future

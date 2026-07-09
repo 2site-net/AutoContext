@@ -78,7 +78,7 @@ async function main(argv: readonly string[]): Promise<void> {
     // when --service log=... was not supplied).
     const loggingClient = new LoggingClient(logPipe, CLIENT_NAME);
     const logger = new PipeLogger(loggingClient);
-    const serviceLogger = logger.forCategory('AutoContext.Framework.Workers.WorkerTaskDispatcherService');
+    const serviceLogger = logger.forCategory('AutoContext.Workers.Core.WorkerTaskDispatcherService');
     const healthLogger = logger.forCategory('AutoContext.Worker.Hosting.HealthMonitorClient');
     const startupLogger = logger.forCategory('AutoContext.Worker.Web.Startup');
     startupLogger.info(`Arguments parsed (pipe='${pipe}', logPipeEnabled=${logPipe !== ''}, healthMonitorEnabled=${healthMonitorPipe !== ''})`);

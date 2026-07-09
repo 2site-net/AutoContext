@@ -5,7 +5,7 @@ using System.Text.Json;
 /// <summary>
 /// Frozen <see cref="JsonSerializerOptions"/> shared by the protocol
 /// types in this project. CamelCase keys, no indentation — matches
-/// <c>AutoContext.Framework.Workers.WorkerTaskDispatcherService</c> on the worker side
+/// <c>AutoContext.Workers.Core.WorkerTaskDispatcherService</c> on the worker side
 /// so both ends of the pipe agree on shape.
 /// </summary>
 /// <remarks>

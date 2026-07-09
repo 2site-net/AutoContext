@@ -1,8 +1,8 @@
-namespace AutoContext.Framework.Workers.Tests.Support;
+namespace AutoContext.Workers.Core.Tests.Support;
 
 using System.Text.Json;
 
-using AutoContext.Framework.Workers;
+using AutoContext.Workers.Core;
 
 internal sealed class FakeEchoTask : IMcpTask
 {

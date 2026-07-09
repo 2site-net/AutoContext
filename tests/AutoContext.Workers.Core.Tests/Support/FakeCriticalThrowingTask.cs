@@ -1,9 +1,9 @@
-namespace AutoContext.Framework.Workers.Tests.Support;
+namespace AutoContext.Workers.Core.Tests.Support;
 
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 
-using AutoContext.Framework.Workers;
+using AutoContext.Workers.Core;
 
 /// <summary>
 /// Throws a "critical" CLR exception (one that <c>WorkerTaskDispatcherService</c>

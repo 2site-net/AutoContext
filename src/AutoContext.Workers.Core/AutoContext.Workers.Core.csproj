@@ -3,11 +3,11 @@
   <PropertyGroup>
     <Version>0.9.5</Version>
     <TargetFramework>net10.0</TargetFramework>
-    <RootNamespace>AutoContext.Framework.Workers</RootNamespace>
+    <RootNamespace>AutoContext.Workers.Core</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="AutoContext.Framework.Workers.Tests" />
+    <InternalsVisibleTo Include="AutoContext.Workers.Core.Tests" />
   </ItemGroup>
 
   <ItemGroup>
@@ -18,7 +18,7 @@
 
   <ItemGroup>
     <!--
-      Framework.Workers owns the standard worker-host bootstrap
+      Workers.Core owns the standard worker-host bootstrap
       (WorkerHostBuilderExtensions.ConfigureWorkerHost) that wires the
       service-address switches, the in-memory ready marker, and
       WorkerHostOptions binding. The full Microsoft.Extensions.Hosting

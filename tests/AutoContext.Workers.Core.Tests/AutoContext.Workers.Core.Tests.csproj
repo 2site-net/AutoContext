@@ -5,7 +5,7 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <IsPackable>false</IsPackable>
-    <RootNamespace>AutoContext.Framework.Workers.Tests</RootNamespace>
+    <RootNamespace>AutoContext.Workers.Core.Tests</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\AutoContext.Framework.Workers\AutoContext.Framework.Workers.csproj" />
+    <ProjectReference Include="..\..\src\AutoContext.Workers.Core\AutoContext.Workers.Core.csproj" />
     <ProjectReference Include="..\AutoContext.Framework.Tests.Support\AutoContext.Framework.Tests.Support.csproj" />
   </ItemGroup>
 

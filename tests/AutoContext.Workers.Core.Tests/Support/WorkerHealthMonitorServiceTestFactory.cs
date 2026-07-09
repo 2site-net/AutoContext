@@ -1,6 +1,6 @@
-namespace AutoContext.Framework.Workers.Tests.Support;
+namespace AutoContext.Workers.Core.Tests.Support;
 
-using AutoContext.Framework.Workers;
+using AutoContext.Workers.Core;
 
 using Microsoft.Extensions.Logging.Abstractions;
 

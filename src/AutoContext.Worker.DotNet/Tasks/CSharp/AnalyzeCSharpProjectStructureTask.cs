@@ -3,7 +3,7 @@ namespace AutoContext.Worker.DotNet.Tasks.CSharp;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-using AutoContext.Framework.Workers;
+using AutoContext.Workers.Core;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;

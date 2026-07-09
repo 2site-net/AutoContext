@@ -10,7 +10,7 @@ using System.Text.Json.Nodes;
 /// engine's <c>McpToolsInvoker</c> expects
 /// (<c>{ "mcpTask", "status", "output", "error" }</c>). The small wire
 /// contract is re-implemented here rather than taken from
-/// <c>AutoContext.Framework.Workers</c>, keeping the driver independent of
+/// <c>AutoContext.Workers.Core</c>, keeping the driver independent of
 /// the worker-host framework while still speaking exactly what the engine
 /// dials.
 /// </summary>

@@ -4,7 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
-using AutoContext.Framework.Workers;
+using AutoContext.Workers.Core;
 
 /// <summary>
 /// <c>analyze_git_commit_content</c> — inspects the <em>prose</em> of a commit

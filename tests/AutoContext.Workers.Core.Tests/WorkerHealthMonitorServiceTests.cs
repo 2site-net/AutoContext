@@ -1,9 +1,9 @@
-namespace AutoContext.Framework.Workers.Tests;
+namespace AutoContext.Workers.Core.Tests;
 
 using System.IO.Pipes;
 
 using AutoContext.Framework.Tests.Support.Pipes;
-using AutoContext.Framework.Workers.Tests.Support;
+using AutoContext.Workers.Core.Tests.Support;
 
 public sealed class WorkerHealthMonitorServiceTests
 {

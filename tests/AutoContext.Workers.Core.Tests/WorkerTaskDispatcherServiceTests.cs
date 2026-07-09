@@ -1,11 +1,11 @@
-namespace AutoContext.Framework.Workers.Tests;
+namespace AutoContext.Workers.Core.Tests;
 
 using System.IO.Pipes;
 using System.Text.Json;
 
 using AutoContext.Framework.Pipes;
-using AutoContext.Framework.Workers;
-using AutoContext.Framework.Workers.Tests.Support;
+using AutoContext.Workers.Core;
+using AutoContext.Workers.Core.Tests.Support;
 
 public sealed class WorkerTaskDispatcherServiceTests
 {

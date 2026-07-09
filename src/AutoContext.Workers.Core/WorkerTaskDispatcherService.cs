@@ -1,4 +1,4 @@
-namespace AutoContext.Framework.Workers;
+namespace AutoContext.Workers.Core;
 
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
