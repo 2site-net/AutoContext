@@ -2476,7 +2476,7 @@ reuses these same handlers).
 |---|---|---|
 | 1 | `refactor(workers): rename Framework.Workers to Workers.Core` | DONE (uncommitted) |
 | 2 | `feat(engine-core): serve Engine.WriteLog as a fire-and-forget notification routed by category to per-worker logs` | DONE |
-| 3 | `feat(workers-core): add worker→engine log sender with bounded ring and stderr drop fallback` | TODO |
+| 3 | `feat(workers-core): add worker→engine log sender with bounded ring and stderr drop fallback` | DONE |
 | 4 | `feat(engine): serve Logs.GetWorker and TailWorker and capture worker stderr` | TODO |
 | 5 | `refactor(framework-logging): delete the legacy worker→extension sideband sink` | TODO |
 | 6 | `docs(plan): mark Phase 8 complete` | TODO |
