@@ -548,6 +548,8 @@ public static class EngineHostBuilderExtensions
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IRpcMethodHandler, LogsRpcHandler>());
         builder.Services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IRpcMethodHandler, WriteLogRpcHandler>());
+        builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IRpcMethodHandler, RegistryRpcHandler>());
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IRpcMethodHandler, WorkspaceRpcHandler>());

@@ -2475,26 +2475,48 @@ reuses these same handlers).
 | # | Commit subject | State |
 |---|---|---|
 | 1 | `refactor(workers): rename Framework.Workers to Workers.Core` | DONE (uncommitted) |
-| 2 | `feat(engine-core): support rpc inbound fire-and-forget notifications` (prelude) | TODO |
-| 3 | `feat(engine-core): serve Engine.WriteLog via WriteLogRpcHandler and route records by category to per-worker logs` | TODO |
-| 4 | `feat(workers-core): add EngineWriteLogClient typed client for Engine.WriteLog` | TODO |
-| 5 | `feat(workers-core): add EngineLoggerProvider dialing Engine.WriteLog` | TODO |
-| 6 | `feat(workers-core): add EngineLogIngestRing bounded buffer with stderr drop fallback` | TODO |
-| 7 | `feat(engine-core): capture worker stderr under worker.<id>.engine.stderr category` | TODO |
-| 8 | `feat(engine): serve Logs.GetWorker over rpc` | TODO |
-| 9 | `feat(engine): serve Logs.TailWorker over rpc` | TODO |
-| 10 | `refactor(framework-logging): delete the legacy worker→extension sideband sink` | TODO |
-| 11 | `test(engine): integration test for worker-to-engine logging over rpc` | TODO |
-| 12 | `docs(plan): mark Phase 8 complete` | TODO |
+| 2 | `feat(engine-core): serve Engine.WriteLog as a fire-and-forget notification routed by category to per-worker logs` | DONE |
+| 3 | `feat(workers-core): add worker→engine log sender with bounded ring and stderr drop fallback` | TODO |
+| 4 | `feat(engine): serve Logs.GetWorker and TailWorker and capture worker stderr` | TODO |
+| 5 | `refactor(framework-logging): delete the legacy worker→extension sideband sink` | TODO |
+| 6 | `docs(plan): mark Phase 8 complete` | TODO |
+
+**Commit grouping.** The ladder collapses the twelve fine-grained steps
+into six coherent commits — the fewest that still keep every commit
+green at its boundary and reviewable on its own. Each grouped commit is
+a single behavioural unit with one dominant Conventional Commits type:
+
+- **Row 2** folds the fire-and-forget notification prelude into its
+  first (and only) consumer: adding `NotificationHandlerResult` +
+  processor support is worthless without the `WriteLogRpcHandler` that
+  uses it, and the handler's tests exercise the notification path, so
+  the infrastructure and its consumer land and are tested as one. This
+  also brings the engine-side category-prefix routing to per-worker
+  logs (`LogFileSinkService` + `EngineCacheLayout.WorkerLogFilePath`),
+  since that is what makes the ingested records land correctly.
+- **Row 3** folds the whole worker-side sender quartet
+  (`EngineWriteLogClient`, `AddEngineLoggerProvider` /
+  `EngineLoggerProvider`, `EngineLogIngestRing`) into one commit — they
+  are meaningless apart (a provider with no client, a ring with no
+  producer) and are unit-tested together against a fake engine.
+- **Row 4** completes the read side (`Logs.GetWorker` +
+  `Logs.TailWorker` are symmetric `LogsRpcHandler` extensions) and the
+  engine-side worker-stderr capture, then proves the full
+  worker→engine→read path with the cross-process integration test that
+  was previously its own row. The test lands here because this is the
+  boundary at which the pipeline is first end-to-end observable.
+- **Row 5** deletes the legacy sideband only after row 4 has proven the
+  replacement path, keeping the cutover bisectable on its own.
+- **Row 6** is the standard docs mark-complete step.
 
 **Row 1 note (landed).** The dependency-direction reorg that Phase 8
 depends on: `AutoContext.Framework.Workers` was renamed to
 `AutoContext.Workers.Core` (folder, csproj, namespaces, every consumer,
 `AutoContext.slnx`, and the `AutoContext.Workers.Core.Tests` test
 project), so a `Framework.*` project no longer depends on `Engine.*`.
-The worker-side log sender (rows 4/5/6) therefore lands in
+The worker-side log sender (row 3) therefore lands in
 `Workers.Core/Logging/`, and `Framework.Logging` stays a clean framework
-leaf that only sheds its legacy sideband (row 10). Verified green via
+leaf that only sheds its legacy sideband (row 5). Verified green via
 `.\build.ps1` (both stacks). See the *Renames since this plan was first
 written* map above.
 
@@ -2570,7 +2592,7 @@ the engine is briefly unreachable.
   (extends its `Methods` set) — `not-found` discriminated envelope
   distinguishes "this `workerId` was never spawned" from empty
   `records`.
-- **Delete the `Framework.Logging` legacy sideband** (row 9):
+- **Delete the `Framework.Logging` legacy sideband** (row 5):
   `PipeLogger`, `PipeLoggerProvider`, `LoggingClient`, `LogEntry`,
   `JsonLogEntry`, `LogServerJsonContext`, `JsonLogGreeting` — the
   worker→extension `LogServer` path is replaced wholesale by
