@@ -17,9 +17,11 @@ using AutoContext.Engine.Core.Tests.Support;
 using AutoContext.Engine.Core.Tests.Support.Features.Instructions;
 using AutoContext.Engine.Core.Tests.Support.Features.McpTools;
 using AutoContext.Engine.Core.Tests.Support.Machine;
+using AutoContext.Engine.Core.Tests.Support.Workers;
 using AutoContext.Engine.Core.Tests.Support.Workspace.Config;
 using AutoContext.Engine.Core.Tests.Support.Workspace.Context;
 using AutoContext.Engine.Core.Watchdogs;
+using AutoContext.Engine.Core.Workers;
 using AutoContext.Engine.Core.Workspace.Config;
 using AutoContext.Engine.Core.Workspace.Context;
 using AutoContext.Engine.Protocol.Messages.Config;
@@ -112,7 +114,8 @@ public sealed class EndpointHostServiceFixture : IAsyncDisposable
         IHostApplicationLifetime lifetime,
         RegistryFileReader? registryReader = null,
         EngineLogFileReader? logFileReader = null,
-        Broadcaster<JsonLogRecord>? logsBroadcaster = null) =>
+        Broadcaster<JsonLogRecord>? logsBroadcaster = null,
+        IWorkerSpawnTracker? workerSpawnTracker = null) =>
         new(
             lifetime,
             new IRpcMethodHandler[]
@@ -139,6 +142,7 @@ public sealed class EndpointHostServiceFixture : IAsyncDisposable
                 new LogsRpcHandler(
                     logFileReader ?? CreateLogFileReader(),
                     logsBroadcaster ?? CreateLogsBroadcaster(),
+                    workerSpawnTracker ?? new FakeWorkerSpawnTracker(),
                     NullLogger<LogsRpcHandler>.Instance),
                 new RegistryRpcHandler(
                     registryReader ?? CreateRegistryReader(),

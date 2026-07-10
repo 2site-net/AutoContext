@@ -367,11 +367,19 @@ public static class EngineHostBuilderExtensions
                     options.WorkspacePath),
                 sp.GetRequiredService<IProcessLauncher<WorkerProcessInfo>>(),
                 sp.GetRequiredService<IWorkerConnectionProbe>(),
+                sp.GetRequiredService<LogChannel>(),
+                sp.GetRequiredService<TimeProvider>(),
                 sp.GetRequiredService<ILogger<WorkerProcessService>>());
         });
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, WorkerProcessService>(
                 sp => sp.GetRequiredService<WorkerProcessService>()));
+
+        // Read-only view over which workers have ever been spawned,
+        // backing the Logs.GetWorker / Logs.TailWorker not-found
+        // decision (never-spawned worker vs. spawned-but-quiet).
+        builder.Services.TryAddSingleton<IWorkerSpawnTracker>(
+            sp => sp.GetRequiredService<WorkerProcessService>());
 
         // MCP-tools dispatch seam. The invoker round-trips one tool call to
         // its owning worker over the shared request/response pipe contract,

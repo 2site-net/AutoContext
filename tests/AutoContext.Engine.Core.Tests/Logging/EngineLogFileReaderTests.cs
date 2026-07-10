@@ -203,11 +203,65 @@ public sealed class EngineLogFileReaderTests : IDisposable
                 TestContext.Current.CancellationToken));
     }
 
+    [Fact]
+    public async Task Should_read_worker_records_from_the_worker_log_file()
+    {
+        var (reader, workerPath) = CreateWorkerReader("dotnet");
+        await WriteRecordsAsync(workerPath,
+            CreateRecord(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero), "worker-first"),
+            CreateRecord(new DateTimeOffset(2026, 1, 1, 0, 0, 1, TimeSpan.Zero), "worker-second"));
+
+        var result = await reader.ReadWorkerAsync(
+            "dotnet",
+            parameters: null,
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Multiple(
+            () => Assert.Equal(2, result.Records.Count),
+            () => Assert.Equal("worker-first", result.Records[0].Message),
+            () => Assert.Equal("worker-second", result.Records[1].Message),
+            () => Assert.False(result.Truncated));
+    }
+
+    [Fact]
+    public async Task Should_return_empty_when_worker_file_does_not_exist()
+    {
+        var (reader, _) = CreateWorkerReader("dotnet");
+
+        var result = await reader.ReadWorkerAsync(
+            "dotnet",
+            parameters: null,
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Multiple(
+            () => Assert.Empty(result.Records),
+            () => Assert.False(result.Truncated));
+    }
+
+    [Fact]
+    public async Task Should_throw_when_worker_id_is_empty()
+    {
+        var (reader, _) = CreateWorkerReader("dotnet");
+
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => reader.ReadWorkerAsync(
+                string.Empty,
+                parameters: null,
+                cancellationToken: TestContext.Current.CancellationToken));
+    }
+
     private (EngineLogFileReader Reader, string FilePath) CreateReader()
     {
         var options = EngineCrashWriterFixture.CreateOptions(_cacheRoot);
         var paths = EngineCacheLayoutTestFactory.Create(options);
         return (new EngineLogFileReader(paths), paths.EngineLogFilePath);
+    }
+
+    private (EngineLogFileReader Reader, string WorkerFilePath) CreateWorkerReader(string workerId)
+    {
+        var options = EngineCrashWriterFixture.CreateOptions(_cacheRoot);
+        var paths = EngineCacheLayoutTestFactory.Create(options);
+        return (new EngineLogFileReader(paths), paths.WorkerLogFilePath(workerId));
     }
 
     private static JsonLogRecord CreateRecord(DateTimeOffset timestamp, string message) =>

@@ -13,6 +13,7 @@ using AutoContext.Engine.Core.Tests.Support.Endpoints;
 using AutoContext.Engine.Core.Tests.Support.Registry;
 using AutoContext.Engine.Core.Tests.Support.Rpc;
 using AutoContext.Engine.Core.Tests.Support.Rpc.Policies;
+using AutoContext.Engine.Core.Tests.Support.Workers;
 using AutoContext.Engine.Core.Tests.Support.Workspace.Config;
 using AutoContext.Engine.Core.Tests.Support.Workspace.Context;
 using AutoContext.Engine.Core.Workspace.Config;
@@ -366,6 +367,253 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
             () => Assert.Equal("hello", frames[0].GetProperty("record").GetProperty("message").GetString()),
             () => Assert.Equal("record", frames[1].GetProperty("kind").GetString()),
             () => Assert.Equal("world", frames[1].GetProperty("record").GetProperty("message").GetString()));
+    }
+
+    [Fact]
+    public async Task Should_return_not_found_for_Logs_GetWorker_when_worker_never_spawned()
+    {
+        // Arrange — the spawn tracker reports nothing spawned.
+        using var lifetime = new FakeHostApplicationLifetime();
+        var policy = DispatchPolicyTestFactory.Create(
+            lifetime, workerSpawnTracker: new FakeWorkerSpawnTracker());
+        var request = new JsonRpcRequest
+        {
+            Method = LogsMethods.GetWorker,
+            Id = JsonSerializer.SerializeToElement(1),
+            Params = JsonSerializer.SerializeToElement(
+                new JsonLogsGetWorkerParams { WorkerId = "dotnet" },
+                ProtocolJsonContext.Default.JsonLogsGetWorkerParams),
+        };
+
+        // Act
+        var result = Assert.IsType<UnaryHandlerResult>(
+            await policy.InvokeAsync(request, TestContext.Current.CancellationToken));
+
+        // Assert
+        var payload = JsonSerializer.Deserialize(
+            result.Response.Result!.Value,
+            ProtocolJsonContext.Default.JsonLogsGetWorkerResult);
+        var notFound = Assert.IsType<JsonLogsGetWorkerNotFoundResult>(payload);
+        Assert.Multiple(
+            () => Assert.Null(result.Response.Error),
+            () => Assert.Equal("dotnet", notFound.WorkerId));
+    }
+
+    [Fact]
+    public async Task Should_return_ok_with_empty_records_for_Logs_GetWorker_when_worker_is_quiet()
+    {
+        // Arrange — worker is spawned but its log file does not
+        // exist yet, so the read returns an empty ok result.
+        using var lifetime = new FakeHostApplicationLifetime();
+        var policy = DispatchPolicyTestFactory.Create(
+            lifetime, workerSpawnTracker: new FakeWorkerSpawnTracker("dotnet"));
+        var request = new JsonRpcRequest
+        {
+            Method = LogsMethods.GetWorker,
+            Id = JsonSerializer.SerializeToElement(1),
+            Params = JsonSerializer.SerializeToElement(
+                new JsonLogsGetWorkerParams { WorkerId = "dotnet" },
+                ProtocolJsonContext.Default.JsonLogsGetWorkerParams),
+        };
+
+        // Act
+        var result = Assert.IsType<UnaryHandlerResult>(
+            await policy.InvokeAsync(request, TestContext.Current.CancellationToken));
+
+        // Assert
+        var payload = JsonSerializer.Deserialize(
+            result.Response.Result!.Value,
+            ProtocolJsonContext.Default.JsonLogsGetWorkerResult);
+        var ok = Assert.IsType<JsonLogsGetWorkerOkResult>(payload);
+        Assert.Multiple(
+            () => Assert.Null(result.Response.Error),
+            () => Assert.Empty(ok.Records),
+            () => Assert.False(ok.Truncated));
+    }
+
+    [Fact]
+    public async Task Should_return_InvalidParams_when_Logs_GetWorker_workerId_is_missing()
+    {
+        // Arrange
+        using var lifetime = new FakeHostApplicationLifetime();
+        var policy = DispatchPolicyTestFactory.Create(lifetime);
+        var request = JsonRpcRequestTestFactory.BuildRequest(LogsMethods.GetWorker);
+
+        // Act
+        var result = Assert.IsType<UnaryHandlerResult>(
+            await policy.InvokeAsync(request, TestContext.Current.CancellationToken));
+
+        // Assert
+        Assert.Multiple(
+            () => Assert.Equal(Continuation.Continue, result.Continuation),
+            () => Assert.NotNull(result.Response.Error),
+            () => Assert.Equal(JsonRpcErrorCodes.InvalidParams, result.Response.Error!.Code));
+    }
+
+    [Fact]
+    public async Task Should_return_InvalidParams_when_Logs_GetWorker_LastN_is_negative()
+    {
+        // Arrange
+        using var lifetime = new FakeHostApplicationLifetime();
+        var policy = DispatchPolicyTestFactory.Create(lifetime);
+        var request = new JsonRpcRequest
+        {
+            Method = LogsMethods.GetWorker,
+            Id = JsonSerializer.SerializeToElement(1),
+            Params = JsonSerializer.SerializeToElement(
+                new JsonLogsGetWorkerParams { WorkerId = "dotnet", LastN = -1 },
+                ProtocolJsonContext.Default.JsonLogsGetWorkerParams),
+        };
+
+        // Act
+        var result = Assert.IsType<UnaryHandlerResult>(
+            await policy.InvokeAsync(request, TestContext.Current.CancellationToken));
+
+        // Assert
+        Assert.Multiple(
+            () => Assert.Equal(Continuation.Continue, result.Continuation),
+            () => Assert.NotNull(result.Response.Error),
+            () => Assert.Equal(JsonRpcErrorCodes.InvalidParams, result.Response.Error!.Code));
+    }
+
+    [Fact]
+    public async Task Should_stream_a_not_found_frame_for_Logs_TailWorker_when_worker_never_spawned()
+    {
+        // Arrange
+        using var lifetime = new FakeHostApplicationLifetime();
+        var policy = DispatchPolicyTestFactory.Create(
+            lifetime, workerSpawnTracker: new FakeWorkerSpawnTracker());
+        var request = new JsonRpcRequest
+        {
+            Method = LogsMethods.TailWorker,
+            Id = JsonSerializer.SerializeToElement(1),
+            Params = JsonSerializer.SerializeToElement(
+                new JsonLogsTailWorkerParams { WorkerId = "dotnet" },
+                ProtocolJsonContext.Default.JsonLogsTailWorkerParams),
+        };
+
+        // Act
+        var streaming = Assert.IsType<StreamingHandlerResult>(
+            await policy.InvokeAsync(request, TestContext.Current.CancellationToken));
+        var frames = new List<JsonElement>();
+        await foreach (var frame in streaming.Payloads
+            .WithCancellation(TestContext.Current.CancellationToken))
+        {
+            frames.Add(frame);
+        }
+
+        // Assert
+        var single = Assert.Single(frames);
+        Assert.Multiple(
+            () => Assert.Equal("not-found", single.GetProperty("kind").GetString()),
+            () => Assert.Equal("dotnet", single.GetProperty("workerId").GetString()));
+    }
+
+    [Fact]
+    public async Task Should_stream_only_the_targeted_worker_records_for_Logs_TailWorker()
+    {
+        // Arrange
+        using var lifetime = new FakeHostApplicationLifetime();
+        var broadcaster = EndpointHostServiceFixture.CreateLogsBroadcaster();
+        var policy = DispatchPolicyTestFactory.Create(
+            lifetime,
+            logsBroadcaster: broadcaster,
+            workerSpawnTracker: new FakeWorkerSpawnTracker("dotnet"));
+        var request = new JsonRpcRequest
+        {
+            Method = LogsMethods.TailWorker,
+            Id = JsonSerializer.SerializeToElement(1),
+            Params = JsonSerializer.SerializeToElement(
+                new JsonLogsTailWorkerParams { WorkerId = "dotnet" },
+                ProtocolJsonContext.Default.JsonLogsTailWorkerParams),
+        };
+
+        // Act
+        var streaming = Assert.IsType<StreamingHandlerResult>(
+            await policy.InvokeAsync(request, TestContext.Current.CancellationToken));
+        Assert.True(broadcaster.TryPublish(new JsonLogRecord
+        {
+            Timestamp = DateTimeOffset.UnixEpoch,
+            Category = "worker.dotnet.RoslynAnalyzer",
+            Level = LogLevels.Information,
+            Message = "mine",
+        }));
+        Assert.True(broadcaster.TryPublish(new JsonLogRecord
+        {
+            Timestamp = DateTimeOffset.UnixEpoch,
+            Category = "engine.lifecycle",
+            Level = LogLevels.Information,
+            Message = "engine",
+        }));
+        Assert.True(broadcaster.TryPublish(new JsonLogRecord
+        {
+            Timestamp = DateTimeOffset.UnixEpoch,
+            Category = "worker.web.Bundler",
+            Level = LogLevels.Information,
+            Message = "other",
+        }));
+        broadcaster.Complete();
+
+        var frames = new List<JsonElement>();
+        await foreach (var frame in streaming.Payloads
+            .WithCancellation(TestContext.Current.CancellationToken))
+        {
+            frames.Add(frame);
+        }
+
+        Assert.NotNull(streaming.PostFlush);
+        await streaming.PostFlush!();
+
+        // Assert — only the targeted worker's record survives the filter.
+        var single = Assert.Single(frames);
+        Assert.Multiple(
+            () => Assert.Equal("record", single.GetProperty("kind").GetString()),
+            () => Assert.Equal("mine", single.GetProperty("record").GetProperty("message").GetString()));
+    }
+
+    [Fact]
+    public async Task Should_exclude_worker_records_from_Logs_TailEngine()
+    {
+        // Arrange
+        using var lifetime = new FakeHostApplicationLifetime();
+        var broadcaster = EndpointHostServiceFixture.CreateLogsBroadcaster();
+        var policy = DispatchPolicyTestFactory.Create(lifetime, logsBroadcaster: broadcaster);
+        var request = JsonRpcRequestTestFactory.BuildRequest(LogsMethods.TailEngine);
+
+        // Act
+        var streaming = Assert.IsType<StreamingHandlerResult>(
+            await policy.InvokeAsync(request, TestContext.Current.CancellationToken));
+        Assert.True(broadcaster.TryPublish(new JsonLogRecord
+        {
+            Timestamp = DateTimeOffset.UnixEpoch,
+            Category = "engine.lifecycle",
+            Level = LogLevels.Information,
+            Message = "engine",
+        }));
+        Assert.True(broadcaster.TryPublish(new JsonLogRecord
+        {
+            Timestamp = DateTimeOffset.UnixEpoch,
+            Category = "worker.dotnet.RoslynAnalyzer",
+            Level = LogLevels.Information,
+            Message = "worker",
+        }));
+        broadcaster.Complete();
+
+        var frames = new List<JsonElement>();
+        await foreach (var frame in streaming.Payloads
+            .WithCancellation(TestContext.Current.CancellationToken))
+        {
+            frames.Add(frame);
+        }
+
+        Assert.NotNull(streaming.PostFlush);
+        await streaming.PostFlush!();
+
+        // Assert — the worker record is filtered out of the engine feed.
+        var single = Assert.Single(frames);
+        Assert.Multiple(
+            () => Assert.Equal("record", single.GetProperty("kind").GetString()),
+            () => Assert.Equal("engine", single.GetProperty("record").GetProperty("message").GetString()));
     }
 
     [Fact]

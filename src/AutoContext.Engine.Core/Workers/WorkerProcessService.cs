@@ -3,6 +3,8 @@ namespace AutoContext.Engine.Core.Workers;
 using System.Globalization;
 
 using AutoContext.Engine.Core.Infrastructure.Diagnostics;
+using AutoContext.Engine.Core.Logging;
+using AutoContext.Engine.Protocol.Messages.Logs;
 
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -34,15 +36,19 @@ using Microsoft.Extensions.Logging;
 /// from a replaced process is ignored.
 /// </para>
 /// </remarks>
-internal sealed partial class WorkerProcessService : IHostedService, IDisposable
+internal sealed partial class WorkerProcessService : IHostedService, IDisposable, IWorkerSpawnTracker
 {
+    private const string WorkerStandardErrorCategorySuffix = "engine.stderr";
+
     private bool _disposed;
     private readonly Lock _gate = new();
     private readonly Dictionary<string, WorkerProcessHost> _hosts =
         new(StringComparer.Ordinal);
     private readonly IProcessLauncher<WorkerProcessInfo> _launcher;
+    private readonly LogChannel _logChannel;
     private readonly ILogger<WorkerProcessService> _logger;
     private readonly IWorkerConnectionProbe _probe;
+    private readonly TimeProvider _timeProvider;
     private readonly Func<IReadOnlyList<WorkerProcessInfo>> _workersProcessInfoProvider;
 
     /// <summary>
@@ -57,6 +63,11 @@ internal sealed partial class WorkerProcessService : IHostedService, IDisposable
     /// <param name="launcher">The process-creation seam.</param>
     /// <param name="probe">The readiness seam that confirms a spawned
     /// worker is connectable.</param>
+    /// <param name="logChannel">Ingest channel each spawned worker's
+    /// captured stderr line is written to as a
+    /// <c>worker.&lt;workerId&gt;.engine.stderr</c> record.</param>
+    /// <param name="timeProvider">Clock used to stamp captured-stderr
+    /// records.</param>
     /// <param name="logger">Diagnostic sink.</param>
     /// <exception cref="ArgumentNullException">Any argument is
     /// <see langword="null"/>.</exception>
@@ -64,16 +75,22 @@ internal sealed partial class WorkerProcessService : IHostedService, IDisposable
         Func<IReadOnlyList<WorkerProcessInfo>> workersProcessInfoProvider,
         IProcessLauncher<WorkerProcessInfo> launcher,
         IWorkerConnectionProbe probe,
+        LogChannel logChannel,
+        TimeProvider timeProvider,
         ILogger<WorkerProcessService> logger)
     {
         ArgumentNullException.ThrowIfNull(workersProcessInfoProvider);
         ArgumentNullException.ThrowIfNull(launcher);
         ArgumentNullException.ThrowIfNull(probe);
+        ArgumentNullException.ThrowIfNull(logChannel);
+        ArgumentNullException.ThrowIfNull(timeProvider);
         ArgumentNullException.ThrowIfNull(logger);
 
         _workersProcessInfoProvider = workersProcessInfoProvider;
         _launcher = launcher;
         _probe = probe;
+        _logChannel = logChannel;
+        _timeProvider = timeProvider;
         _logger = logger;
     }
 
@@ -141,6 +158,28 @@ internal sealed partial class WorkerProcessService : IHostedService, IDisposable
     }
 
     /// <summary>
+    /// Reports whether the engine has ever spawned the worker
+    /// identified by <paramref name="workerId"/> during this
+    /// process's lifetime. Backs the <c>Logs.GetWorker</c> /
+    /// <c>Logs.TailWorker</c> not-found decision.
+    /// </summary>
+    /// <param name="workerId">The worker's short id.</param>
+    /// <returns><see langword="true"/> once the worker has been
+    /// spawned at least once; <see langword="false"/> for an unknown
+    /// id or a registered worker that has never been started.</returns>
+    /// <exception cref="ArgumentException"><paramref name="workerId"/>
+    /// is <see langword="null"/> or empty.</exception>
+    public bool HasEverSpawned(string workerId)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(workerId);
+
+        lock (_gate)
+        {
+            return _hosts.TryGetValue(workerId, out var host) && host.HasSpawned;
+        }
+    }
+
+    /// <summary>
     /// Resolves the launch specifications and registers a per-worker host for
     /// each. Reads the worker-manifest side-car through the provider, so a
     /// missing or malformed manifest, or a duplicate worker id, fails host
@@ -169,7 +208,7 @@ internal sealed partial class WorkerProcessService : IHostedService, IDisposable
 
                 if (!_hosts.TryAdd(
                         processInfo.WorkerId,
-                        new WorkerProcessHost(processInfo, _launcher, _probe, _logger)))
+                        new WorkerProcessHost(processInfo, _launcher, _probe, _logChannel, _timeProvider, _logger)))
                 {
                     throw new InvalidOperationException(
                         $"Duplicate worker id '{processInfo.WorkerId}'.");
@@ -200,6 +239,9 @@ internal sealed partial class WorkerProcessService : IHostedService, IDisposable
         cts.Dispose();
     }
 
+    private static string ComposeWorkerStandardErrorCategory(string workerId)
+        => $"worker.{workerId}.{WorkerStandardErrorCategorySuffix}";
+
     private static string FormatExitCode(int? exitCode)
         => exitCode?.ToString(CultureInfo.InvariantCulture) ?? "unknown";
 
@@ -223,10 +265,6 @@ internal sealed partial class WorkerProcessService : IHostedService, IDisposable
         Message = "Worker '{WorkerId}' exited with code {ExitCode}.")]
     private static partial void LogWorkerExited(ILogger logger, string workerId, int? exitCode);
 
-    [LoggerMessage(EventId = 5, Level = LogLevel.Debug,
-        Message = "[{WorkerId}] {Line}")]
-    private static partial void LogWorkerStandardError(ILogger logger, string workerId, string line);
-
     /// <summary>
     /// Per-worker lifecycle owner. Guards the current spawn and coalesces
     /// concurrent callers onto that spawn's ready task. The host is idle
@@ -236,11 +274,31 @@ internal sealed partial class WorkerProcessService : IHostedService, IDisposable
         WorkerProcessInfo processInfo,
         IProcessLauncher<WorkerProcessInfo> launcher,
         IWorkerConnectionProbe probe,
+        LogChannel logChannel,
+        TimeProvider timeProvider,
         ILogger logger) : IDisposable
     {
         private WorkerProcessInstance? _currentInstance;
         private bool _disposed;
         private readonly Lock _gate = new();
+        private bool _hasSpawned;
+
+        /// <summary>
+        /// Whether this host has ever started a spawn during the engine's
+        /// lifetime. Set on the first <see cref="EnsureRunningAsync"/> that
+        /// creates a spawn and never reset — it records "was this worker ever
+        /// launched", which the <c>Logs.GetWorker</c> not-found decision reads.
+        /// </summary>
+        public bool HasSpawned
+        {
+            get
+            {
+                lock (_gate)
+                {
+                    return _hasSpawned;
+                }
+            }
+        }
 
         /// <summary>
         /// Detaches and tears down the current spawn, if any. Idempotent.
@@ -277,12 +335,18 @@ internal sealed partial class WorkerProcessService : IHostedService, IDisposable
             {
                 ObjectDisposedException.ThrowIf(_disposed, this);
 
-                _currentInstance ??= instanceToStart = new WorkerProcessInstance(
-                    this,
-                    processInfo,
-                    launcher,
-                    probe,
-                    logger);
+                if (_currentInstance is null)
+                {
+                    _currentInstance = instanceToStart = new WorkerProcessInstance(
+                        this,
+                        processInfo,
+                        launcher,
+                        probe,
+                        logChannel,
+                        timeProvider,
+                        logger);
+                    _hasSpawned = true;
+                }
 
                 readyTask = _currentInstance.ReadyTask;
             }
@@ -389,6 +453,8 @@ internal sealed partial class WorkerProcessService : IHostedService, IDisposable
         WorkerProcessInfo processInfo,
         IProcessLauncher<WorkerProcessInfo> launcher,
         IWorkerConnectionProbe probe,
+        LogChannel logChannel,
+        TimeProvider timeProvider,
         ILogger logger) : IProcessObserver
     {
         private CancellationTokenSource? _probeCancellationTokenSource = new();
@@ -479,7 +545,19 @@ internal sealed partial class WorkerProcessService : IHostedService, IDisposable
                 return;
             }
 
-            LogWorkerStandardError(logger, processInfo.WorkerId, line);
+            // Route the worker's stderr into the engine log pipeline
+            // under the worker.<id>.engine.stderr category so the
+            // category-prefix router in LogFileSinkService lands it
+            // in this worker's worker-<id>.log alongside its in-band
+            // records — captured stderr is part of the worker's log,
+            // not an engine diagnostic.
+            logChannel.TryWrite(new JsonLogRecord
+            {
+                Timestamp = timeProvider.GetUtcNow(),
+                Category = ComposeWorkerStandardErrorCategory(processInfo.WorkerId),
+                Level = LogLevels.Information,
+                Message = line,
+            });
         }
 
         /// <summary>

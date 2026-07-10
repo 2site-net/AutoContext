@@ -8,11 +8,13 @@ using AutoContext.Engine.Protocol.Messages.Logs;
 using AutoContext.Engine.Protocol.Serialization;
 
 /// <summary>
-/// Forward-pass NDJSON reader over the engine's active
-/// <c>engine.log</c> file. Backs the unary <c>Logs.GetEngine</c>
-/// RPC: applies the request's <c>since</c> / <c>lastN</c> filters,
-/// returns the matching records in chronological order, and
-/// computes the design's <c>truncated</c> flag.
+/// Forward-pass NDJSON reader over the engine's per-instance log
+/// files. Backs the unary <c>Logs.GetEngine</c> (over the active
+/// <c>engine.log</c>) and <c>Logs.GetWorker</c> (over a worker's
+/// active <c>worker-&lt;workerId&gt;.log</c>) RPCs: applies the
+/// request's <c>since</c> / <c>lastN</c> filters, returns the
+/// matching records in chronological order, and computes the
+/// design's <c>truncated</c> flag.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -94,16 +96,11 @@ internal sealed class EngineLogFileReader
     /// <exception cref="ArgumentOutOfRangeException">
     /// <paramref name="parameters"/>'s <c>LastN</c> is negative.
     /// </exception>
-    [SuppressMessage(
-        "Design",
-        "CA1031:Do not catch general exception types",
-        Justification = "Per-line JSON parse failures (partial flushes, malformed bytes) are dropped and the read continues — one corrupt line must not abort the entire snapshot.")]
-    public async Task<EngineLogReadResult> ReadAsync(
+    public Task<EngineLogReadResult> ReadAsync(
         JsonLogsGetEngineParams? parameters,
         CancellationToken cancellationToken)
     {
         var lastN = parameters?.LastN;
-        var since = parameters?.Since;
 
         if (lastN is < 0)
         {
@@ -113,6 +110,60 @@ internal sealed class EngineLogFileReader
                 "LastN must be non-negative.");
         }
 
+        return ReadFileAsync(
+            _cacheLayout.EngineLogFilePath, lastN, parameters?.Since, cancellationToken);
+    }
+
+    /// <summary>
+    /// Reads a worker's active <c>worker-&lt;workerId&gt;.log</c>,
+    /// applies the request's filters, and returns the matching
+    /// records together with the truncated flag. A missing worker
+    /// log file is treated as <see cref="EngineLogReadResult.Empty"/>
+    /// — a spawned worker that has not logged yet has no file, which
+    /// the <c>Logs.GetWorker</c> handler surfaces as an <c>ok</c>
+    /// result with empty records (distinct from the <c>not-found</c>
+    /// arm it returns for a never-spawned worker).
+    /// </summary>
+    /// <param name="workerId">Identifier of the worker whose log
+    /// file to read. Must be non-empty.</param>
+    /// <param name="parameters">Optional request filters.
+    /// <see langword="null"/> means "no filters".</param>
+    /// <param name="cancellationToken">Cancels the read.</param>
+    /// <returns>Ordered records satisfying the filter and the
+    /// associated truncation flag.</returns>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="workerId"/> is <see langword="null"/> or empty.
+    /// </exception>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// <paramref name="parameters"/>'s <c>LastN</c> is negative.
+    /// </exception>
+    public Task<EngineLogReadResult> ReadWorkerAsync(
+        string workerId,
+        JsonLogsGetWorkerParams? parameters,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(workerId);
+
+        var lastN = parameters?.LastN;
+
+        if (lastN is < 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(parameters),
+                lastN,
+                "LastN must be non-negative.");
+        }
+
+        return ReadFileAsync(
+            _cacheLayout.WorkerLogFilePath(workerId), lastN, parameters?.Since, cancellationToken);
+    }
+
+    private static async Task<EngineLogReadResult> ReadFileAsync(
+        string path,
+        int? lastN,
+        DateTimeOffset? since,
+        CancellationToken cancellationToken)
+    {
         if (lastN == 0)
         {
             // The truncated flag is still meaningful — a caller
@@ -129,6 +180,7 @@ internal sealed class EngineLogFileReader
             }
 
             var (_, probedTruncated) = await ReadRecordsAsync(
+                    path,
                     since,
                     stopAfterFirstRecord: true,
                     cancellationToken)
@@ -138,6 +190,7 @@ internal sealed class EngineLogFileReader
         }
 
         var (allRecords, truncatedFlag) = await ReadRecordsAsync(
+                path,
                 since,
                 stopAfterFirstRecord: false,
                 cancellationToken)
@@ -166,12 +219,12 @@ internal sealed class EngineLogFileReader
         "Reliability",
         "CA2000:Dispose objects before losing scope",
         Justification = "The FileStream is owned by the surrounding await-using block and is disposed deterministically; the analyzer cannot model the ConfigureAwait wrapper pattern.")]
-    private async Task<(List<JsonLogRecord> Records, bool Truncated)> ReadRecordsAsync(
+    private static async Task<(List<JsonLogRecord> Records, bool Truncated)> ReadRecordsAsync(
+        string path,
         DateTimeOffset? since,
         bool stopAfterFirstRecord,
         CancellationToken cancellationToken)
     {
-        var path = _cacheLayout.EngineLogFilePath;
         if (!File.Exists(path))
         {
             return ([], false);
