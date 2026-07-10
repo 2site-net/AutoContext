@@ -653,7 +653,10 @@ function Test-DotNet {
     if ($PSCmdlet.ShouldProcess($Context.SolutionFile.Name, 'dotnet test --no-build (unit)')) {
         Assert-ExternalCommand 'dotnet'
 
-        dotnet test $Context.SolutionFile.FullName -c Release --no-build --filter 'Category!=Smoke'
+        # `--logger console;verbosity=normal` prints each failed test's
+        # error message and stack trace inline; without it the default
+        # runner reports only a pass/fail count, hiding why a test failed.
+        dotnet test $Context.SolutionFile.FullName -c Release --no-build --filter 'Category!=Smoke' --logger 'console;verbosity=normal'
         if ($LASTEXITCODE -ne 0) { throw '.NET tests failed.' }
         Write-Status '.NET tests passed' 'OK'
     }
@@ -712,7 +715,10 @@ function Test-DotNetSmoke {
         Assert-ExternalCommand 'dotnet'
 
         foreach ($project in $smokeTestProjects) {
-            dotnet test $project.FullName -c Release --no-build --filter 'Category=Smoke'
+            # `--logger console;verbosity=normal` surfaces each failed
+            # test's error message and stack trace inline (smoke failures
+            # are otherwise reported only as a bare count).
+            dotnet test $project.FullName -c Release --no-build --filter 'Category=Smoke' --logger 'console;verbosity=normal'
             if ($LASTEXITCODE -ne 0) { throw ".NET smoke tests failed ($($project.Name))." }
         }
 
