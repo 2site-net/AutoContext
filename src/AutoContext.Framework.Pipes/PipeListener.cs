@@ -66,15 +66,25 @@ public sealed class PipeListener
     /// <summary>
     /// Claims the pipe address by constructing the first
     /// <see cref="NamedPipeServerStream"/>. One-shot — subsequent
-    /// calls throw.
+    /// calls throw. The initial instance is created with
+    /// <see cref="PipeOptions.FirstPipeInstance"/>, so if another
+    /// process already owns this pipe name the bind fails fast
+    /// (the OS denies the duplicate first-instance claim) instead of
+    /// silently adding a second server instance — which would split
+    /// client connections across two owners. The accept loop's
+    /// replenishment instances in <see cref="BoundPipeListener"/>
+    /// deliberately omit the flag — they are additional instances of
+    /// a name this process already owns.
     /// </summary>
     /// <exception cref="InvalidOperationException">
     /// <see cref="Bind"/> has already been invoked on this listener.
     /// </exception>
-    /// <exception cref="IOException">The pipe address is already in
-    /// use or the OS rejected the bind.</exception>
-    /// <exception cref="UnauthorizedAccessException">The current
-    /// principal lacks permission to create the pipe.</exception>
+    /// <exception cref="UnauthorizedAccessException">Another process
+    /// already owns this pipe name (the first-instance claim is
+    /// denied), or the current principal lacks permission to create
+    /// the pipe — the OS reports both as access-denied.</exception>
+    /// <exception cref="IOException">The OS otherwise rejected the
+    /// bind.</exception>
     public BoundPipeListener Bind()
     {
         if (Interlocked.Exchange(ref _bound, 1) != 0)
@@ -83,12 +93,16 @@ public sealed class PipeListener
                 $"Pipe listener for '{_pipeName}' has already been bound.");
         }
 
+        // FirstPipeInstance makes this the exclusive owner of the name:
+        // a second process attempting the same bind fails rather than
+        // becoming a rival server instance the OS would round-robin
+        // client connects across.
         var pipe = new NamedPipeServerStream(
             _pipeName,
             PipeDirection.InOut,
             _maxInstances,
             PipeTransmissionMode.Byte,
-            PipeOptions.Asynchronous);
+            PipeOptions.Asynchronous | PipeOptions.FirstPipeInstance);
 
         return new BoundPipeListener(_pipeName, _maxInstances, pipe, _logger);
     }

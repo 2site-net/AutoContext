@@ -46,6 +46,27 @@ public sealed class PipeListenerTests
     }
 
     [Fact]
+    public async Task Should_reject_a_second_bind_on_the_same_pipe_name()
+    {
+        // A distinct listener binding a name another instance already
+        // owns must fail fast (FirstPipeInstance), rather than becoming a
+        // rival server instance the OS would split client connects across.
+        var name = PipeTestServer.UniqueName("actx-pl-test");
+        var first = new PipeListener(name, NullLogger<PipeListener>.Instance);
+        var bound = first.Bind();
+
+        try
+        {
+            var second = new PipeListener(name, NullLogger<PipeListener>.Instance);
+            Assert.Throws<UnauthorizedAccessException>(second.Bind);
+        }
+        finally
+        {
+            await bound.DisposeAsync();
+        }
+    }
+
+    [Fact]
     public async Task Should_invoke_handler_for_every_accepted_connection()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
