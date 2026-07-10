@@ -37,12 +37,18 @@ using Microsoft.Extensions.Logging;
 public sealed partial class BoundPipeListener : IAsyncDisposable
 {
     /// <summary>
-    /// Number of overlapping accepts to keep in flight. Two is the
-    /// minimum that guarantees a listening instance survives every
-    /// re-arm: while one accepted instance is being replaced, the other
-    /// is still listening.
+    /// Number of overlapping accepts to keep pre-armed and listening.
+    /// Two is the minimum that survives a single re-arm (while one
+    /// accepted instance is being replaced another is still listening),
+    /// but the re-arm is reactive — a thread-pool continuation scheduled
+    /// after a connection is accepted — so under CPU starvation it can
+    /// lag behind a burst of rapid sequential connects, draining the pool
+    /// to zero and making a client see <c>ERROR_PIPE_BUSY</c>. A deeper
+    /// backlog keeps enough instances pre-armed that a realistic connect
+    /// burst is served entirely from the pool even if every re-arm is
+    /// delayed.
     /// </summary>
-    private const int DefaultAcceptBacklog = 2;
+    private const int DefaultAcceptBacklog = 4;
 
     private readonly string _pipeName;
     private readonly int _maxInstances;
@@ -136,12 +142,16 @@ public sealed partial class BoundPipeListener : IAsyncDisposable
                     continue;
                 }
 
-                connections.Add(InvokeHandlerAsync(pipe, connectionHandler, cancellationToken));
-
+                // Re-arm the replacement instance BEFORE dispatching the
+                // handler so the listening pool is topped up before any
+                // per-connection work runs — the accept path never waits
+                // on handler progress.
                 if (!acceptToken.IsCancellationRequested)
                 {
                     accepts.Add(AcceptAsync(acceptToken));
                 }
+
+                connections.Add(InvokeHandlerAsync(pipe, connectionHandler, cancellationToken));
             }
         }
         finally
