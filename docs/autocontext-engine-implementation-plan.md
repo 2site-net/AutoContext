@@ -445,8 +445,8 @@ src/
       LogVerbosity.cs                          # rotation-selector enum (Normal / Debug / Verbose)
       RotatedLogCleaner.cs                     # deletes rotated log files past retention inside a live subtree (uses Logging/RetentionPolicy)
       RetentionPolicy.cs                       # single reader of `--retention` — resolves the retention window (per-entry, unregistered-fallback, foreign); shared with Machine/Housekeeping/
-      EngineLogFileReader.cs                   # forward-pass NDJSON reader over engine.log with since / lastN filtering (backs Logs.GetEngine)
-      EngineLogReadResult.cs                   # output record (Records, Truncated) of EngineLogFileReader.ReadAsync
+      LogFileReader.cs                         # forward-pass NDJSON reader over the engine's per-instance log files with since / lastN filtering (backs Logs.GetEngine + Logs.GetWorker)
+      EngineLogReadResult.cs                   # output record (Records, Truncated) of LogFileReader.ReadAsync
       LogFrameStream.cs                        # BroadcasterFrameStream<JsonLogRecord, JsonLogStreamFrame> (IBroadcasterFrameStream impl) for Logs.Tail*: drains a BroadcasterSubscription<JsonLogRecord> (fanned out by LogFileSinkService over the shared Infrastructure/Events/Broadcaster<T>) and yields record/dropped frames
       # Logs.{GetEngine,TailEngine} are served by Rpc/Handlers/LogsRpcHandler.cs (Logs.{GetWorker,TailWorker} not yet built)
     Workspace/                                 # workspace-scoped state — everything keyed by the current workspace root
@@ -2546,7 +2546,7 @@ the engine is briefly unreachable.
   appenders; `EngineCacheLayout` gains a `WorkerLogFilePath(workerId)`
   resolver; the shared `Broadcaster<JsonLogRecord>` already fans out to
   the `logs` pipe, so `Logs.TailEngine`/`TailWorker` filter by
-  `category`; a worker-log reader (mirroring `EngineLogFileReader`)
+  `category`; a worker-log reader (mirroring `LogFileReader`)
   backs `Logs.GetWorker`.
 - **Prelude — inbound fire-and-forget notification support (row 2).**
   `Engine.WriteLog` is a true JSON-RPC 2.0 notification (no `id`, no
@@ -2566,7 +2566,7 @@ the engine is briefly unreachable.
   are policy-level), and log **ingest** (producer; notification; no
   response; depends only on `LogChannel`) is a distinct capability from
   log **read** (`LogsRpcHandler` — consumer; request/response +
-  streaming; depends on `EngineLogFileReader` + the logs broadcaster).
+  streaming; depends on `LogFileReader` + the logs broadcaster).
   The handler stays paper-thin (P1): deserialise `JsonLogRecord`,
   enqueue into `LogChannel`, return the no-response outcome. Routing by
   `category` prefix is downstream in `LogFileSinkService`; `LogChannel`

@@ -39,7 +39,7 @@ internal static class DispatchPolicyTestFactory
     public static DispatchPolicy Create(
         IHostApplicationLifetime lifetime,
         RegistryFileReader? registryReader = null,
-        EngineLogFileReader? logFileReader = null,
+        LogFileReader? logFileReader = null,
         Broadcaster<JsonLogRecord>? logsBroadcaster = null,
         IWorkerSpawnTracker? workerSpawnTracker = null,
         IConfigSnapshotAccessor? configAccessor = null,

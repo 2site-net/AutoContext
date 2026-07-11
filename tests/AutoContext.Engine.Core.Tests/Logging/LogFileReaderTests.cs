@@ -12,7 +12,7 @@ using AutoContext.Engine.Protocol.Serialization;
 
 using Microsoft.Extensions.Options;
 
-public sealed class EngineLogFileReaderTests : IDisposable
+public sealed class LogFileReaderTests : IDisposable
 {
     private readonly string _cacheRoot = EngineCrashWriterFixture.CreateTempCacheRoot();
 
@@ -27,7 +27,7 @@ public sealed class EngineLogFileReaderTests : IDisposable
     [Fact]
     public void Should_throw_when_constructed_with_null_paths()
     {
-        Assert.Throws<ArgumentNullException>(() => new EngineLogFileReader(null!));
+        Assert.Throws<ArgumentNullException>(() => new LogFileReader(null!));
     }
 
     [Fact]
@@ -250,18 +250,18 @@ public sealed class EngineLogFileReaderTests : IDisposable
                 cancellationToken: TestContext.Current.CancellationToken));
     }
 
-    private (EngineLogFileReader Reader, string FilePath) CreateReader()
+    private (LogFileReader Reader, string FilePath) CreateReader()
     {
         var options = EngineCrashWriterFixture.CreateOptions(_cacheRoot);
         var paths = EngineCacheLayoutTestFactory.Create(options);
-        return (new EngineLogFileReader(paths), paths.EngineLogFilePath);
+        return (new LogFileReader(paths), paths.EngineLogFilePath);
     }
 
-    private (EngineLogFileReader Reader, string WorkerFilePath) CreateWorkerReader(string workerId)
+    private (LogFileReader Reader, string WorkerFilePath) CreateWorkerReader(string workerId)
     {
         var options = EngineCrashWriterFixture.CreateOptions(_cacheRoot);
         var paths = EngineCacheLayoutTestFactory.Create(options);
-        return (new EngineLogFileReader(paths), paths.WorkerLogFilePath(workerId));
+        return (new LogFileReader(paths), paths.WorkerLogFilePath(workerId));
     }
 
     private static JsonLogRecord CreateRecord(DateTimeOffset timestamp, string message) =>

@@ -64,7 +64,7 @@ public sealed class EndpointHostServiceFixture : IAsyncDisposable
         var instanceGuard = new FakeUniqueInstanceGuard();
         var logsBroadcaster = new Broadcaster<JsonLogRecord>(
             NullLogger<Broadcaster<JsonLogRecord>>.Instance, "logs-pipe");
-        var logFileReader = new EngineLogFileReader(
+        var logFileReader = new LogFileReader(
             EngineCacheLayoutTestFactory.Create(resolvedOptions));
         var dispatchPolicy = CreateDispatchPolicy(
             lifetime, reader, logFileReader, logsBroadcaster);
@@ -113,7 +113,7 @@ public sealed class EndpointHostServiceFixture : IAsyncDisposable
     internal static DispatchPolicy CreateDispatchPolicy(
         IHostApplicationLifetime lifetime,
         RegistryFileReader? registryReader = null,
-        EngineLogFileReader? logFileReader = null,
+        LogFileReader? logFileReader = null,
         Broadcaster<JsonLogRecord>? logsBroadcaster = null,
         IWorkerSpawnTracker? workerSpawnTracker = null) =>
         new(
@@ -321,7 +321,7 @@ public sealed class EndpointHostServiceFixture : IAsyncDisposable
     internal static Broadcaster<JsonLogRecord> CreateLogsBroadcaster() =>
         new(NullLogger<Broadcaster<JsonLogRecord>>.Instance, "logs-pipe");
 
-    internal static EngineLogFileReader CreateLogFileReader(EngineOptions? options = null) =>
+    internal static LogFileReader CreateLogFileReader(EngineOptions? options = null) =>
         new(EngineCacheLayoutTestFactory.Create(options ?? CreateOptions()));
 
     [SuppressMessage(

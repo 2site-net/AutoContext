@@ -30,7 +30,7 @@ using Microsoft.Extensions.Logging;
 /// </summary>
 internal sealed partial class LogsRpcHandler : IRpcMethodHandler
 {
-    private readonly EngineLogFileReader _logFileReader;
+    private readonly LogFileReader _logFileReader;
     private readonly LogFrameStream _logFrameStream = new();
     private readonly ILogger<LogsRpcHandler> _logger;
     private readonly Broadcaster<JsonLogRecord> _logsBroadcaster;
@@ -41,7 +41,7 @@ internal sealed partial class LogsRpcHandler : IRpcMethodHandler
     /// class.
     /// </summary>
     public LogsRpcHandler(
-        EngineLogFileReader logFileReader,
+        LogFileReader logFileReader,
         Broadcaster<JsonLogRecord> logsBroadcaster,
         IWorkerSpawnTracker workerSpawnTracker,
         ILogger<LogsRpcHandler> logger)

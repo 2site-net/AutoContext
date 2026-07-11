@@ -47,12 +47,12 @@ using AutoContext.Engine.Protocol.Serialization;
 /// result truncated.
 /// </para>
 /// </remarks>
-internal sealed class EngineLogFileReader
+internal sealed class LogFileReader
 {
     private readonly EngineCacheLayout _cacheLayout;
 
     /// <summary>
-    /// Creates a new <see cref="EngineLogFileReader"/> targeted at
+    /// Creates a new <see cref="LogFileReader"/> targeted at
     /// the engine log file resolved by <paramref name="cacheLayout"/>.
     /// </summary>
     /// <param name="cacheLayout">Resolved engine cache-root layout
@@ -61,7 +61,7 @@ internal sealed class EngineLogFileReader
     /// <exception cref="ArgumentNullException">
     /// <paramref name="cacheLayout"/> is <see langword="null"/>.
     /// </exception>
-    public EngineLogFileReader(EngineCacheLayout cacheLayout)
+    public LogFileReader(EngineCacheLayout cacheLayout)
     {
         ArgumentNullException.ThrowIfNull(cacheLayout);
         _cacheLayout = cacheLayout;

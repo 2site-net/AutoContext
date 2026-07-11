@@ -123,7 +123,7 @@ public static class EngineHostBuilderExtensions
 
         // Forward-pass NDJSON reader over the active engine.log,
         // consumed by the Logs.GetEngine RPC handler.
-        builder.Services.TryAddSingleton<EngineLogFileReader>();
+        builder.Services.TryAddSingleton<LogFileReader>();
 
         // Rotation + retention support for the file sink. The
         // thresholds factory pins itself to the resolved
