@@ -1,6 +1,5 @@
 namespace AutoContext.Mcp.Server;
 
-using AutoContext.Framework.Logging;
 using AutoContext.Framework.Pipes;
 using AutoContext.Mcp.Server.Config;
 using AutoContext.Mcp.Server.EditorConfig;
@@ -68,9 +67,6 @@ using Microsoft.Extensions.Logging;
 /// </remarks>
 internal static partial class Program
 {
-    /// <summary>Logging client name reported to the extension's LogServer.</summary>
-    internal const string LogClientName = "AutoContext.Mcp.Server";
-
     /// <summary>
     /// Stable identifier this process announces over the
     /// health-monitor pipe. Must match the <c>id</c> the extension's
@@ -98,7 +94,6 @@ internal static partial class Program
         var addresses = new ServiceAddressOptions { InstanceId = instanceId };
         var services = ParseServiceSwitches(args);
 
-        var logServiceAddress = services.TryGetValue(LogServiceRole, out var logAddr) ? logAddr : null;
         var healthMonitorServiceAddress = services.TryGetValue(HealthMonitorServiceRole, out var healthAddr) ? healthAddr : null;
         var workerControlServiceAddress = services.TryGetValue(WorkerControlServiceRole, out var ctrlAddr) ? ctrlAddr : null;
         var extensionConfigServiceAddress = services.TryGetValue(ExtensionConfigServiceRole, out var cfgAddr) ? cfgAddr : null;
@@ -127,17 +122,13 @@ internal static partial class Program
 
         var builder = Host.CreateApplicationBuilder(args);
 
-        // Stream structured log records over the extension's LogServer
-        // pipe when --service log=<address> is supplied (so Mcp.Server
-        // logs land in their own AutoContext Output channel alongside
-        // the workers). LoggingClient automatically falls back to
-        // stderr when the address is null/empty (standalone / smoke
-        // runs), so this wiring is safe regardless of how the process
-        // is launched.
+        // The legacy worker→extension LogServer sideband is gone; this
+        // standalone MCP server (retired once the engine's --mcp-server role
+        // lands) logs to stderr, where the parent's stderr handler and the
+        // smoke-test harness pick records up.
         builder.Logging.ClearProviders();
-        builder.Logging.SetMinimumLevel(LogLevel.Trace);
-        builder.Services.AddSingleton(_ => new LoggingClient(logServiceAddress, LogClientName));
-        builder.Services.AddSingleton<ILoggerProvider, PipeLoggerProvider>();
+        builder.Logging.AddConsole(options => options.LogToStandardErrorThreshold = LogLevel.Trace);
+        builder.Logging.SetMinimumLevel(LogLevel.Warning);
 
         // Liveness signal to the extension's HealthMonitorServer. The
         // hosted-service contract handles startup/shutdown wiring; the

@@ -1,12 +1,12 @@
-namespace AutoContext.Framework.Logging;
+namespace AutoContext.Workers.Core;
 
 /// <summary>
 /// Process-wide holder for the per-invocation correlation id sent on
 /// every <c>TaskRequest</c>. Set by callers (e.g. the worker-side MCP
-/// tool service) for the duration of a task dispatch and read by
-/// <see cref="PipeLogger"/> at log-emission time so every
-/// <see cref="LogEntry"/> carries the id without requiring callers to
-/// thread it through their <c>ILogger</c> APIs.
+/// tool service) for the duration of a task dispatch and read by the
+/// worker's logger at log-emission time so every emitted record can
+/// carry the id without requiring callers to thread it through their
+/// <c>ILogger</c> APIs.
 /// </summary>
 /// <remarks>
 /// Implemented over <see cref="AsyncLocal{T}"/> so the scope is bound

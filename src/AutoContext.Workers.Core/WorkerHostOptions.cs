@@ -33,15 +33,6 @@ public sealed class WorkerHostOptions
     public string ReadyMarker { get; init; } = string.Empty;
 
     /// <summary>
-    /// Optional service address (<c>autocontext.log#&lt;instance-id&gt;</c>)
-    /// the worker connects to for streaming structured log records
-    /// (NDJSON) to the parent process. When empty (standalone runs, or
-    /// the parent did not pass <c>--service log=...</c>) log output
-    /// falls back to stderr.
-    /// </summary>
-    public string LogServiceAddress { get; init; } = string.Empty;
-
-    /// <summary>
     /// Optional service address
     /// (<c>autocontext.health-monitor#&lt;instance-id&gt;</c>) the worker
     /// connects to on startup to announce its presence to the

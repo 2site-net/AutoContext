@@ -213,7 +213,6 @@ other reason still need a real second impl.
 - **Test-project layout** mirrors the library layout (design §
   *Project layout*) one-to-one:
   `AutoContext.Framework.Pipes.Tests`,
-  `AutoContext.Framework.Logging.Tests`,
   `AutoContext.Engine.Protocol.Tests`,
   `AutoContext.Workers.Core.Tests`,
   `AutoContext.Engine.Core.Tests` (absorbs today's
@@ -249,13 +248,13 @@ rollout owns end-to-end:
 
 - `AutoContext.Framework.Pipes/` — pipe transport primitives (split
   out of today's `AutoContext.Framework`).
-- `AutoContext.Framework.Logging/` — worker-side logger providers:
-  `EngineLoggerProvider` (the seam that funnels `ILogger<T>` into
-  `Engine.WriteLog`) plus the legacy sideband sink it eventually
-  replaces. Folds in the four logging files from today's
-  `AutoContext.Worker.Shared`. The canonical wire log envelope
-  (`LogRecord`) lives in `Framework.Protocol/` alongside every other
-  cross-side DTO.
+- `AutoContext.Framework.Logging/` — *retired in Phase 8.* Held the
+  legacy worker→extension sideband sink plus the `CorrelationScope`
+  helper; the sideband was deleted and `CorrelationScope` moved into
+  `AutoContext.Workers.Core` (next to its only consumer), emptying the
+  project. The worker→engine log sender lives in
+  `AutoContext.Workers.Core/Logging/`, and the canonical wire log
+  envelope (`LogRecord`) is owned by `AutoContext.Engine.Protocol`.
 - `AutoContext.Engine.Protocol/` — cross-side DTOs (the wire
   contract every RPC handler and typed dialer client marshals,
   including the canonical `LogRecord` envelope).
@@ -318,20 +317,6 @@ src/
     PipeTransientExchangeClient.cs
     IPipeExchangeClient.cs
 
-  AutoContext.Framework.Logging/               # general logging helpers — a clean framework leaf (refs Framework.Pipes only; NO Engine.* dependency). The wire log envelope (JsonLogRecord) is owned by Engine.Protocol; the worker→engine log sender lives in AutoContext.Workers.Core.
-    AutoContext.Framework.Logging.csproj
-    CorrelationScope.cs
-    # Legacy sideband sink (worker→extension LogServer path). Deleted in
-    # Phase 8 once Engine.WriteLog (via AutoContext.Workers.Core) is the only
-    # worker→engine log path:
-    LogEntry.cs
-    JsonLogEntry.cs
-    PipeLogger.cs
-    PipeLoggerProvider.cs
-    LoggingClient.cs
-    JsonLogGreeting.cs
-    LogServerJsonContext.cs
-
   AutoContext.Engine.Protocol/              # cross-side DTOs + endpoint shapes (leaf — no references)
     AutoContext.Engine.Protocol.csproj
     EndpointKind.cs                            # enum { Rpc, Events, Health, Logs } — the four logical channels per (workspace, launcher instance)
@@ -365,14 +350,15 @@ src/
     Serialization/
       ProtocolJsonContext.cs                   # source-generated System.Text.Json context for every DTO above
 
-  AutoContext.Workers.Core/                    # worker-side runtime substrate: task contract + hosted services workers compose into their IHostBuilder, plus the worker→engine log sender. Refs Framework.Pipes + Framework.Logging + Engine.Protocol (it dials the engine, so depending on the wire contract is correct). Renamed from AutoContext.Framework.Workers.
+  AutoContext.Workers.Core/                    # worker-side runtime substrate: task contract + hosted services workers compose into their IHostBuilder, plus the worker→engine log sender. Refs Framework.Pipes + Engine.Protocol (it dials the engine, so depending on the wire contract is correct). Renamed from AutoContext.Framework.Workers.
     AutoContext.Workers.Core.csproj
     IMcpTask.cs                                # folded in from Mcp.Abstractions/
     WorkerHostBuilderExtensions.cs             # folded in from Worker.Shared/Hosting/
     WorkerTaskDispatcherService.cs             # moved from AutoContext.Framework/Workers/
     WorkerHostOptions.cs                       # moved from AutoContext.Framework/Workers/
     WorkerHealthMonitorService.cs              # hosted service that keeps the engine's health pipe connection open for the lifetime of the worker host
-    Logging/                                   # Phase 8 — worker→engine log sender (folded from the old Worker.Shared/Logging; replaces the Framework.Logging legacy sideband)
+    CorrelationScope.cs                        # per-dispatch ambient correlation id (AsyncLocal); moved from the retired Framework.Logging in Phase 8
+    Logging/                                   # Phase 8 — worker→engine log sender (folded from the old Worker.Shared/Logging; replaces the retired Framework.Logging legacy sideband)
       AddEngineLoggerProvider.cs               # wires the worker-side engine logger provider onto the host
       EngineLoggerProvider.cs                  # `ILoggerProvider` that marshals ILogger<T> records and dials Engine.WriteLog
       EngineLogIngestRing.cs                   # bounded in-memory ring (drop-oldest) + stderr drop fallback
@@ -674,9 +660,8 @@ src/
 
   tests/
     AutoContext.Framework.Pipes.Tests/         # transport primitives — listener, codec, keep-alive, exchange/streaming triad
-    AutoContext.Framework.Logging.Tests/       # CorrelationScope + legacy sideband sink (deleted with it in Phase 8)
     AutoContext.Engine.Protocol.Tests/      # DTO envelope round-trips (including LogRecord), endpoint builder, source-generated JSON contexts
-    AutoContext.Workers.Core.Tests/            # IMcpTask, WorkerHostBuilderExtensions, WorkerTaskDispatcherService, WorkerHealthMonitorService, worker→engine log sender
+    AutoContext.Workers.Core.Tests/            # IMcpTask, WorkerHostBuilderExtensions, WorkerTaskDispatcherService, WorkerHealthMonitorService, CorrelationScope, worker→engine log sender
     AutoContext.Engine.Core.Tests/             # engine-internal services + every RPC handler + lifecycle + watchdogs
     AutoContext.Client.Core.Tests/             # typed RPC clients, subscription consumers, find-or-spawn flow
     AutoContext.Engine.Tests/                  # binary-host integration: argv parser, role split, ready-marker, end-to-end spawn
@@ -745,8 +730,10 @@ codebase's vertical-feature folder axis.
 >   this tree are authoritative. The worker→engine log sender
 >   (`AddEngineLoggerProvider` + `EngineLoggerProvider` +
 >   `EngineLogIngestRing` + `EngineWriteLogClient`) lives in
->   `Workers.Core/Logging/`, **not** `Framework.Logging` — which stays a
->   clean framework leaf with no `Engine.*` dependency.
+>   `Workers.Core/Logging/`, **not** `Framework.Logging`. `Framework.Logging`
+>   itself was retired in Phase 8: after its legacy sideband was deleted it
+>   held only `CorrelationScope`, which moved into `Workers.Core`, so the
+>   emptied project (and its test project) were removed.
 
 ### Runtime bundle layout (shipped artefact)
 
@@ -2478,7 +2465,7 @@ reuses these same handlers).
 | 2 | `feat(engine-core): serve Engine.WriteLog as a fire-and-forget notification routed by category to per-worker logs` | DONE |
 | 3 | `feat(workers-core): add worker→engine log sender with bounded ring and stderr drop fallback` | DONE |
 | 4 | `feat(engine): serve Logs.GetWorker and TailWorker and capture worker stderr` | DONE |
-| 5 | `refactor(framework-logging): delete the legacy worker→extension sideband sink` | TODO |
+| 5 | `refactor(framework-logging): delete the legacy worker→extension sideband sink` | DONE |
 | 6 | `docs(plan): mark Phase 8 complete` | TODO |
 
 **Commit grouping.** The ladder collapses the twelve fine-grained steps
@@ -2515,8 +2502,9 @@ depends on: `AutoContext.Framework.Workers` was renamed to
 `AutoContext.slnx`, and the `AutoContext.Workers.Core.Tests` test
 project), so a `Framework.*` project no longer depends on `Engine.*`.
 The worker-side log sender (row 3) therefore lands in
-`Workers.Core/Logging/`, and `Framework.Logging` stays a clean framework
-leaf that only sheds its legacy sideband (row 5). Verified green via
+`Workers.Core/Logging/`, and `Framework.Logging` sheds its legacy sideband
+in row 5 (which then also moves `CorrelationScope` to `Workers.Core` and
+retires the emptied project). Verified green via
 `.\build.ps1` (both stacks). See the *Renames since this plan was first
 written* map above.
 
@@ -2592,13 +2580,16 @@ the engine is briefly unreachable.
   (extends its `Methods` set) — `not-found` discriminated envelope
   distinguishes "this `workerId` was never spawned" from empty
   `records`.
-- **Delete the `Framework.Logging` legacy sideband** (row 5):
-  `PipeLogger`, `PipeLoggerProvider`, `LoggingClient`, `LogEntry`,
+- **Delete the `Framework.Logging` legacy sideband and retire the project**
+  (row 5): `PipeLogger`, `PipeLoggerProvider`, `LoggingClient`, `LogEntry`,
   `JsonLogEntry`, `LogServerJsonContext`, `JsonLogGreeting` — the
   worker→extension `LogServer` path is replaced wholesale by
-  `Engine.WriteLog`. `Framework.Logging` is left holding only its
-  general helpers (e.g. `CorrelationScope`) and stays a clean framework
-  leaf.
+  `Engine.WriteLog`. Row 5 also swaps the worker host onto
+  `AddEngineLoggerProvider` (the engine derives its own `rpc` address and
+  hands it to each spawned worker as `--service log=<address>`), and moves
+  the surviving `CorrelationScope` helper into `AutoContext.Workers.Core`
+  next to its only consumer — emptying and deleting the `Framework.Logging`
+  and `Framework.Logging.Tests` projects.
 
 **Tests**:
 - Worker `ILogger<T>` record arrives in the right per-worker log
@@ -2746,7 +2737,7 @@ share the engine's wire contract.
   binary uses internally (`EngineClient` typed-RPC surface,
   four-pipe dialer, cold-start-or-attach resolver, subscription
   consumers, `IEngineSpawner`). References `Framework.Pipes` +
-  `Framework.Logging` + `Framework.Protocol`. Consumers:
+  `Framework.Protocol`. Consumers:
   `AutoContext.CommandLine` and third-party .NET embedders that
   want CLI-shaped behaviour in-process. See
   [`autocontext-cli.md`](future/autocontext-cli.md) for the
@@ -2776,7 +2767,7 @@ share the engine's wire contract.
     `Engine.Lifecycle`, `Engine.RegistryEntries`,
     `Engine.Shutdown`. Note: `Engine.WriteLog` is **not** exposed
     on `Client.Core`'s typed surface — it is a worker→engine
-    notification owned by `Framework.Logging`
+    notification owned by `Workers.Core`
     (`EngineWriteLogClient` + `AddEngineLoggerProvider`); the wire
     DTO itself lives in `Framework.Protocol` so both sides marshal
     the same envelope.

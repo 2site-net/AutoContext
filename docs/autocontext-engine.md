@@ -443,26 +443,23 @@ four sub-projects, by namespace:
   unchanged. `EngineDaemonManager` (the only shared TS class — see
   `## Sharing principle`) and the engine's own pipe host both sit
   on top of this project.
-- **`AutoContext.Framework.Logging`** — a **clean framework leaf**:
-  general logging helpers (e.g. `CorrelationScope`) plus, transitionally,
-  the legacy sideband sink. It references `Framework.Pipes` only and
-  **must never depend on `Engine.*`** — the one-way dependency rule the
-  whole substrate obeys (`Framework.* → Engine.*` is forbidden). The
-  canonical wire log envelope (`LogRecord` / `JsonLogRecord`) is owned
-  by `AutoContext.Engine.Protocol`, not here. Today's `LogEntry` /
-  `JsonLogEntry` carry `(Category, Level, Message, Exception,
-  CorrelationId)` and ship via `PipeLoggerProvider` / `LoggingClient`
-  to the extension's `LogServer`. Under the engine design that
-  direction reverses — the engine binds the `logs` pipe and workers
-  ship to it via `Engine.WriteLog` — but the worker-side sender that
-  does so (`AddEngineLoggerProvider` / `EngineLoggerProvider` /
-  `EngineLogIngestRing` / `EngineWriteLogClient`) lives in
-  `AutoContext.Workers.Core`, because marshalling `JsonLogRecord`
-  requires `Engine.Protocol` — a dependency `Framework.Logging` is not
-  allowed to take. The legacy sideband sink here is deleted in Phase 8
-  of the implementation plan once `Engine.WriteLog` is the only path
-  workers use to publish records, leaving `Framework.Logging` holding
-  only its general helpers.
+- **`AutoContext.Framework.Logging`** — *retired in Phase 8.* This
+  project transitionally held the legacy worker→extension sideband
+  sink — `LogEntry` / `JsonLogEntry` `(Category, Level, Message,
+  Exception, CorrelationId)` shipped via `PipeLoggerProvider` /
+  `LoggingClient` to the extension's `LogServer` — plus the
+  `CorrelationScope` helper. Under the engine design that direction
+  reverses: the engine binds the `logs` pipe and workers ship to it
+  via `Engine.WriteLog`, through the worker-side sender
+  (`AddEngineLoggerProvider` / `EngineLoggerProvider` /
+  `EngineLogIngestRing` / `EngineWriteLogClient`) that lives in
+  `AutoContext.Workers.Core` — because marshalling `JsonLogRecord`
+  requires `Engine.Protocol`, a dependency a `Framework.*` leaf may
+  not take. Phase 8 deletes the sideband and moves `CorrelationScope`
+  into `AutoContext.Workers.Core` next to its only consumer, emptying
+  and retiring this project. The canonical wire log envelope
+  (`LogRecord` / `JsonLogRecord`) is owned by
+  `AutoContext.Engine.Protocol`.
 - **`AutoContext.Engine.Protocol`** — cross-side DTOs. New
   sub-project (no equivalent in today's substrate); holds the
   protocol-version integer constant that `Engine.Hello` exchanges,
@@ -477,8 +474,8 @@ four sub-projects, by namespace:
   in this project.
 - **`AutoContext.Workers.Core`** (renamed from the working name
   `AutoContext.Framework.Services`) — the worker-side runtime. It
-  references `Framework.Pipes` + `Framework.Logging` +
-  `Engine.Protocol`; because it *dials the engine*, depending on the
+  references `Framework.Pipes` + `Engine.Protocol`; because it
+  *dials the engine*, depending on the
   `Engine.Protocol` wire contract is correct (and is why it is not a
   `Framework.*` project). `WorkerHostOptions`,
   `WorkerTaskDispatcherService`, `WorkerHostBuilderExtensions`, and
@@ -498,36 +495,34 @@ four sub-projects, by namespace:
   quartet, under `Logging/`) also lives here. This project is the
   worker-facing tip of the substrate.
 
-**Reference graph** (acyclic). The one-way rule: `Framework.*` (Pipes,
-Logging) are leaves that **never** depend on `Engine.*`.
+**Reference graph** (acyclic). The one-way rule: `Framework.Pipes` is a
+leaf that **never** depends on `Engine.*`.
 `Engine.Protocol` is itself a leaf (inert cross-side DTOs). Everything
 that talks to the engine — `Workers.Core`, `Engine.Core`, `Client.Core`,
 and each `Worker.*` — sits above and may depend on `Engine.Protocol`.
 
 ```
-Framework.Pipes (leaf)   Framework.Logging (refs Pipes)   Engine.Protocol (leaf)
-        ▲                        ▲                                ▲
-        └────────────────────────┬──────────────────────────┘
-                                 │
-         ┌────────────────────────┼───────────────────────┐
-         │                       │                       │
-   Workers.Core             Engine.Core             Client.Core
-   (refs Pipes+Logging+     (refs Pipes+Logging+    (refs Pipes+Logging+
-    Engine.Protocol)         Engine.Protocol)        Engine.Protocol)
+Framework.Pipes (leaf)              Engine.Protocol (leaf)
+        ▲                                   ▲
+        └─────────────────┬─────────────────┘
+                          │
+         ┌────────────────┼────────────────┐
+         │                │                │
+   Workers.Core       Engine.Core      Client.Core
+   (refs Pipes+       (refs Pipes+     (refs Pipes+
+    Engine.Protocol)   Engine.Protocol) Engine.Protocol)
          ▲
          │ (workers only)
       Worker.*
 ```
 
-`Engine.Core` and `Client.Core` reference `Framework.Logging` +
-`Engine.Protocol` directly (`Framework.Pipes` comes transitively) and
-do **not** reference `Workers.Core`. `Worker.*` references
-`Workers.Core`, which transitively brings the rest. Engine and dialer
-libraries neither bind a worker-side pipe nor dial the engine's health
-probe; `IMcpTask`, the dispatcher, and the worker→engine log sender live
-in `Workers.Core`. `Framework.Logging` stays a clean leaf — general
-helpers plus the transitional legacy sideband — and never depends on
-`Engine.*`.
+`Engine.Core` and `Client.Core` reference `Framework.Pipes` +
+`Engine.Protocol` directly and do **not** reference `Workers.Core`.
+`Worker.*` references `Workers.Core`, which transitively brings the
+rest. Engine and dialer libraries neither bind a worker-side pipe nor
+dial the engine's health probe; `IMcpTask`, the dispatcher, the
+`CorrelationScope` helper, and the worker→engine log sender live in
+`Workers.Core`.
 
 Net effect: today's `AutoContext.Framework` keeps every line of code
 it has, redistributed across sibling projects whose reference-graph
@@ -559,8 +554,8 @@ concrete .NET types across assemblies, exactly as
 > each `Worker.*` project drops its `Mcp.Abstractions` and
 > `Worker.Shared` references and picks up a single
 > `<ProjectReference>` to `AutoContext.Workers.Core` (which
-> transitively brings `Framework.Pipes`, `Framework.Logging`, and
-> `Engine.Protocol`). The mechanical move happens in Phase 0 of the
+> transitively brings `Framework.Pipes` and `Engine.Protocol`). The
+> mechanical move happens in Phase 0 of the
 > implementation plan.
 
 ## Engine binary
@@ -2336,9 +2331,8 @@ Current prefixes:
 | `worker.<workerId>.<Type>` | worker | per-type sub-categories under a worker (e.g. `worker.dotnet.RoslynAnalyzer`); free-form below the worker prefix |
 
 Worker-side seam (composition contract): worker hosts register
-`AddEngineLoggerProvider()` from `AutoContext.Framework.Logging`
-(post the Phase 0 consolidation that folds `AutoContext.Worker.Shared`
-into the four `AutoContext.Framework.*` sub-projects) during startup.
+`AddEngineLoggerProvider()` from `AutoContext.Workers.Core` during
+startup.
 That provider serialises every
 `ILogger<T>` record into
 the `Engine.WriteLog` notification with the worker's `id` baked
@@ -3176,36 +3170,36 @@ protocol** (consumed by `EngineDaemonManager` on the TS side).
 
 The engine and the client dialer are two *libraries*, not two
 sub-folders of one library, and the binaries that host them are
-thin. Three .NET library tiers under `src/` — a substrate of
-framework leaves (`Framework.Pipes`, `Framework.Logging`) plus the
+thin. Three .NET library tiers under `src/` — a substrate built on
+the `Framework.Pipes` leaf plus the
 `Engine.Protocol` DTO leaf and the `Workers.Core` worker-side
 runtime, two `*.Core` libraries that sit on top of it, and one host
 project per binary that exists only to call `Main`:
 
 ```
-   Framework.Pipes (leaf)   Framework.Logging (refs Pipes)   Engine.Protocol (leaf — cross-side DTOs)
-          ▲                        ▲                                ▲
-          └──────────────────────────┬────────────────────────────┘
-                                   │
-         ┌─────────────────────────┼─────────────────────────┐
-         │                         │                         │
-   Workers.Core               Engine.Core               Client.Core
-   (refs Pipes+Logging+       (refs Pipes+Logging+      (refs Pipes+Logging+
-    Engine.Protocol)           Engine.Protocol)          Engine.Protocol)
-         ▲                         ▲                         ▲
-         │ (workers only)          │                         │
-      Worker.*               Engine (binary)           CommandLine (binary)
-                             → autocontext-engine[.exe] → autocontext[.exe]
+   Framework.Pipes (leaf)              Engine.Protocol (leaf — cross-side DTOs)
+          ▲                                   ▲
+          └──────────────────┬────────────────┘
+                             │
+         ┌───────────────────┼───────────────────┐
+         │                   │                   │
+   Workers.Core         Engine.Core         Client.Core
+   (refs Pipes+         (refs Pipes+        (refs Pipes+
+    Engine.Protocol)     Engine.Protocol)    Engine.Protocol)
+         ▲                   ▲                   ▲
+         │ (workers only)    │                   │
+      Worker.*         Engine (binary)     CommandLine (binary)
+                       → autocontext-engine[.exe] → autocontext[.exe]
 ```
 
-One-way rule: `Framework.*` (Pipes, Logging) are leaves that never
-depend on `Engine.*`; `Engine.Protocol` is itself an inert DTO leaf.
-`Engine.Core` and `Client.Core` reference `Framework.Logging` +
-`Engine.Protocol` directly (`Framework.Pipes` comes transitively) and
+One-way rule: `Framework.Pipes` is a leaf that never
+depends on `Engine.*`; `Engine.Protocol` is itself an inert DTO leaf.
+`Engine.Core` and `Client.Core` reference `Framework.Pipes` +
+`Engine.Protocol` directly and
 do **not** reference `Workers.Core`. `Worker.*` references
 `Workers.Core`, which transitively brings the rest.
 
-- **`AutoContext.Framework.Pipes`**, **`AutoContext.Framework.Logging`**,
+- **`AutoContext.Framework.Pipes`**,
   **`AutoContext.Engine.Protocol`**, and **`AutoContext.Workers.Core`**
   are the substrate every AutoContext .NET process
   depends on (see *What `AutoContext.Framework.*` carries over*).
@@ -3228,7 +3222,7 @@ do **not** reference `Workers.Core`. `Worker.*` references
   four pipes and the RPC handlers (one per capability — P1). Public
   surface is `IHostApplicationBuilder.AddAutoContextEngine(Action<EngineOptions>)`
   (see *Composition contracts*). References `Framework.Pipes`,
-  `Framework.Logging`, `Engine.Protocol`; does **not** reference
+  `Engine.Protocol`; does **not** reference
   `Workers.Core` (it binds the `health` pipe, never dials it,
   and it spawns workers as separate processes rather than hosting
   `IMcpTask` instances).
@@ -3250,8 +3244,8 @@ do **not** reference `Workers.Core`. `Worker.*` references
   with a different consumer set; the fact that both happen to dial
   the engine's wire protocol does not make them parallel. See
   [autocontext-cli.md](./autocontext-cli.md) for the full CLI-as-library
-  picture. References `Framework.Pipes`, `Framework.Logging`,
-  `Engine.Protocol`; same reason as `Engine.Core` for not
+  picture. References `Framework.Pipes`, `Engine.Protocol`;
+  same reason as `Engine.Core` for not
   referencing `Workers.Core`.
 - **`AutoContext.Engine` (binary)** is the engine host. `Program.Main`
   parses argv per `### Engine options`, calls
@@ -3285,7 +3279,7 @@ they do not invite a third "shared logic" layer between the
 adds a single `<ProjectReference>` to `AutoContext.Workers.Core`
 and picks up the substrate projects transitively
 (`Workers.Core` references `Framework.Pipes` +
-`Framework.Logging` + `Engine.Protocol`). The transitive set
+`Engine.Protocol`). The transitive set
 gives each worker `IMcpTask`, the worker-host scaffold, and
 `AddEngineLoggerProvider()` from `Workers.Core`, the
 transport primitives from `Pipes`, and the wire DTOs from
@@ -3299,9 +3293,8 @@ speak a narrower wire than full RPC clients do).
 | Test project | Covers |
 |---|---|
 | `AutoContext.Framework.Pipes.Tests` | Transport primitives — `PipeListener`, codec, keep-alive client, exchange/streaming-client triad |
-| `AutoContext.Framework.Logging.Tests` | `CorrelationScope` + the legacy sideband sink (deleted with it in Phase 8) |
 | `AutoContext.Engine.Protocol.Tests` | DTO envelope round-trips (including the log-record envelope), endpoint builder, source-generated JSON contexts |
-| `AutoContext.Workers.Core.Tests` | `WorkerHostBuilderExtensions`, `WorkerTaskDispatcherService`, `WorkerHealthMonitorService`, and the worker→engine log sender (`EngineLoggerProvider`, `EngineLogIngestRing`, write-log client) |
+| `AutoContext.Workers.Core.Tests` | `WorkerHostBuilderExtensions`, `WorkerTaskDispatcherService`, `WorkerHealthMonitorService`, `CorrelationScope`, and the worker→engine log sender (`EngineLoggerProvider`, `EngineLogIngestRing`, write-log client) |
 | `AutoContext.Engine.Core.Tests` | Engine-internal services, RPC handlers, pipe-server bindings; absorbs today's `AutoContext.Mcp.Server.Tests` |
 | `AutoContext.Client.Core.Tests` | Typed RPC clients, subscription-stream consumers, dialer back-pressure / reconnect behaviour |
 | `AutoContext.Engine.Tests` | Binary host wiring — argv parsing, `AddAutoContextEngine` composition, exit codes |

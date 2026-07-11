@@ -4,7 +4,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-using AutoContext.Framework.Logging;
 using AutoContext.Framework.Pipes;
 
 using Microsoft.Extensions.Hosting;

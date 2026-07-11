@@ -13,12 +13,11 @@ using Microsoft.Extensions.Logging;
 /// items) are routed to <paramref name="fallback"/>.
 /// </summary>
 /// <remarks>
-/// No reconnect policy is built in — matches today's "logger of last
-/// resort" behavior in <c>LoggingClient</c>. A dedicated drain task
-/// owns all I/O; the type itself is thread-safe for <see cref="Post"/>.
-/// Designed to be wrapped by an endpoint class (e.g.
-/// <c>LoggingClient</c>) that supplies the <typeparamref name="T"/>
-/// type, the serializer, and the fallback path.
+/// No reconnect policy is built in — it implements "telemetry of last
+/// resort" semantics for a best-effort streaming sink. A dedicated drain
+/// task owns all I/O; the type itself is thread-safe for <see cref="Post"/>.
+/// Designed to be wrapped by an endpoint class that supplies the
+/// <typeparamref name="T"/> type, the serializer, and the fallback path.
 /// </remarks>
 public sealed partial class PipeStreamingClient<T> : IAsyncDisposable
 {

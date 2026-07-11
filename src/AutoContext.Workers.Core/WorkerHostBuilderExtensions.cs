@@ -1,7 +1,7 @@
 namespace AutoContext.Workers.Core;
 
 using AutoContext.Engine.Protocol;
-using AutoContext.Framework.Logging;
+using AutoContext.Workers.Core.Logging;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -81,7 +81,6 @@ public static class WorkerHostBuilderExtensions
         {
             [nameof(WorkerHostOptions.Pipe)] = listenAddress,
             [nameof(WorkerHostOptions.ReadyMarker)] = readyMarker,
-            [nameof(WorkerHostOptions.LogServiceAddress)] = logServiceAddress ?? string.Empty,
             [nameof(WorkerHostOptions.HealthMonitorServiceAddress)] = healthMonitorServiceAddress ?? string.Empty,
         });
 
@@ -89,21 +88,15 @@ public static class WorkerHostBuilderExtensions
 
         // Replace the default logging providers (which target stdout — never
         // read by the parent process and capable of blocking the worker once
-        // the OS pipe buffer fills) with a single PipeLoggerProvider.
-        // The provider streams structured records over the LogServer's
-        // service address when one was supplied via --service log=...,
-        // and falls back to writing to stderr (where the parent's stderr
-        // line-handler picks them up) when it isn't — so workers stay
+        // the OS pipe buffer fills) with the worker→engine logger provider.
+        // It ships each ILogger<T> record to the engine over Engine.WriteLog,
+        // dialling the engine's rpc endpoint supplied via --service log=...,
+        // and falls back to stderr (where the engine's stderr line-handler
+        // picks them up) when the address is absent — so workers stay
         // diagnosable in standalone runs too.
         builder.Logging.ClearProviders();
         builder.Logging.SetMinimumLevel(LogLevel.Trace);
-        builder.Services.AddSingleton(sp =>
-        {
-            var options = sp.GetRequiredService<IOptions<WorkerHostOptions>>().Value;
-            var env = sp.GetRequiredService<IHostEnvironment>();
-            return new LoggingClient(options.LogServiceAddress, env.ApplicationName);
-        });
-        builder.Services.AddSingleton<ILoggerProvider, PipeLoggerProvider>();
+        builder.Services.AddEngineLoggerProvider(workerId, logServiceAddress ?? string.Empty);
 
         // Liveness signal to the extension's HealthMonitorServer. The
         // hosted-service contract handles startup/shutdown wiring; the
