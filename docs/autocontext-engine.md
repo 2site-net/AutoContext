@@ -146,8 +146,8 @@ Two motivating clients, two jobs:
     under `<workspace>/.github/instructions/`, the hook calls
     `Engine.Reload()` synchronously so the next turn sees the new
     state without waiting for a debounced FS-watch event;
-    (b) the hook signals `Agent.ToolUsed(toolName, outcome)` to
-    the engine, which folds it into a per-session usage histogram
+    (b) the hook signals `Agent.ToolUsed(sessionId, toolName, outcome)`
+    to the engine, which folds it into a per-session usage histogram
     available via `Diagnostics.Run` for "which tools did this
     session actually use" reports.
   - **`Stop`** — fires when the agent finishes its turn. The hook

@@ -20,6 +20,7 @@ using AutoContext.Engine.Core.Watchdogs;
 using AutoContext.Engine.Core.Workers;
 using AutoContext.Engine.Core.Workspace.Config;
 using AutoContext.Engine.Core.Workspace.Context;
+using AutoContext.Engine.Protocol.Messages.Agent;
 using AutoContext.Engine.Protocol.Messages.Config;
 using AutoContext.Engine.Protocol.Messages.Instructions;
 using AutoContext.Engine.Protocol.Messages.Logs;
@@ -565,6 +566,15 @@ public static class EngineHostBuilderExtensions
             ServiceDescriptor.Singleton<IRpcMethodHandler, WorkspaceRpcHandler>());
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IRpcMethodHandler, DiscoveryRpcHandler>());
+
+        // Agent-event fan-out: the shared broadcaster AgentRpcHandler
+        // publishes each mapped Agent.* notification to and that
+        // Agent.Events.Subscribe drains (pure live tail).
+        builder.Services.TryAddSingleton(sp => new Broadcaster<JsonAgentEvent>(
+            sp.GetRequiredService<ILogger<Broadcaster<JsonAgentEvent>>>(),
+            "agent-events"));
+        builder.Services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IRpcMethodHandler, AgentRpcHandler>());
 
         // The dispatch router is a stateless singleton: its method table is
         // built once from the handler set above and shared across every rpc

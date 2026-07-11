@@ -6,6 +6,7 @@ using System.Text.Json.Serialization;
 using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.JsonRpc;
 using AutoContext.Engine.Protocol.Messages;
+using AutoContext.Engine.Protocol.Messages.Agent;
 using AutoContext.Engine.Protocol.Messages.Config;
 using AutoContext.Engine.Protocol.Messages.Discovery;
 using AutoContext.Engine.Protocol.Messages.Instructions;
@@ -98,6 +99,12 @@ using AutoContext.Engine.Protocol.Messages.Workspace;
 [JsonSerializable(typeof(JsonDiscoveryRouteForPromptResult))]
 [JsonSerializable(typeof(JsonDiscoveryRouteForToolParams))]
 [JsonSerializable(typeof(JsonDiscoveryRouteForToolResult))]
+[JsonSerializable(typeof(JsonAgentEvent))]
+[JsonSerializable(typeof(JsonAgentSubagentStartedParams))]
+[JsonSerializable(typeof(JsonAgentSubagentStoppedParams))]
+[JsonSerializable(typeof(JsonAgentCompactedParams))]
+[JsonSerializable(typeof(JsonAgentToolUsedParams))]
+[JsonSerializable(typeof(JsonAgentTurnEndedParams))]
 [JsonSerializable(typeof(JsonWorkspaceFlags))]
 [JsonSerializable(typeof(JsonWorkspaceDetectResult))]
 [JsonSerializable(typeof(JsonWorkspaceInfoResult))]
