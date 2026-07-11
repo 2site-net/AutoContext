@@ -189,46 +189,61 @@ public sealed partial class BoundPipeListener : IAsyncDisposable
         Justification = "Ownership transfers to the caller on success via `ownsPipe = false`; the finally block disposes on every other path.")]
     private async Task<NamedPipeServerStream?> AcceptAsync(CancellationToken cancellationToken)
     {
-        // The first accept claims the instance created by Bind; every
-        // other accept (backlog accepts and post-connection
-        // replenishment) creates its own fresh server stream. The
-        // Interlocked exchange makes the hand-off race-free when several
-        // accepts start together.
-        var pipe = Interlocked.Exchange(ref _initialPipe, null) ?? CreateServerStream();
-        var ownsPipe = true;
-        CancellationTokenRegistration registration = default;
+        while (true)
+        {
+            // The first accept claims the instance created by Bind; every
+            // other accept (backlog accepts, post-connection replenishment,
+            // and ghost re-arms) creates its own fresh server stream. The
+            // Interlocked exchange makes the hand-off race-free when several
+            // accepts start together.
+            var pipe = Interlocked.Exchange(ref _initialPipe, null) ?? CreateServerStream();
+            var ownsPipe = true;
+            CancellationTokenRegistration registration = default;
 
-        try
-        {
-            // On Windows, WaitForConnectionAsync does not reliably
-            // honor the cancellation token. Disposing the pipe from
-            // the cancellation callback forces the wait to throw.
-            registration = cancellationToken.Register(pipe.Dispose);
-
-            await pipe.WaitForConnectionAsync(cancellationToken).ConfigureAwait(false);
-
-            ownsPipe = false;
-            return pipe;
-        }
-        catch (OperationCanceledException)
-        {
-            return null;
-        }
-        catch (IOException) when (cancellationToken.IsCancellationRequested)
-        {
-            return null;
-        }
-        catch (ObjectDisposedException) when (cancellationToken.IsCancellationRequested)
-        {
-            return null;
-        }
-        finally
-        {
-            await registration.DisposeAsync().ConfigureAwait(false);
-
-            if (ownsPipe)
+            try
             {
-                await pipe.DisposeAsync().ConfigureAwait(false);
+                // On Windows, WaitForConnectionAsync does not reliably
+                // honor the cancellation token. Disposing the pipe from
+                // the cancellation callback forces the wait to throw.
+                registration = cancellationToken.Register(pipe.Dispose);
+
+                await pipe.WaitForConnectionAsync(cancellationToken).ConfigureAwait(false);
+
+                ownsPipe = false;
+                return pipe;
+            }
+            catch (OperationCanceledException)
+            {
+                return null;
+            }
+            catch (IOException) when (cancellationToken.IsCancellationRequested)
+            {
+                return null;
+            }
+            catch (ObjectDisposedException) when (cancellationToken.IsCancellationRequested)
+            {
+                return null;
+            }
+            catch (IOException ex) when (IsClientAlreadyGone(ex))
+            {
+                // A client connected and then disconnected before this
+                // accept observed it, so WaitForConnectionAsync faulted
+                // with "the pipe is being closed" (ERROR_NO_DATA) or a
+                // sibling peer-gone code. That connection is spent, not a
+                // listener failure: dispose the instance (the finally does)
+                // and loop to re-arm a fresh one. This keeps a
+                // connect-then-immediate-disconnect — e.g. a liveness probe
+                // — from faulting the whole accept loop.
+                LogGhostConnection(_logger, _pipeName);
+            }
+            finally
+            {
+                await registration.DisposeAsync().ConfigureAwait(false);
+
+                if (ownsPipe)
+                {
+                    await pipe.DisposeAsync().ConfigureAwait(false);
+                }
             }
         }
     }
@@ -265,6 +280,17 @@ public sealed partial class BoundPipeListener : IAsyncDisposable
             PipeTransmissionMode.Byte,
             PipeOptions.Asynchronous);
 
+    // Win32 error codes that surface as IOException from
+    // WaitForConnectionAsync when the client has already dropped by the
+    // time the server observes the connection. These mark a spent
+    // instance, not a listener failure.
+    private const int ErrorBrokenPipe = unchecked((int)0x8007006D);        // ERROR_BROKEN_PIPE — "The pipe has been ended."
+    private const int ErrorNoData = unchecked((int)0x800700E8);            // ERROR_NO_DATA — "The pipe is being closed."
+    private const int ErrorPipeNotConnected = unchecked((int)0x800700E9);  // ERROR_PIPE_NOT_CONNECTED
+
+    private static bool IsClientAlreadyGone(IOException ex) =>
+        ex.HResult is ErrorBrokenPipe or ErrorNoData or ErrorPipeNotConnected;
+
     /// <summary>
     /// Critical exceptions that indicate the process is in an
     /// unrecoverable state. They escape the per-handler catch-all so
@@ -279,4 +305,8 @@ public sealed partial class BoundPipeListener : IAsyncDisposable
     [LoggerMessage(EventId = 1, Level = LogLevel.Warning,
         Message = "Pipe listener '{PipeName}' connection handler threw an unhandled exception.")]
     private static partial void LogHandlerFailed(ILogger logger, string pipeName, Exception exception);
+
+    [LoggerMessage(EventId = 2, Level = LogLevel.Debug,
+        Message = "Pipe listener '{PipeName}' absorbed a client that disconnected before it was accepted; re-arming.")]
+    private static partial void LogGhostConnection(ILogger logger, string pipeName);
 }
