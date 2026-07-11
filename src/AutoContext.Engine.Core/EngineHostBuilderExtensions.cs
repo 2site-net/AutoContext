@@ -1,6 +1,7 @@
 namespace AutoContext.Engine.Core;
 
 using AutoContext.Engine.Core.Endpoints;
+using AutoContext.Engine.Core.Features.Discovery;
 using AutoContext.Engine.Core.Features.Instructions;
 using AutoContext.Engine.Core.Features.McpTools;
 using AutoContext.Engine.Core.Features.McpTools.EditorConfig;
@@ -547,6 +548,7 @@ public static class EngineHostBuilderExtensions
         // Per-feature RPC method handlers. DispatchPolicy injects the full
         // IRpcMethodHandler set and builds a method-keyed router; each
         // handler declares the JSON-RPC methods it serves.
+        builder.Services.TryAddSingleton<DiscoveryService>();
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IRpcMethodHandler, McpToolsRpcHandler>());
         builder.Services.TryAddEnumerable(
@@ -561,6 +563,8 @@ public static class EngineHostBuilderExtensions
             ServiceDescriptor.Singleton<IRpcMethodHandler, RegistryRpcHandler>());
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IRpcMethodHandler, WorkspaceRpcHandler>());
+        builder.Services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IRpcMethodHandler, DiscoveryRpcHandler>());
 
         // The dispatch router is a stateless singleton: its method table is
         // built once from the handler set above and shared across every rpc

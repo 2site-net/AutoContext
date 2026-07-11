@@ -496,7 +496,7 @@ src/
         # — Derived indices (built from the rule tables) —
         FlagExtensionIndex.cs                  # maps each flag to its extension-selector set (fed to Discovery, P7)
         FlagContributionIndex.cs               # inverted index — files → base flags and flags → contributor counts
-    Features/                                  # outward-facing capability tier (P11): served to the extension over RPC; the engine runs without these, but without them nothing can consume anything. Instructions/ + McpTools/ are built; Discovery/ + Agent/ (below) are not yet
+    Features/                                  # outward-facing capability tier (P11): served to the extension over RPC; the engine runs without these, but without them nothing can consume anything. Instructions/ + McpTools/ are built; Discovery/ + Agents/ (below) are not yet
       Instructions/                            # runtime services for the Instructions.* surface
         InstructionsManifestService.cs           # hosted service — loads the merged catalog+manifest snapshot at startup
         IInstructionsManifestAccessor.cs         # read-only accessor over the loaded corpus snapshot
@@ -544,6 +544,16 @@ src/
           JsonMcpToolsCatalog.cs / JsonMcpToolsCatalogCategory.cs / JsonMcpToolsCatalogTool.cs
           McpToolsRegistryJsonContext.cs / McpToolsCatalogJsonContext.cs
         # McpTools.{List,Invoke} are served by Rpc/Handlers/McpToolsRpcHandler.cs
+      # — Features NOT YET BUILT (P11 capabilities; kept here as the Phase target) —
+      Discovery/                               # category & extension routing indices (P7 — Phase 9, NOT YET BUILT). A capability→capability read of the Instructions + McpTools snapshots (allowed; only substrate→capability is forbidden)
+        DiscoveryService.cs                    # lazy-built category→tool + extension→file indices (structural indices are immutable at runtime); reads IConfigSnapshotAccessor.Current per query for the disabled filter
+        CategoryIndex.cs                       # inverts McpToolsRegistryEntry.Category (ancestry-inclusive) → prompt category-word scan → MCP tools
+        ExtensionIndex.cs                      # InstructionsFileManifestEntry.Extensions → prompt extension scan → instructions files
+        # Discovery.{RouteForPrompt,RouteForTool} are served by Rpc/Handlers/DiscoveryRpcHandler.cs
+      Agents/                                  # Agent.* RPC family (P10 — NOT YET BUILT)
+        AgentEventFrameStream.cs               # BroadcasterFrameStream<AgentEvent, …> (IBroadcasterFrameStream impl) for Events.Subscribe: drains a BroadcasterSubscription<AgentEvent> (fanned out over a shared Infrastructure/Events/Broadcaster<T> — pure live tail, bounded per-subscriber buffers + drop) and yields event/dropped frames
+        AgentSessionToolHistogram.cs           # in-memory per-session ToolUsed counts
+        # Agent.* notifications + Agent.Events.Subscribe are served by Rpc/Handlers/AgentRpcHandler.cs
     Workers/                                   # worker process lifecycle (absorbs AutoContext.Mcp.Server/Workers/)
       WorkerProcessService.cs                  # lazy manager — EnsureRunningAsync(workerId) gate; spawns on first use, respawns on exit (was WorkerManager)
       WorkerProcessLauncher.cs                 # production launcher — starts a worker via System.Diagnostics.Process (over Infrastructure/Diagnostics seams)
@@ -561,16 +571,6 @@ src/
     # Mcp/ (stdio MCP-server role) — the McpTools.{List,Invoke} handlers already live in Features/McpTools/ above;
     #   the stdio adapter layer (McpSdkAdapter, StdioMcpServerEntryPoint, InputSchemaBuilder, PerRequestConfigReader)
     #   is not implemented yet — AutoContext.Engine/McpServerHostFactory is currently a stub (P11/P12).
-    Discovery/                                 # category & extension indices (P7 — NOT YET BUILT)
-      DiscoveryService.cs                      # rebuilt on Instructions.Subscribe + McpTools changes
-      CategoryIndex.cs                         # prompt → MCP tool routing
-      ExtensionIndex.cs                        # extension → instruction file routing
-      DiscoveryHandlers.cs                     # Discovery.{RouteForPrompt,RouteForTool}
-    Agent/                                     # Agent.* RPC family (P10 — NOT YET BUILT)
-      AgentEventFrameStream.cs                 # BroadcasterFrameStream<AgentEvent, …> (IBroadcasterFrameStream impl) for Events.Subscribe: drains a BroadcasterSubscription<AgentEvent> (fanned out over a shared Infrastructure/Events/Broadcaster<T> — pure live tail, bounded per-subscriber buffers + drop) and yields event/dropped frames
-      AgentNotificationHandlers.cs             # SubagentStarted/Stopped/Compacted/ToolUsed/TurnEnded
-      AgentSessionToolHistogram.cs             # in-memory per-session ToolUsed counts
-      AgentEventsHandlers.cs                   # Events.Subscribe pipe-side fan-out
     Rpc/                                       # pipe-side connection processing + the policy/result framing shared by every handler
       RpcConnectionProcessor.cs                # per-connection loop — reads frames, routes via the active IRpcConnectionPolicy, writes responses
       IRpcConnectionPolicy.cs                  # strategy contract — handshake gate, frame-failure policy, and method→handler table for a connection
@@ -2616,27 +2616,107 @@ design.
 
 **Status**: Not started.
 
+| # | Commit subject | State |
+|---|---|---|
+| 1 | `feat(engine-core): serve Discovery.RouteForPrompt and RouteForTool` | DONE |
+| 2 | `docs(plan): mark Phase 9 complete` | TODO |
+
+**Commit grouping.** Discovery is a single read-only service over state
+the engine already owns (Phase 6 `Instructions.Subscribe`, Phase 7
+`McpTools.List`), so the whole feature lands as one green, reviewable
+commit rather than an artificial ladder. Row 1 carries `DiscoveryService`
+(the *category → tool* and *extension → instructions file* indices, built lazily
+over already-owned state and filtered by the current disabled state read
+per query), the prompt/extension scan logic ported from the `.cjs` hook,
+the `Rpc/Handlers/DiscoveryRpcHandler` serving both `Discovery.*` methods
+(`RouteForPrompt` is prompt-driven; `RouteForTool` intersects the tool's
+`ActivationFlags` with each instructions file's), the `Messages/Discovery/`
+DTOs and their source-generated JSON contexts, and the routing tests.
+Splitting messages, service, and handlers into separate commits would only
+produce intermediate states that are meaningless on their own — a handler
+with no service, a DTO with no producer — so grouping them keeps every
+commit boundary both green and coherent. Row 2 is the standard docs
+mark-complete step.
+
 **Goal**: engine builds the *category → MCP tool* and *extension →
-instruction file* indices from already-owned state and answers
+instructions file* indices from already-owned state and answers
 `Discovery.RouteForPrompt` / `Discovery.RouteForTool`. The `.cjs`
 hooks (Phase 15) stop carrying their own scan logic.
 
-**Design anchors**: `§ RPC surface` (`Discovery.*`), `§ P7`.
+**Design anchors**: `§ RPC surface` (`Discovery.*`), `§ P7`, `§ P11`.
 
 **Code touch**:
-- `AutoContext.Engine.Core/Discovery/DiscoveryService` — two
-  indices, rebuilt on `Instructions.Subscribe` / `McpTools.List`
-  changes, filtered by current disabled state.
-- Word-boundary literal scan for categories;
-  `\.[A-Za-z][A-Za-z0-9]{0,12}` regex for extensions — same shape
-  as today's `.cjs`.
-- `RouteForPrompt(prompt)` and `RouteForTool(toolName)` handlers.
+- `AutoContext.Engine.Core/Features/Discovery/` — a **P11 capability**
+  (the engine boots without it; it serves the `Discovery.*` RPCs
+  outward), so it lives under `Features/` beside `Instructions/` and
+  `McpTools/`, **not** at the engine-library root. It composes the
+  read-only `IInstructionsManifestAccessor`, `IMcpToolsRegistryAccessor`,
+  and `IConfigSnapshotAccessor` snapshots — a capability→capability read,
+  which P11 permits (only substrate→capability is forbidden).
+  - `DiscoveryService` — owns the two indices and the two routing
+    queries. The bundled corpus and tool registry are immutable at
+    runtime, so the *structural* indices never change: the service
+    builds them **lazily once** (first query, after the startup loaders
+    have populated the accessors) and reads `IConfigSnapshotAccessor.Current`
+    **per query** for the disabled filter — always current, so no hosted
+    service and no change subscription are needed.
+  - `CategoryIndex` — inverts each `McpToolsRegistryEntry.Category` into
+    *category-name → tool-names*, keyed under the tool's own category
+    **and every ancestor category** (walking the catalog `Parent`
+    chain), so a broad prompt word like `.net` surfaces the whole
+    family (C#, NuGet). `Match(prompt)` runs the word-boundary literal
+    scan (the same shape as today's `.cjs`) → matched categories + tool
+    names.
+  - `ExtensionIndex` — builds *extension → instructions-file names* from
+    each `InstructionsFileManifestEntry.Extensions`. `Match(prompt)`
+    runs the `\.[A-Za-z][A-Za-z0-9]{0,12}` regex → matched extensions +
+    file names.
+- `Rpc/Handlers/DiscoveryRpcHandler` — the `IRpcMethodHandler` serving
+  `Discovery.RouteForPrompt` / `RouteForTool`, delegating to
+  `DiscoveryService` (one handler per family, matching the shipped
+  convention — the target tree's older `Discovery/DiscoveryHandlers.cs`
+  sketch is superseded).
+- `AutoContext.Engine.Protocol/Messages/Discovery/` — the wire DTOs, one
+  type per file (mirroring `Messages/McpTools/`): the method-name
+  constants, `JsonDiscoveryRouteForPromptParams` (`{ prompt }`),
+  `JsonDiscoveryRouteForPromptResult`
+  (`{ matchedCategories[], matchedExtensions[], tools[], instructions[] }`),
+  `JsonDiscoveryRouteForToolParams` (`{ name }`), and
+  `JsonDiscoveryRouteForToolResult` (`{ instructions[] }`). Each is
+  registered in `Serialization/ProtocolJsonContext`.
+- **`RouteForPrompt(prompt)` is purely prompt-driven.** It answers "what
+  did the user reference", not "what is in the workspace" — a prompt
+  naming `c#` in a repo with no C# still surfaces the C# tools/files
+  (the user may be about to add C#). Workspace-narrowing is a *separate*
+  concern owned by `Instructions.List`'s `applyToWorkspaceFilter` and is
+  deliberately **not** folded into routing, so each method answers one
+  clean question. Results are filtered by the current disabled state.
+- **`RouteForTool(toolName)` bridges via activation flags.** MCP-tool
+  categories and instructions-file categories are separate taxonomies,
+  and tools carry no extensions, so there is no direct tool→file link.
+  Both sides *do* carry workspace-context `ActivationFlags` (the Phase 4
+  vocabulary — `hasDotNet`, `hasCSharp`, …), so `RouteForTool` returns
+  every instructions file whose `ActivationFlags` intersect the tool's
+  (e.g. `analyze_csharp_code` → the `hasDotNet`/`hasCSharp` family),
+  filtered by disabled state. Accepted consequence: an instructions file
+  with **no** activation flags (cross-cutting guidance such as
+  `testing`, `code-review`, `git-commit`) never surfaces from
+  `RouteForTool` — those are always-attached or surface only via
+  `RouteForPrompt`, so the omission is by design, not a bug.
 
 **Tests**:
-- Routing fixtures from the existing hook tests, ported to .NET.
-- Disabled tools / files don't appear in the result set.
-- Index rebuilds on `Instructions.Subscribe` / config change without
-  a corpus reload.
+- `CategoryIndex`: ancestry-inclusive keying (a `C#` tool matches both
+  `c#` and `.net`); word-boundary scan (matches `c#` in "port to c#"
+  but not inside "abc#def").
+- `ExtensionIndex`: `.cs` / `.ps1` extracted from prompt text map to
+  the files whose `applyTo` names that extension.
+- `RouteForPrompt` returns matched categories + extensions + the union
+  of tools and instructions files; disabled tools / files are excluded;
+  a workspace-absent language named in the prompt still surfaces.
+- `RouteForTool` returns the activation-flag-intersecting files;
+  flagless files never appear; disabled files are excluded.
+- Disabled-state changes are reflected on the next query without any
+  index rebuild (the per-query config read).
 
 **Out of scope**: hook integration (Phase 15).
 
@@ -2653,7 +2733,7 @@ fire-and-forget; lost events tolerable (per the design).
 shape), `§ P10` (cross-process fan-out).
 
 **Code touch**:
-- `AutoContext.Engine.Core/Agent/AgentEventFrameStream` over a shared
+- `AutoContext.Engine.Core/Features/Agents/AgentEventFrameStream` over a shared
   `Infrastructure/Events/Broadcaster<AgentEvent>` — same
   per-subscriber bounded-buffer / slow-subscriber-drop discipline
   Phase 2 introduced.
