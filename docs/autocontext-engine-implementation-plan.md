@@ -2466,7 +2466,7 @@ reuses these same handlers).
 | 3 | `feat(workers-core): add worker→engine log sender with bounded ring and stderr drop fallback` | DONE |
 | 4 | `feat(engine): serve Logs.GetWorker and TailWorker and capture worker stderr` | DONE |
 | 5 | `refactor(framework-logging): delete the legacy worker→extension sideband sink` | DONE |
-| 6 | `docs(plan): mark Phase 8 complete` | TODO |
+| 6 | `docs(plan): mark Phase 8 complete` | DONE |
 
 **Commit grouping.** The ladder collapses the twelve fine-grained steps
 into six coherent commits — the fewest that still keep every commit
