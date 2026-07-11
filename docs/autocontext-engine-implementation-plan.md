@@ -2619,7 +2619,7 @@ design.
 | # | Commit subject | State |
 |---|---|---|
 | 1 | `feat(engine-core): serve Discovery.RouteForPrompt and RouteForTool` | DONE |
-| 2 | `docs(plan): mark Phase 9 complete` | TODO |
+| 2 | `docs(plan): mark Phase 9 complete` | DONE |
 
 **Commit grouping.** Discovery is a single read-only service over state
 the engine already owns (Phase 6 `Instructions.Subscribe`, Phase 7
