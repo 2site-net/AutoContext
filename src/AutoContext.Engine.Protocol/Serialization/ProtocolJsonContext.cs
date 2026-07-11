@@ -7,6 +7,7 @@ using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.JsonRpc;
 using AutoContext.Engine.Protocol.Messages;
 using AutoContext.Engine.Protocol.Messages.Config;
+using AutoContext.Engine.Protocol.Messages.Discovery;
 using AutoContext.Engine.Protocol.Messages.Instructions;
 using AutoContext.Engine.Protocol.Messages.Lifecycle;
 using AutoContext.Engine.Protocol.Messages.Logs;
@@ -93,6 +94,10 @@ using AutoContext.Engine.Protocol.Messages.Workspace;
 [JsonSerializable(typeof(JsonMcpToolsInvokeDisabledResult))]
 [JsonSerializable(typeof(JsonMcpToolsInvokeNotFoundResult))]
 [JsonSerializable(typeof(JsonMcpToolsSchemaError))]
+[JsonSerializable(typeof(JsonDiscoveryRouteForPromptParams))]
+[JsonSerializable(typeof(JsonDiscoveryRouteForPromptResult))]
+[JsonSerializable(typeof(JsonDiscoveryRouteForToolParams))]
+[JsonSerializable(typeof(JsonDiscoveryRouteForToolResult))]
 [JsonSerializable(typeof(JsonWorkspaceFlags))]
 [JsonSerializable(typeof(JsonWorkspaceDetectResult))]
 [JsonSerializable(typeof(JsonWorkspaceInfoResult))]
