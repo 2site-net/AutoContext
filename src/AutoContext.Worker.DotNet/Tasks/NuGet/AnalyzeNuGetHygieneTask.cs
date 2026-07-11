@@ -5,7 +5,7 @@ using System.Text.Json.Nodes;
 using System.Xml;
 using System.Xml.Linq;
 
-using AutoContext.Framework.Workers;
+using AutoContext.Workers.Core;
 
 /// <summary>
 /// <c>analyze_nuget_hygiene</c> — enforces NuGet hygiene rules from

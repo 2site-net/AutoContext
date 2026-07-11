@@ -1,7 +1,9 @@
 namespace AutoContext.Engine.Core.Tests.Workers;
 
+using AutoContext.Engine.Core.Infrastructure.Storage;
 using AutoContext.Engine.Core.Workers;
 using AutoContext.Engine.Core.Workers.Format;
+using AutoContext.Engine.Protocol;
 
 public sealed class WorkerProcessInfoResolverTests
 {
@@ -12,6 +14,12 @@ public sealed class WorkerProcessInfoResolverTests
 
         private static readonly string WorkersDirectory =
             Path.Combine(Path.GetTempPath(), "ac-workers");
+
+        private static readonly string EngineLogArgument =
+            "log=" + new Endpoint(
+                EndpointKind.Rpc,
+                WorkspaceHash.Compute(WorkspacePath).Value,
+                Guid.Parse(InstanceId)).ToString();
 
         [Fact]
         public void Should_reject_null_manifest()
@@ -119,7 +127,7 @@ public sealed class WorkerProcessInfoResolverTests
             // Act
             var info = Assert.Single(
                 WorkerProcessInfoResolver.Resolve(manifest, WorkersDirectory, InstanceId, WorkspacePath));
-            var expectedArguments = new[] { "--instance-id", InstanceId };
+            var expectedArguments = new[] { "--instance-id", InstanceId, "--service", EngineLogArgument };
 
             // Assert
             Assert.Multiple(
@@ -140,7 +148,7 @@ public sealed class WorkerProcessInfoResolverTests
             // Act
             var info = Assert.Single(
                 WorkerProcessInfoResolver.Resolve(manifest, WorkersDirectory, InstanceId, WorkspacePath));
-            var expectedArguments = new[] { expectedScript, "--instance-id", InstanceId };
+            var expectedArguments = new[] { expectedScript, "--instance-id", InstanceId, "--service", EngineLogArgument };
 
             // Assert
             Assert.Multiple(
@@ -160,7 +168,7 @@ public sealed class WorkerProcessInfoResolverTests
             // Act
             var info = Assert.Single(
                 WorkerProcessInfoResolver.Resolve(manifest, WorkersDirectory, InstanceId, WorkspacePath));
-            var expectedArguments = new[] { "--instance-id", InstanceId, "--workspace-root", WorkspacePath };
+            var expectedArguments = new[] { "--instance-id", InstanceId, "--workspace-root", WorkspacePath, "--service", EngineLogArgument };
 
             // Assert
             Assert.Equal(expectedArguments, info.Arguments);

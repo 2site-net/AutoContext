@@ -21,4 +21,14 @@ public static class ProtocolMethods
     /// Defined in <c>design § RPC surface</c>.
     /// </summary>
     public const string Shutdown = "Engine.Shutdown";
+
+    /// <summary>
+    /// Worker → engine log ingest. A JSON-RPC 2.0 notification (no
+    /// <c>id</c>, no response) whose params carry one
+    /// <c>Messages.Logs.JsonLogRecord</c>; the engine enqueues the
+    /// record onto its ingest channel and routes it by
+    /// <c>category</c> prefix to the correct on-disk log. Defined in
+    /// <c>design § RPC surface</c> and <c>design § Log categories</c>.
+    /// </summary>
+    public const string WriteLog = "Engine.WriteLog";
 }

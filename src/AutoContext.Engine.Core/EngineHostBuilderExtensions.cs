@@ -123,7 +123,7 @@ public static class EngineHostBuilderExtensions
 
         // Forward-pass NDJSON reader over the active engine.log,
         // consumed by the Logs.GetEngine RPC handler.
-        builder.Services.TryAddSingleton<EngineLogFileReader>();
+        builder.Services.TryAddSingleton<LogFileReader>();
 
         // Rotation + retention support for the file sink. The
         // thresholds factory pins itself to the resolved
@@ -367,11 +367,19 @@ public static class EngineHostBuilderExtensions
                     options.WorkspacePath),
                 sp.GetRequiredService<IProcessLauncher<WorkerProcessInfo>>(),
                 sp.GetRequiredService<IWorkerConnectionProbe>(),
+                sp.GetRequiredService<LogChannel>(),
+                sp.GetRequiredService<TimeProvider>(),
                 sp.GetRequiredService<ILogger<WorkerProcessService>>());
         });
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, WorkerProcessService>(
                 sp => sp.GetRequiredService<WorkerProcessService>()));
+
+        // Read-only view over which workers have ever been spawned,
+        // backing the Logs.GetWorker / Logs.TailWorker not-found
+        // decision (never-spawned worker vs. spawned-but-quiet).
+        builder.Services.TryAddSingleton<IWorkerSpawnTracker>(
+            sp => sp.GetRequiredService<WorkerProcessService>());
 
         // MCP-tools dispatch seam. The invoker round-trips one tool call to
         // its owning worker over the shared request/response pipe contract,
@@ -547,6 +555,8 @@ public static class EngineHostBuilderExtensions
             ServiceDescriptor.Singleton<IRpcMethodHandler, ConfigRpcHandler>());
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IRpcMethodHandler, LogsRpcHandler>());
+        builder.Services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IRpcMethodHandler, WriteLogRpcHandler>());
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IRpcMethodHandler, RegistryRpcHandler>());
         builder.Services.TryAddEnumerable(

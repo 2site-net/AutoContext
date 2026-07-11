@@ -32,4 +32,27 @@ public static class LogsMethods
     /// <c>design § RPC surface</c>.
     /// </summary>
     public const string TailEngine = "Logs.TailEngine";
+
+    /// <summary>
+    /// Returns a bounded snapshot of records from a worker's
+    /// active <c>worker-&lt;workerId&gt;.log</c> file. Unary RPC;
+    /// never streams. Same <c>lastN</c> / <c>since</c> filters and
+    /// <c>truncated</c> flag as <see cref="GetEngine"/>, but the
+    /// reply is the discriminated <see cref="JsonLogsGetWorkerResult"/>:
+    /// <c>ok</c> when the worker was spawned by this engine (even
+    /// if it has not logged yet), <c>not-found</c> when it was
+    /// never spawned. Defined in <c>design § RPC surface</c>.
+    /// </summary>
+    public const string GetWorker = "Logs.GetWorker";
+
+    /// <summary>
+    /// Server-streaming RPC that tails one worker's live
+    /// <see cref="JsonLogRecord"/> firehose, filtered from the
+    /// shared record stream by the record's <c>category</c> prefix
+    /// (<c>worker.&lt;workerId&gt;.</c>). Each frame is a
+    /// <see cref="JsonLogStreamFrame"/>; a worker the engine never
+    /// spawned yields a single terminal <see cref="JsonLogNotFoundFrame"/>.
+    /// Defined in <c>design § RPC surface</c>.
+    /// </summary>
+    public const string TailWorker = "Logs.TailWorker";
 }

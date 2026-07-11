@@ -653,7 +653,10 @@ function Test-DotNet {
     if ($PSCmdlet.ShouldProcess($Context.SolutionFile.Name, 'dotnet test --no-build (unit)')) {
         Assert-ExternalCommand 'dotnet'
 
-        dotnet test $Context.SolutionFile.FullName -c Release --no-build --filter 'Category!=Smoke'
+        # `--logger console;verbosity=normal` prints each failed test's
+        # error message and stack trace inline; without it the default
+        # runner reports only a pass/fail count, hiding why a test failed.
+        dotnet test $Context.SolutionFile.FullName -c Release --no-build --filter 'Category!=Smoke' --logger 'console;verbosity=normal'
         if ($LASTEXITCODE -ne 0) { throw '.NET tests failed.' }
         Write-Status '.NET tests passed' 'OK'
     }
@@ -684,7 +687,7 @@ function Test-DotNetSmoke {
 
     Write-Section 'Smoke-test .NET'
 
-    # The caller (Invoke-Smoke, reached via scripts/test.ps1 -Smoke) is
+    # The caller (Invoke-SmokeTests, reached via scripts/test.ps1 -Smoke) is
     # responsible for compiling and staging the packaged extension layout
     # before invoking this function.
 
@@ -712,7 +715,10 @@ function Test-DotNetSmoke {
         Assert-ExternalCommand 'dotnet'
 
         foreach ($project in $smokeTestProjects) {
-            dotnet test $project.FullName -c Release --no-build --filter 'Category=Smoke'
+            # `--logger console;verbosity=normal` surfaces each failed
+            # test's error message and stack trace inline (smoke failures
+            # are otherwise reported only as a bare count).
+            dotnet test $project.FullName -c Release --no-build --filter 'Category=Smoke' --logger 'console;verbosity=normal'
             if ($LASTEXITCODE -ne 0) { throw ".NET smoke tests failed ($($project.Name))." }
         }
 
@@ -726,7 +732,7 @@ function Test-VsCodeSmoke {
 
     Write-Section 'Smoke-test VS Code extension'
 
-    # The caller (Invoke-Smoke, reached via scripts/test.ps1 -Smoke) is
+    # The caller (Invoke-SmokeTests, reached via scripts/test.ps1 -Smoke) is
     # responsible for compiling and staging the packaged extension layout
     # before invoking this function.
 
@@ -1292,23 +1298,82 @@ function Invoke-Package {
     }
 }
 
-function Invoke-Smoke {
+function Invoke-TestStress {
+    <#
+    .SYNOPSIS
+        Runs a test scriptblock repeatedly, surfacing intermittent
+        failures as a rate instead of aborting on the first flake.
+    .DESCRIPTION
+        With a Times of 1 (the default) the block runs once and any
+        failure propagates unchanged. With a higher count each iteration
+        is wrapped so a throw is recorded and the run continues; after the
+        final iteration a summary lists which iterations failed, and the
+        function re-throws when the failure count is non-zero so the
+        caller's exit code still reflects failure.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$Label,
+        [Parameter(Mandatory)][scriptblock]$Run,
+        [ValidateRange(1, 100000)][int]$Times = 1
+    )
+
+    if ($Times -le 1) {
+        & $Run
+        return
+    }
+
+    $failedIterations = [System.Collections.Generic.List[int]]::new()
+
+    for ($iteration = 1; $iteration -le $Times; $iteration++) {
+        Write-Header ('{0} - iteration {1} / {2}' -f $Label, $iteration, $Times)
+
+        try {
+            & $Run
+        }
+        catch [System.Management.Automation.PipelineStoppedException] {
+            # A stop request (Ctrl-C) must abort the whole loop rather than
+            # be recorded as a failed iteration and continued past.
+            throw
+        }
+        catch {
+            $failedIterations.Add($iteration)
+            Write-Status ('iteration {0} failed: {1}' -f $iteration, $_.Exception.Message) 'FAIL'
+        }
+    }
+
+    $failedCount = $failedIterations.Count
+    Write-Header ('{0} - {1} run(s), {2} failed' -f $Label, $Times, $failedCount)
+
+    if ($failedCount -gt 0) {
+        $failedList = $failedIterations -join ', '
+        throw ('{0}: {1} of {2} iterations failed (iterations: {3}).' -f $Label, $failedCount, $Times, $failedList)
+    }
+
+    Write-Status ('all {0} iterations passed' -f $Times) 'OK'
+}
+
+function Invoke-SmokeTests {
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory)][psobject]$Context,
-        [string]$Scope = 'All'
+        [string]$Scope = 'All',
+        [ValidateRange(1, 100000)][int]$Times = 1
     )
 
     # Smoke runs against the packaged extension layout, so stage both stacks
     # via the same Package -Local pipeline used for local F5 (clean, version
     # sync, the full compile/lint/test gate, asset copy, and a
     # framework-dependent server copy). $Scope only narrows which smoke
-    # suite(s) actually run at the end.
+    # suite(s) actually run at the end. Staging happens once; -Times only
+    # repeats the smoke run so a flake surfaces without re-packaging.
     Invoke-Package -Context $Context -Local
 
     Write-Header 'Smoke Test'
-    if ($Scope -in 'All', 'TS')     { Test-VsCodeSmoke -Context $Context }
-    if ($Scope -in 'All', 'DotNet') { Test-DotNetSmoke -Context $Context }
+    Invoke-TestStress -Label 'Smoke' -Times $Times -Run ({
+        if ($Scope -in 'All', 'TS')     { Test-VsCodeSmoke -Context $Context }
+        if ($Scope -in 'All', 'DotNet') { Test-DotNetSmoke -Context $Context }
+    }.GetNewClosure())
 }
 
 function Invoke-Publish {

@@ -1,8 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/AutoContext.Framework.Pipes/AutoContext.Framework.Pipes.csproj" />
-    <Project Path="src/AutoContext.Framework.Logging/AutoContext.Framework.Logging.csproj" />
-    <Project Path="src/AutoContext.Framework.Workers/AutoContext.Framework.Workers.csproj" />
+    <Project Path="src/AutoContext.Workers.Core/AutoContext.Workers.Core.csproj" />
     <Project Path="src/AutoContext.Engine.Protocol/AutoContext.Engine.Protocol.csproj" />
     <Project Path="src/AutoContext.Engine.Core/AutoContext.Engine.Core.csproj" />
     <Project Path="src/AutoContext.Instructions.Manifest.Generator/AutoContext.Instructions.Manifest.Generator.csproj" />
@@ -16,12 +15,11 @@
   <Folder Name="/tests/">
     <Project Path="tests/AutoContext.Framework.Tests.Support/AutoContext.Framework.Tests.Support.csproj" />
     <Project Path="tests/AutoContext.Framework.Pipes.Tests/AutoContext.Framework.Pipes.Tests.csproj" />
-    <Project Path="tests/AutoContext.Framework.Logging.Tests/AutoContext.Framework.Logging.Tests.csproj" />
     <Project Path="tests/AutoContext.Instructions.Manifest.Generator.Tests/AutoContext.Instructions.Manifest.Generator.Tests.csproj" />
     <Project Path="tests/AutoContext.Workers.Manifest.Generator.Tests/AutoContext.Workers.Manifest.Generator.Tests.csproj" />
     <Project Path="tests/AutoContext.Instructions.Parser.Tests/AutoContext.Instructions.Parser.Tests.csproj" />
     <Project Path="tests/AutoContext.Engine.Protocol.Tests/AutoContext.Engine.Protocol.Tests.csproj" />
-    <Project Path="tests/AutoContext.Framework.Workers.Tests/AutoContext.Framework.Workers.Tests.csproj" />
+    <Project Path="tests/AutoContext.Workers.Core.Tests/AutoContext.Workers.Core.Tests.csproj" />
     <Project Path="tests/AutoContext.Engine.Core.Tests/AutoContext.Engine.Core.Tests.csproj" />
     <Project Path="tests/AutoContext.Engine.Tests.Support/AutoContext.Engine.Tests.Support.csproj" />
     <Project Path="tests/AutoContext.Engine.Tests/AutoContext.Engine.Tests.csproj" />

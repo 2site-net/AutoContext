@@ -16,7 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\AutoContext.Framework.Workers\AutoContext.Framework.Workers.csproj" />
+    <ProjectReference Include="..\..\src\AutoContext.Workers.Core\AutoContext.Workers.Core.csproj" />
   </ItemGroup>
 
 </Project>

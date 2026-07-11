@@ -19,7 +19,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 /// Standalone by design: it depends only on the engine's wire primitives
 /// (<see cref="ServiceAddressFormatter"/> for its listen address and
 /// <c>AutoContext.Framework.Pipes</c> for the pipe listener and frame
-/// codec), never on <c>AutoContext.Framework.Workers</c>. That keeps the
+/// codec), never on <c>AutoContext.Workers.Core</c>. That keeps the
 /// driver decoupled from the worker-host framework and faithful to exactly
 /// what the engine dials.
 /// </para>

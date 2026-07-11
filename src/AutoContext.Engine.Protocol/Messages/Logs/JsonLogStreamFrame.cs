@@ -26,4 +26,5 @@ using System.Text.Json.Serialization;
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "kind")]
 [JsonDerivedType(typeof(JsonLogRecordFrame), typeDiscriminator: "record")]
 [JsonDerivedType(typeof(JsonLogDroppedFrame), typeDiscriminator: "dropped")]
+[JsonDerivedType(typeof(JsonLogNotFoundFrame), typeDiscriminator: "not-found")]
 public abstract record JsonLogStreamFrame;

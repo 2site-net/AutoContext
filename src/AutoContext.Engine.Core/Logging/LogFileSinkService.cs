@@ -1,5 +1,6 @@
 namespace AutoContext.Engine.Core.Logging;
 
+using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 
@@ -15,9 +16,14 @@ using Microsoft.Extensions.Options;
 
 /// <summary>
 /// Background hosted service that drains <see cref="LogChannel"/>
-/// and appends every record to the engine's <c>engine.log</c> file
-/// under the per-instance subtree
-/// <c>&lt;cacheRoot&gt;/&lt;workspaceHash&gt;/&lt;instanceId&gt;/logs/engine.log</c>.
+/// and appends every record to the on-disk log its
+/// <c>category</c> routes to under the per-instance subtree
+/// <c>&lt;cacheRoot&gt;/&lt;workspaceHash&gt;/&lt;instanceId&gt;/logs/</c>:
+/// records whose category begins <c>worker.&lt;workerId&gt;.</c>
+/// land in that worker's <c>worker-&lt;workerId&gt;.log</c>, and
+/// every other record lands in <c>engine.log</c>. Per-worker
+/// appenders are opened lazily on first use and rotate
+/// independently.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -70,30 +76,34 @@ internal sealed partial class LogFileSinkService : BackgroundService
     /// <see cref="EngineCacheLayout.EngineLogFileName"/>.</summary>
     internal const string EngineLogBaseName = "engine";
 
+    private static readonly SearchValues<char> InvalidWorkerIdChars =
+        SearchValues.Create(Path.GetInvalidFileNameChars());
+
     private static readonly byte[] LineTerminator = "\n"u8.ToArray();
 
     private readonly Broadcaster<JsonLogRecord> _broadcaster;
+    private readonly EngineCacheLayout _cacheLayout;
     private readonly LogChannel _channel;
     private readonly RotatedLogCleaner _cleaner;
+    private readonly string _engineFilePath;
     private readonly TaskCompletionSource _executeStarted =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
-    private readonly string _filePath;
     private readonly ILogger<LogFileSinkService> _logger;
     private readonly LogRotationThresholds _thresholds;
     private readonly TimeProvider _timeProvider;
 
     /// <summary>
     /// Creates a new <see cref="LogFileSinkService"/> targeted at
-    /// the per-instance subtree derived from <paramref name="options"/>.
-    /// The target path is composed eagerly so the drain loop's
-    /// hot path skips path work.
+    /// the per-instance subtree derived from <paramref name="cacheLayout"/>.
+    /// Paths are resolved eagerly so the drain loop's hot path
+    /// skips path work.
     /// </summary>
     /// <param name="channel">Ingest channel to drain.</param>
     /// <param name="cacheLayout">Resolved engine cache-root layout.
-    /// The active <c>engine.log</c> path is read from
-    /// <see cref="EngineCacheLayout.EngineLogFilePath"/> at
-    /// construction time and reused for the lifetime of the
-    /// service.</param>
+    /// The logs directory, the active <c>engine.log</c> path, and
+    /// each per-worker <c>worker-&lt;workerId&gt;.log</c> path are
+    /// resolved from it; the layout is retained for the lifetime
+    /// of the service.</param>
     /// <param name="thresholds">Per-verbosity rotation thresholds
     /// — production composes via
     /// <see cref="LogRotationThresholds.ForVerbosity(LogVerbosity)"/>;
@@ -136,7 +146,8 @@ internal sealed partial class LogFileSinkService : BackgroundService
         _logger = logger;
         _thresholds = thresholds;
         _timeProvider = timeProvider;
-        _filePath = cacheLayout.EngineLogFilePath;
+        _cacheLayout = cacheLayout;
+        _engineFilePath = cacheLayout.EngineLogFilePath;
     }
 
     /// <inheritdoc />
@@ -186,16 +197,17 @@ internal sealed partial class LogFileSinkService : BackgroundService
         // for the cancellation race this guards against.
         _executeStarted.TrySetResult();
 
-        var directory = Path.GetDirectoryName(_filePath)
-            ?? throw new InvalidOperationException(
-                $"Engine log path '{_filePath}' has no parent directory; "
-                + "EngineCacheLayout must always yield a rooted path.");
-
+        var directory = _cacheLayout.LogsDirPath;
         Directory.CreateDirectory(directory);
 
-        var stream = OpenAppendStream(_filePath);
-        var bytesWritten = stream.Length;
-        var lineCount = 0;
+        // One appender per destination file, opened lazily the
+        // first time a record routes to it. The engine's own
+        // records land in engine.log; a worker's records
+        // (category worker.<workerId>.*) land in that worker's
+        // worker-<workerId>.log. Each destination tracks its own
+        // rotation counters so a chatty worker rotates
+        // independently of the engine.
+        var targets = new Dictionary<string, LogTarget>(StringComparer.Ordinal);
 
         try
         {
@@ -214,39 +226,43 @@ internal sealed partial class LogFileSinkService : BackgroundService
 
             await foreach (var record in _channel.ReadAllAsync(CancellationToken.None).ConfigureAwait(false))
             {
+                var target = ResolveTarget(targets, record.Category);
+
                 try
                 {
                     var bytes = JsonSerializer.SerializeToUtf8Bytes(
                         record,
                         ProtocolJsonContext.Default.JsonLogRecord);
 
-                    await stream.WriteAsync(bytes, CancellationToken.None).ConfigureAwait(false);
-                    await stream.WriteAsync(LineTerminator, CancellationToken.None).ConfigureAwait(false);
-                    await stream.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+                    await target.Stream.WriteAsync(bytes, CancellationToken.None).ConfigureAwait(false);
+                    await target.Stream.WriteAsync(LineTerminator, CancellationToken.None).ConfigureAwait(false);
+                    await target.Stream.FlushAsync(CancellationToken.None).ConfigureAwait(false);
 
-                    bytesWritten += bytes.Length + LineTerminator.Length;
-                    lineCount += 1;
+                    target.BytesWritten += bytes.Length + LineTerminator.Length;
+                    target.LineCount += 1;
                 }
                 catch (Exception ex)
                 {
-                    LogAppendFailed(_logger, _filePath, ex);
+                    LogAppendFailed(_logger, target.FilePath, ex);
                     continue;
                 }
 
                 // Fan-out to the logs-pipe broadcaster happens
                 // AFTER the file write so a transient write
                 // failure (handled above) keeps the record off
-                // both sinks symmetrically. TryPublish is
-                // non-blocking: slow subscribers are dropped by
-                // the broadcaster, never pushing backpressure
-                // onto the drain loop.
+                // both sinks symmetrically. Every record — engine
+                // or worker — fans out through the one shared
+                // broadcaster; subscribers filter by category.
+                // TryPublish is non-blocking: slow subscribers are
+                // dropped by the broadcaster, never pushing
+                // backpressure onto the drain loop.
                 _broadcaster.TryPublish(record);
 
-                if (lineCount >= _thresholds.MaxLines
-                    || bytesWritten >= _thresholds.MaxBytes)
+                if (target.LineCount >= _thresholds.MaxLines
+                    || target.BytesWritten >= _thresholds.MaxBytes)
                 {
-                    var rotation = await TryRotateAsync(stream, directory).ConfigureAwait(false);
-                    stream = rotation.Stream;
+                    var rotation = await TryRotateAsync(target, directory).ConfigureAwait(false);
+                    target.Stream = rotation.Stream;
 
                     // Reset BOTH counters whether or not the
                     // rename actually happened. On a successful
@@ -264,8 +280,8 @@ internal sealed partial class LogFileSinkService : BackgroundService
                     // bounded worst-case overshoot of 2× the
                     // configured threshold on the deferred file,
                     // never compounding.
-                    bytesWritten = rotation.Rotated ? 0L : stream.Length;
-                    lineCount = 0;
+                    target.BytesWritten = rotation.Rotated ? 0L : target.Stream.Length;
+                    target.LineCount = 0;
                 }
             }
         }
@@ -277,8 +293,90 @@ internal sealed partial class LogFileSinkService : BackgroundService
             // engine has stopped producing records. Idempotent.
             _broadcaster.Complete();
 
-            await stream.DisposeAsync().ConfigureAwait(false);
+            foreach (var target in targets.Values)
+            {
+                await target.Stream.DisposeAsync().ConfigureAwait(false);
+            }
         }
+    }
+
+    /// <summary>
+    /// Extracts the worker id from a <c>worker.&lt;workerId&gt;[.&lt;…&gt;]</c>
+    /// category. Returns <see langword="false"/> for any category
+    /// that does not name a worker, or whose id segment would not
+    /// compose a safe filename — such records route to the engine
+    /// log.
+    /// </summary>
+    internal static bool TryExtractWorkerId(string category, out string workerId)
+    {
+        const string prefix = "worker.";
+        workerId = string.Empty;
+
+        if (string.IsNullOrEmpty(category)
+            || !category.StartsWith(prefix, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var rest = category.AsSpan(prefix.Length);
+        var dot = rest.IndexOf('.');
+        var idSpan = dot >= 0 ? rest[..dot] : rest;
+
+        if (idSpan.IsEmpty || idSpan.IndexOfAny(InvalidWorkerIdChars) >= 0)
+        {
+            return false;
+        }
+
+        workerId = idSpan.ToString();
+        return true;
+    }
+
+    /// <summary>
+    /// Resolves the destination file path and rotation basename
+    /// for a record's <paramref name="category"/> — the worker's
+    /// log when the category names a worker, the engine log
+    /// otherwise.
+    /// </summary>
+    private (string FilePath, string BaseName) ResolveDestination(string category)
+    {
+        if (TryExtractWorkerId(category, out var workerId))
+        {
+            return (_cacheLayout.WorkerLogFilePath(workerId), EngineCacheLayout.WorkerLogBaseName(workerId));
+        }
+
+        return (_engineFilePath, EngineLogBaseName);
+    }
+
+    /// <summary>
+    /// Returns the appender the record routes to, opening it
+    /// lazily on first use. Records whose category begins
+    /// <c>worker.&lt;workerId&gt;.</c> route to that worker's
+    /// <c>worker-&lt;workerId&gt;.log</c>; every other record
+    /// routes to <c>engine.log</c>.
+    /// </summary>
+    [SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "The opened FileStream's ownership transfers to the LogTarget stored in the targets map; ExecuteAsync's finally disposes every target stream when the drain loop exits.")]
+    private LogTarget ResolveTarget(Dictionary<string, LogTarget> targets, string category)
+    {
+        var (filePath, baseName) = ResolveDestination(category);
+
+        if (!targets.TryGetValue(filePath, out var target))
+        {
+            var stream = OpenAppendStream(filePath);
+            target = new LogTarget
+            {
+                FilePath = filePath,
+                BaseName = baseName,
+                Stream = stream,
+                BytesWritten = stream.Length,
+                LineCount = 0,
+            };
+            targets[filePath] = target;
+        }
+
+        return target;
     }
 
     [LoggerMessage(
@@ -309,15 +407,15 @@ internal sealed partial class LogFileSinkService : BackgroundService
             useAsync: true);
 
     /// <summary>
-    /// Closes <paramref name="current"/>, renames the active log
-    /// file to a rotated sibling stamped with the current clock,
-    /// invokes the retention sweeper, and opens a fresh active
-    /// file. Returns the freshly opened stream together with a
-    /// flag indicating whether the rename actually happened —
-    /// <see langword="false"/> on a same-second collision or a
-    /// transient I/O failure, in which case the active file
-    /// stays in place and the next attempt fires against a fresh
-    /// timestamp.
+    /// Closes <paramref name="target"/>'s active stream, renames
+    /// its active log file to a rotated sibling stamped with the
+    /// current clock, invokes the retention sweeper, and opens a
+    /// fresh active file. Returns the freshly opened stream
+    /// together with a flag indicating whether the rename actually
+    /// happened — <see langword="false"/> on a same-second
+    /// collision or a transient I/O failure, in which case the
+    /// active file stays in place and the next attempt fires
+    /// against a fresh timestamp.
     /// </summary>
     /// <remarks>
     /// Retention sweep failures are isolated from the rotation
@@ -334,33 +432,62 @@ internal sealed partial class LogFileSinkService : BackgroundService
     [SuppressMessage(
         "Reliability",
         "CA2000:Dispose objects before losing scope",
-        Justification = "The freshly opened FileStream is returned to the caller (ExecuteAsync), which owns its disposal via the outer try/finally around the drain loop.")]
-    private async Task<RotationResult> TryRotateAsync(FileStream current, string directory)
+        Justification = "The freshly opened FileStream is returned to the caller (ExecuteAsync), which stores it back on the LogTarget and owns its disposal via the outer try/finally around the drain loop.")]
+    private async Task<RotationResult> TryRotateAsync(LogTarget target, string directory)
     {
         try
         {
-            await current.DisposeAsync().ConfigureAwait(false);
+            await target.Stream.DisposeAsync().ConfigureAwait(false);
 
             var rotatedFileName = RotatedLogCleaner.ComposeRotatedFileName(
-                EngineLogBaseName,
+                target.BaseName,
                 _timeProvider.GetUtcNow());
             var rotatedPath = Path.Combine(directory, rotatedFileName);
 
             if (File.Exists(rotatedPath))
             {
-                LogRotationCollision(_logger, _filePath, rotatedPath);
-                return new RotationResult(OpenAppendStream(_filePath), Rotated: false);
+                LogRotationCollision(_logger, target.FilePath, rotatedPath);
+                return new RotationResult(OpenAppendStream(target.FilePath), Rotated: false);
             }
 
-            File.Move(_filePath, rotatedPath, overwrite: false);
-            _cleaner.DeleteExpired(directory, EngineLogBaseName);
-            return new RotationResult(OpenAppendStream(_filePath), Rotated: true);
+            File.Move(target.FilePath, rotatedPath, overwrite: false);
+            _cleaner.DeleteExpired(directory, target.BaseName);
+            return new RotationResult(OpenAppendStream(target.FilePath), Rotated: true);
         }
         catch (Exception ex)
         {
-            LogRotationFailed(_logger, _filePath, ex);
-            return new RotationResult(OpenAppendStream(_filePath), Rotated: false);
+            LogRotationFailed(_logger, target.FilePath, ex);
+            return new RotationResult(OpenAppendStream(target.FilePath), Rotated: false);
         }
+    }
+
+    /// <summary>
+    /// Mutable per-destination appender state the drain loop
+    /// carries for one on-disk log file (the engine log or one
+    /// worker log): the open stream plus the running rotation
+    /// counters, and the immutable path/basename it rotates under.
+    /// </summary>
+    private sealed class LogTarget
+    {
+        /// <summary>Rotation basename (active file's name without
+        /// the <c>.log</c> extension) — <c>engine</c> or
+        /// <c>worker-&lt;workerId&gt;</c>.</summary>
+        public required string BaseName { get; init; }
+
+        /// <summary>Bytes written to the active file since it was
+        /// opened, against <see cref="LogRotationThresholds.MaxBytes"/>.</summary>
+        public long BytesWritten { get; set; }
+
+        /// <summary>Absolute path to the active log file.</summary>
+        public required string FilePath { get; init; }
+
+        /// <summary>Lines written to the active file since it was
+        /// opened, against <see cref="LogRotationThresholds.MaxLines"/>.</summary>
+        public int LineCount { get; set; }
+
+        /// <summary>The currently open append stream. Replaced on
+        /// each rotation.</summary>
+        public required FileStream Stream { get; set; }
     }
 
     private readonly record struct RotationResult(FileStream Stream, bool Rotated);

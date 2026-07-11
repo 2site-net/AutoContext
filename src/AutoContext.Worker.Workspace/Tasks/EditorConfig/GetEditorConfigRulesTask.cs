@@ -3,7 +3,7 @@ namespace AutoContext.Worker.Workspace.Tasks.EditorConfig;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-using AutoContext.Framework.Workers;
+using AutoContext.Workers.Core;
 
 /// <summary>
 /// <c>get_editorconfig_rules</c> — resolves a filtered subset of effective

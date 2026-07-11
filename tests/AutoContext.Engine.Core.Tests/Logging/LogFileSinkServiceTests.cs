@@ -383,5 +383,115 @@ public sealed class LogFileSinkServiceTests(LogFileSinkServiceFixture fixture) :
         // Assert — clean EOF, no terminal dropped frame.
         Assert.Empty(frames);
     }
+
+    [Fact]
+    public async Task Should_route_worker_category_record_to_the_worker_log_file()
+    {
+        // Arrange
+        var context = _fixture.Create();
+        var record = LogRecordFakeData.CreateLogRecord(
+            category: "worker.dotnet.RoslynAnalyzer", message: "from worker");
+
+        // Act
+        await context.Service.StartAsync(TestContext.Current.CancellationToken);
+        Assert.True(context.Channel.TryWrite(record));
+        await context.Service.StopAsync(TestContext.Current.CancellationToken);
+
+        // Assert — the record landed in worker-dotnet.log, and the
+        // engine log was never opened for it.
+        var layout = EngineCacheLayoutTestFactory.Create(context.Options);
+        var workerRecords = NdjsonTestReader.Read(layout.WorkerLogFilePath("dotnet"));
+        var single = Assert.Single(workerRecords);
+        Assert.Multiple(
+            () => Assert.Equal("from worker", single.GetProperty("message").GetString()),
+            () => Assert.False(File.Exists(layout.EngineLogFilePath)));
+    }
+
+    [Fact]
+    public async Task Should_route_engine_and_worker_records_to_separate_files()
+    {
+        // Arrange
+        var context = _fixture.Create();
+
+        // Act
+        await context.Service.StartAsync(TestContext.Current.CancellationToken);
+        Assert.True(context.Channel.TryWrite(LogRecordFakeData.CreateLogRecord(
+            category: "engine.lifecycle", message: "engine-line")));
+        Assert.True(context.Channel.TryWrite(LogRecordFakeData.CreateLogRecord(
+            category: "worker.web.Http", message: "worker-line")));
+        await context.Service.StopAsync(TestContext.Current.CancellationToken);
+
+        // Assert
+        var layout = EngineCacheLayoutTestFactory.Create(context.Options);
+        var engineRecords = NdjsonTestReader.Read(layout.EngineLogFilePath);
+        var workerRecords = NdjsonTestReader.Read(layout.WorkerLogFilePath("web"));
+        Assert.Multiple(
+            () => Assert.Equal("engine-line", Assert.Single(engineRecords).GetProperty("message").GetString()),
+            () => Assert.Equal("worker-line", Assert.Single(workerRecords).GetProperty("message").GetString()));
+    }
+
+    [Fact]
+    public async Task Should_route_record_with_unsafe_worker_id_to_the_engine_log()
+    {
+        // Arrange — a category whose id segment carries a path
+        // separator cannot compose a safe filename, so it falls
+        // back to the engine log rather than escaping the logs
+        // directory.
+        var context = _fixture.Create();
+        var record = LogRecordFakeData.CreateLogRecord(
+            category: "worker.a/b.Task", message: "unsafe-id");
+
+        // Act
+        await context.Service.StartAsync(TestContext.Current.CancellationToken);
+        Assert.True(context.Channel.TryWrite(record));
+        await context.Service.StopAsync(TestContext.Current.CancellationToken);
+
+        // Assert
+        var layout = EngineCacheLayoutTestFactory.Create(context.Options);
+        var engineRecords = NdjsonTestReader.Read(layout.EngineLogFilePath);
+        Assert.Equal("unsafe-id", Assert.Single(engineRecords).GetProperty("message").GetString());
+    }
+
+    [Fact]
+    public async Task Should_fan_out_worker_record_to_live_subscriber()
+    {
+        // Arrange
+        var context = _fixture.Create();
+        using var subscriber = context.Broadcaster.Subscribe();
+
+        // Act
+        await context.Service.StartAsync(TestContext.Current.CancellationToken);
+        Assert.True(context.Channel.TryWrite(LogRecordFakeData.CreateLogRecord(
+            category: "worker.dotnet.Analyzer", message: "fan-out-worker")));
+        await context.Service.StopAsync(TestContext.Current.CancellationToken);
+
+        var frames = await LogStreamTestDrainer.DrainAsync(subscriber);
+
+        // Assert — every record, engine or worker, fans out
+        // through the one shared broadcaster.
+        var single = Assert.Single(frames);
+        var recordFrame = Assert.IsType<JsonLogRecordFrame>(single);
+        Assert.Multiple(
+            () => Assert.Equal("fan-out-worker", recordFrame.Record.Message),
+            () => Assert.Equal("worker.dotnet.Analyzer", recordFrame.Record.Category));
+    }
+
+    [Theory]
+    [InlineData("worker.dotnet.RoslynAnalyzer", true, "dotnet")]
+    [InlineData("worker.web", true, "web")]
+    [InlineData("worker.dotnet.engine.stderr", true, "dotnet")]
+    [InlineData("engine.lifecycle", false, "")]
+    [InlineData("workerx.dotnet", false, "")]
+    [InlineData("worker.", false, "")]
+    [InlineData("worker.a/b.Task", false, "")]
+    [InlineData("", false, "")]
+    public void Should_extract_worker_id_from_category(string category, bool expected, string expectedId)
+    {
+        var matched = LogFileSinkService.TryExtractWorkerId(category, out var workerId);
+
+        Assert.Multiple(
+            () => Assert.Equal(expected, matched),
+            () => Assert.Equal(expectedId, workerId));
+    }
 }
 

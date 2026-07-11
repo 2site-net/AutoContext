@@ -1,8 +1,10 @@
 namespace AutoContext.Engine.Core.Tests.Workers;
 
 using AutoContext.Engine.Core.Infrastructure.Diagnostics;
+using AutoContext.Engine.Core.Logging;
 using AutoContext.Engine.Core.Tests.Support.Workers;
 using AutoContext.Engine.Core.Workers;
+using AutoContext.Engine.Protocol.Messages.Logs;
 
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -19,7 +21,8 @@ public sealed class WorkerProcessServiceTests
 
             // Act + Assert
             Assert.Throws<ArgumentNullException>(
-                () => new WorkerProcessService(null!, launcher, probe, NullLogger<WorkerProcessService>.Instance));
+                () => new WorkerProcessService(
+                    null!, launcher, probe, new LogChannel(), TimeProvider.System, NullLogger<WorkerProcessService>.Instance));
         }
 
         [Fact]
@@ -31,7 +34,7 @@ public sealed class WorkerProcessServiceTests
             // Act + Assert
             Assert.Throws<ArgumentNullException>(
                 () => new WorkerProcessService(
-                    () => [WorkerProcessInfoFakeData.CreateValid()], null!, probe, NullLogger<WorkerProcessService>.Instance));
+                    () => [WorkerProcessInfoFakeData.CreateValid()], null!, probe, new LogChannel(), TimeProvider.System, NullLogger<WorkerProcessService>.Instance));
         }
 
         [Fact]
@@ -43,7 +46,33 @@ public sealed class WorkerProcessServiceTests
             // Act + Assert
             Assert.Throws<ArgumentNullException>(
                 () => new WorkerProcessService(
-                    () => [WorkerProcessInfoFakeData.CreateValid()], launcher, null!, NullLogger<WorkerProcessService>.Instance));
+                    () => [WorkerProcessInfoFakeData.CreateValid()], launcher, null!, new LogChannel(), TimeProvider.System, NullLogger<WorkerProcessService>.Instance));
+        }
+
+        [Fact]
+        public void Should_reject_null_log_channel()
+        {
+            // Arrange
+            var launcher = new FakeWorkerProcessLauncher();
+            var probe = new FakeWorkerConnectionProbe(launcher);
+
+            // Act + Assert
+            Assert.Throws<ArgumentNullException>(
+                () => new WorkerProcessService(
+                    () => [WorkerProcessInfoFakeData.CreateValid()], launcher, probe, null!, TimeProvider.System, NullLogger<WorkerProcessService>.Instance));
+        }
+
+        [Fact]
+        public void Should_reject_null_time_provider()
+        {
+            // Arrange
+            var launcher = new FakeWorkerProcessLauncher();
+            var probe = new FakeWorkerConnectionProbe(launcher);
+
+            // Act + Assert
+            Assert.Throws<ArgumentNullException>(
+                () => new WorkerProcessService(
+                    () => [WorkerProcessInfoFakeData.CreateValid()], launcher, probe, new LogChannel(), null!, NullLogger<WorkerProcessService>.Instance));
         }
 
         [Fact]
@@ -56,7 +85,7 @@ public sealed class WorkerProcessServiceTests
             // Act + Assert
             Assert.Throws<ArgumentNullException>(
                 () => new WorkerProcessService(
-                    () => [WorkerProcessInfoFakeData.CreateValid()], launcher, probe, null!));
+                    () => [WorkerProcessInfoFakeData.CreateValid()], launcher, probe, new LogChannel(), TimeProvider.System, null!));
         }
     }
 
@@ -76,6 +105,8 @@ public sealed class WorkerProcessServiceTests
                 ],
                 launcher,
                 probe,
+                new LogChannel(),
+                TimeProvider.System,
                 NullLogger<WorkerProcessService>.Instance);
 
             // Act + Assert
@@ -93,6 +124,8 @@ public sealed class WorkerProcessServiceTests
                 () => null!,
                 launcher,
                 probe,
+                new LogChannel(),
+                TimeProvider.System,
                 NullLogger<WorkerProcessService>.Instance);
 
             // Act + Assert
@@ -110,6 +143,8 @@ public sealed class WorkerProcessServiceTests
                 () => [null!],
                 launcher,
                 probe,
+                new LogChannel(),
+                TimeProvider.System,
                 NullLogger<WorkerProcessService>.Instance);
 
             // Act + Assert
@@ -364,6 +399,91 @@ public sealed class WorkerProcessServiceTests
 
             // Assert
             manager.Dispose();
+        }
+    }
+
+    public sealed class HasEverSpawned
+    {
+        [Fact]
+        public void Should_reject_empty_worker_id()
+        {
+            // Arrange
+            var launcher = new FakeWorkerProcessLauncher();
+            using var manager = WorkerProcessServiceTestFactory.Create(launcher);
+
+            // Act + Assert
+            Assert.Throws<ArgumentException>(() => manager.HasEverSpawned(string.Empty));
+        }
+
+        [Fact]
+        public void Should_report_false_for_an_unknown_worker()
+        {
+            // Arrange
+            var launcher = new FakeWorkerProcessLauncher();
+            using var manager = WorkerProcessServiceTestFactory.Create(launcher);
+
+            // Act + Assert
+            Assert.False(manager.HasEverSpawned("missing"));
+        }
+
+        [Fact]
+        public void Should_report_false_for_a_registered_but_unstarted_worker()
+        {
+            // Arrange
+            var launcher = new FakeWorkerProcessLauncher();
+            using var manager = WorkerProcessServiceTestFactory.Create(launcher);
+
+            // Act + Assert
+            Assert.False(manager.HasEverSpawned("dotnet"));
+        }
+
+        [Fact]
+        public async Task Should_report_true_after_the_worker_is_spawned()
+        {
+            // Arrange
+            var launcher = new FakeWorkerProcessLauncher();
+            using var manager = WorkerProcessServiceTestFactory.Create(launcher);
+            var ready = manager.EnsureRunningAsync("dotnet", TestContext.Current.CancellationToken);
+
+            // Act
+            launcher.Launches[0].MarkReady();
+            await ready;
+
+            // Assert
+            Assert.True(manager.HasEverSpawned("dotnet"));
+        }
+    }
+
+    public sealed class StandardErrorCapture
+    {
+        [Fact]
+        public async Task Should_route_worker_stderr_into_the_log_channel_under_the_worker_category()
+        {
+            // Arrange
+            var cancellationToken = TestContext.Current.CancellationToken;
+            var launcher = new FakeWorkerProcessLauncher();
+            var logChannel = new LogChannel();
+            using var manager = WorkerProcessServiceTestFactory.Create(launcher, logChannel);
+            var ready = manager.EnsureRunningAsync("dotnet", cancellationToken);
+            launcher.Launches[0].MarkReady();
+            await ready;
+
+            // Act
+            launcher.Launches[0].EmitStandardErrorLine("boom from the worker");
+            logChannel.Complete();
+
+            // Assert
+            var records = new List<JsonLogRecord>();
+            await foreach (var record in logChannel.ReadAllAsync(cancellationToken))
+            {
+                records.Add(record);
+            }
+
+            var single = Assert.Single(records);
+            Assert.Multiple(
+                () => Assert.Equal("worker.dotnet.engine.stderr", single.Category),
+                () => Assert.Equal("boom from the worker", single.Message),
+                () => Assert.Equal(LogLevels.Information, single.Level));
         }
     }
 }

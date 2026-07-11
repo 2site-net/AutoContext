@@ -34,14 +34,23 @@
     Stage the packaged extension layout (Package -Local) and run the smoke
     suites, scoped by Target. Replaces the unit-only run.
 
+.PARAMETER Times
+    Repeat the selected test run this many times (default 1). The compile
+    (unit) or the staging (smoke) happens once up front; only the test run
+    repeats. Iterations continue past failures so an intermittent failure
+    surfaces as a rate, and a summary reports which iterations failed. Use
+    it to hunt flaky tests, e.g. -Times 40.
+
 .EXAMPLE
     .\scripts\test.ps1                 # Compile + unit tests, both stacks
     .\scripts\test.ps1 TS              # Compile + unit tests, TypeScript only
     .\scripts\test.ps1 DotNet          # Compile + unit tests, .NET only
     .\scripts\test.ps1 -NoCompile      # Unit tests only (assume fresh build)
+    .\scripts\test.ps1 DotNet -Times 40   # Compile once, run .NET units 40x
     .\scripts\test.ps1 -Smoke          # Stage + smoke, both stacks
     .\scripts\test.ps1 TS -Smoke       # Stage + VS Code smoke
     .\scripts\test.ps1 DotNet -Smoke   # Stage + .NET smoke
+    .\scripts\test.ps1 DotNet -Smoke -Times 40  # Stage once, run .NET smoke 40x
     .\scripts\test.ps1 -WhatIf         # Preview
 #>
 
@@ -53,7 +62,10 @@ param(
 
     [switch]$NoCompile,
 
-    [switch]$Smoke
+    [switch]$Smoke,
+
+    [ValidateRange(1, 100000)]
+    [int]$Times = 1
 )
 
 Set-StrictMode -Version Latest
@@ -67,7 +79,7 @@ if ($Target -eq '.NET')       { $Target = 'DotNet' }
 $context = Initialize-BuildContext -RepoRoot (Split-Path $PSScriptRoot -Parent)
 
 if ($Smoke) {
-    Invoke-Smoke -Context $context -Scope $Target -WhatIf:$WhatIfPreference
+    Invoke-SmokeTests -Context $context -Scope $Target -Times $Times -WhatIf:$WhatIfPreference
 }
 else {
     # Compile first by default so the `--no-build` unit runs never test stale
@@ -77,6 +89,10 @@ else {
         if ($Target -in 'All', 'DotNet') { Build-DotNet -Context $context -WhatIf:$WhatIfPreference }
     }
 
-    if ($Target -in 'All', 'TS')     { Test-TypeScript -Context $context -WhatIf:$WhatIfPreference }
-    if ($Target -in 'All', 'DotNet') { Test-DotNet -Context $context -WhatIf:$WhatIfPreference }
+    # Compile once above; -Times repeats only the test run so a flake
+    # surfaces without recompiling.
+    Invoke-TestStress -Label 'Unit tests' -Times $Times -Run ({
+        if ($Target -in 'All', 'TS')     { Test-TypeScript -Context $context -WhatIf:$WhatIfPreference }
+        if ($Target -in 'All', 'DotNet') { Test-DotNet -Context $context -WhatIf:$WhatIfPreference }
+    }.GetNewClosure())
 }

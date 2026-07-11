@@ -10,6 +10,8 @@ using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Rpc.Handlers;
 using AutoContext.Engine.Core.Rpc.Policies;
 using AutoContext.Engine.Core.Tests.Support.Endpoints;
+using AutoContext.Engine.Core.Tests.Support.Workers;
+using AutoContext.Engine.Core.Workers;
 using AutoContext.Engine.Core.Workspace.Config;
 using AutoContext.Engine.Core.Workspace.Context;
 using AutoContext.Engine.Protocol.Messages.Config;
@@ -37,8 +39,9 @@ internal static class DispatchPolicyTestFactory
     public static DispatchPolicy Create(
         IHostApplicationLifetime lifetime,
         RegistryFileReader? registryReader = null,
-        EngineLogFileReader? logFileReader = null,
+        LogFileReader? logFileReader = null,
         Broadcaster<JsonLogRecord>? logsBroadcaster = null,
+        IWorkerSpawnTracker? workerSpawnTracker = null,
         IConfigSnapshotAccessor? configAccessor = null,
         IConfigUpdater? configUpdater = null,
         SnapshotBroadcaster<JsonConfigSnapshot>? configBroadcaster = null,
@@ -87,6 +90,7 @@ internal static class DispatchPolicyTestFactory
         var logsHandler = new LogsRpcHandler(
             logFileReader ?? EndpointHostServiceFixture.CreateLogFileReader(),
             logsBroadcaster ?? EndpointHostServiceFixture.CreateLogsBroadcaster(),
+            workerSpawnTracker ?? new FakeWorkerSpawnTracker(),
             NullLogger<LogsRpcHandler>.Instance);
         var registryHandler = new RegistryRpcHandler(
             registryReader ?? EndpointHostServiceFixture.CreateRegistryReader(),

@@ -5,7 +5,7 @@ using System.Text.Json;
 /// <summary>
 /// A single behaviour the test driver serves over its worker pipe. This is
 /// the driver's own minimal task contract — deliberately independent of
-/// <c>AutoContext.Framework.Workers</c> so the driver is decoupled from the
+/// <c>AutoContext.Workers.Core</c> so the driver is decoupled from the
 /// worker-host framework and exercises only the engine's wire contract.
 /// </summary>
 internal interface ITestDriverTask

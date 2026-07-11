@@ -1,5 +1,6 @@
 namespace AutoContext.Engine.Core.Workers;
 
+using AutoContext.Engine.Core.Infrastructure.Storage;
 using AutoContext.Engine.Core.Workers.Format;
 using AutoContext.Engine.Protocol;
 
@@ -9,8 +10,10 @@ using AutoContext.Engine.Protocol;
 /// <see cref="WorkerProcessService"/> spawns from. This is a pure mapping: it
 /// expands each row's <c>${root}</c> placeholder to the worker's staging
 /// subdir, splits the launch command into an executable and its leading
-/// arguments, threads the engine instance id onto every spawn, and derives
-/// the listen endpoint each worker is dialled on.
+/// arguments, threads the engine instance id onto every spawn, derives
+/// the listen endpoint each worker is dialled on, and hands each worker
+/// the engine's own rpc address as the sink for its <c>Engine.WriteLog</c>
+/// records.
 /// </summary>
 /// <remarks>
 /// The manifest is an engine build artifact, so a row missing a required
@@ -25,7 +28,9 @@ using AutoContext.Engine.Protocol;
 internal static class WorkerProcessInfoResolver
 {
     private const string InstanceIdArgument = "--instance-id";
+    private const string LogServiceRolePrefix = "log=";
     private const string RootPlaceholder = "${root}";
+    private const string ServiceArgument = "--service";
     private const string WindowsExecutableSuffix = ".exe";
     private const string WorkspaceRootArgument = "--workspace-root";
 
@@ -70,6 +75,21 @@ internal static class WorkerProcessInfoResolver
         ArgumentException.ThrowIfNullOrWhiteSpace(workersDirectory);
         ArgumentException.ThrowIfNullOrWhiteSpace(instanceId);
 
+        // Every spawned worker ships its ILogger<T> records back to this
+        // engine over Engine.WriteLog. Derive the engine's own rpc endpoint
+        // from the shared identity (workspace hash + instance id) — the exact
+        // address the engine binds its rpc pipe on — and hand it to each
+        // worker as --service log=<address>. Empty when the workspace path is
+        // absent (standalone resolves), which disables worker→engine logging
+        // so records fall back to the worker's stderr without the call site
+        // special-casing the address.
+        var engineLogAddress = string.IsNullOrWhiteSpace(workspacePath)
+            ? string.Empty
+            : new Endpoint(
+                EndpointKind.Rpc,
+                WorkspaceHash.Compute(workspacePath).Value,
+                Guid.Parse(instanceId)).ToString();
+
         var rows = manifest.Workers
             ?? throw Malformed("its 'workers' array is missing.");
 
@@ -100,6 +120,12 @@ internal static class WorkerProcessInfoResolver
             {
                 arguments.Add(WorkspaceRootArgument);
                 arguments.Add(workspacePath);
+            }
+
+            if (engineLogAddress.Length > 0)
+            {
+                arguments.Add(ServiceArgument);
+                arguments.Add(LogServiceRolePrefix + engineLogAddress);
             }
 
             resolved.Add(new WorkerProcessInfo

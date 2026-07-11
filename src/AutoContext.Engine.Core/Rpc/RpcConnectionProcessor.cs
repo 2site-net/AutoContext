@@ -179,6 +179,9 @@ internal static partial class RpcConnectionProcessor
                 StreamingHandlerResult streaming => await WriteStreamingAsync(
                     codec, request, streaming, policy, logger, cancellationToken)
                     .ConfigureAwait(false),
+                NotificationHandlerResult notification => await HandleNotificationAsync(
+                    notification, policy, logger)
+                    .ConfigureAwait(false),
                 _ => throw new InvalidOperationException(
                     $"Unknown {nameof(RpcHandlerResult)} subtype "
                     + $"'{handlerResult.GetType().FullName}'."),
@@ -295,6 +298,61 @@ internal static partial class RpcConnectionProcessor
             // Defensive: unknown enum value treated as a failure
             // to fail loud rather than silently dropping the
             // connection.
+            LogUnknownContinuation(logger, kind, (int)value);
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Applies a <see cref="NotificationHandlerResult"/>: a
+    /// JSON-RPC 2.0 notification carries no <c>id</c>, so no
+    /// response frame is written. The handler already applied the
+    /// notification's side effect before returning; this runs the
+    /// optional <see cref="NotificationHandlerResult.PostFlush"/>
+    /// and maps the <see cref="Continuation"/> onto the loop
+    /// outcome — <see langword="null"/> to keep reading, the
+    /// success/failure bool otherwise.
+    /// </summary>
+    private static async Task<bool?> HandleNotificationAsync(
+        NotificationHandlerResult notification,
+        IRpcConnectionPolicy policy,
+        ILogger logger)
+    {
+        if (notification.PostFlush is { } postFlush)
+        {
+            try
+            {
+                await postFlush().ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // Benign — cleanup raced with cancellation. No
+                // response was owed, so the outcome follows the
+                // requested continuation.
+                return notification.Continuation == Continuation.Complete;
+            }
+#pragma warning disable CA1031 // Do not catch general exception types
+            catch (Exception ex)
+            {
+                // Intentional broad catch: PostFlush is a
+                // handler-supplied side effect. A fault here must
+                // not propagate out of the processor and tear the
+                // accept loop down.
+                LogPostFlushFaulted(logger, ex, policy.EndpointKind);
+            }
+#pragma warning restore CA1031
+        }
+
+        return notification.Continuation switch
+        {
+            Continuation.Continue => null,
+            Continuation.Complete => true,
+            Continuation.Abort => false,
+            _ => LogUnknownAndAbort(logger, policy.EndpointKind, notification.Continuation),
+        };
+
+        static bool LogUnknownAndAbort(ILogger logger, EndpointKind kind, Continuation value)
+        {
             LogUnknownContinuation(logger, kind, (int)value);
             return false;
         }

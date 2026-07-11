@@ -3,7 +3,7 @@ namespace AutoContext.Engine.Core.Logging;
 using AutoContext.Engine.Protocol.Messages.Logs;
 
 /// <summary>
-/// Output shape of <see cref="EngineLogFileReader.ReadAsync"/>.
+/// Output shape of <see cref="LogFileReader.ReadAsync"/>.
 /// </summary>
 /// <param name="Records">Ordered records satisfying the filter.</param>
 /// <param name="Truncated"><see langword="true"/> when the active

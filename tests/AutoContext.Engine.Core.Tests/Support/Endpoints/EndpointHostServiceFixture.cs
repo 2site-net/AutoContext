@@ -17,9 +17,11 @@ using AutoContext.Engine.Core.Tests.Support;
 using AutoContext.Engine.Core.Tests.Support.Features.Instructions;
 using AutoContext.Engine.Core.Tests.Support.Features.McpTools;
 using AutoContext.Engine.Core.Tests.Support.Machine;
+using AutoContext.Engine.Core.Tests.Support.Workers;
 using AutoContext.Engine.Core.Tests.Support.Workspace.Config;
 using AutoContext.Engine.Core.Tests.Support.Workspace.Context;
 using AutoContext.Engine.Core.Watchdogs;
+using AutoContext.Engine.Core.Workers;
 using AutoContext.Engine.Core.Workspace.Config;
 using AutoContext.Engine.Core.Workspace.Context;
 using AutoContext.Engine.Protocol.Messages.Config;
@@ -62,7 +64,7 @@ public sealed class EndpointHostServiceFixture : IAsyncDisposable
         var instanceGuard = new FakeUniqueInstanceGuard();
         var logsBroadcaster = new Broadcaster<JsonLogRecord>(
             NullLogger<Broadcaster<JsonLogRecord>>.Instance, "logs-pipe");
-        var logFileReader = new EngineLogFileReader(
+        var logFileReader = new LogFileReader(
             EngineCacheLayoutTestFactory.Create(resolvedOptions));
         var dispatchPolicy = CreateDispatchPolicy(
             lifetime, reader, logFileReader, logsBroadcaster);
@@ -111,8 +113,9 @@ public sealed class EndpointHostServiceFixture : IAsyncDisposable
     internal static DispatchPolicy CreateDispatchPolicy(
         IHostApplicationLifetime lifetime,
         RegistryFileReader? registryReader = null,
-        EngineLogFileReader? logFileReader = null,
-        Broadcaster<JsonLogRecord>? logsBroadcaster = null) =>
+        LogFileReader? logFileReader = null,
+        Broadcaster<JsonLogRecord>? logsBroadcaster = null,
+        IWorkerSpawnTracker? workerSpawnTracker = null) =>
         new(
             lifetime,
             new IRpcMethodHandler[]
@@ -139,6 +142,7 @@ public sealed class EndpointHostServiceFixture : IAsyncDisposable
                 new LogsRpcHandler(
                     logFileReader ?? CreateLogFileReader(),
                     logsBroadcaster ?? CreateLogsBroadcaster(),
+                    workerSpawnTracker ?? new FakeWorkerSpawnTracker(),
                     NullLogger<LogsRpcHandler>.Instance),
                 new RegistryRpcHandler(
                     registryReader ?? CreateRegistryReader(),
@@ -317,7 +321,7 @@ public sealed class EndpointHostServiceFixture : IAsyncDisposable
     internal static Broadcaster<JsonLogRecord> CreateLogsBroadcaster() =>
         new(NullLogger<Broadcaster<JsonLogRecord>>.Instance, "logs-pipe");
 
-    internal static EngineLogFileReader CreateLogFileReader(EngineOptions? options = null) =>
+    internal static LogFileReader CreateLogFileReader(EngineOptions? options = null) =>
         new(EngineCacheLayoutTestFactory.Create(options ?? CreateOptions()));
 
     [SuppressMessage(

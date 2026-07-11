@@ -33,6 +33,14 @@ public sealed class EngineCacheLayout
     public const string RegistryFileName = "engine-registry.json";
 
     /// <summary>
+    /// Filename prefix for per-worker log files. A worker's active
+    /// log file is <c>worker-&lt;workerId&gt;.log</c> and its
+    /// rotated siblings are
+    /// <c>worker-&lt;workerId&gt;-&lt;timestamp&gt;.log</c>.
+    /// </summary>
+    public const string WorkerLogFilePrefix = "worker-";
+
+    /// <summary>
     /// Creates a new <see cref="EngineCacheLayout"/> rooted at the
     /// per-instance subtree described by <paramref name="cacheRoot"/>.
     /// </summary>
@@ -97,4 +105,44 @@ public sealed class EngineCacheLayout
     /// across every concurrent engine instance).
     /// </summary>
     public string RegistryFilePath { get; }
+
+    /// <summary>
+    /// Rotation basename for a worker's log files —
+    /// <c>worker-&lt;workerId&gt;</c>. The active file appends
+    /// <c>.log</c>; rotated siblings append
+    /// <c>-&lt;timestamp&gt;.log</c>.
+    /// </summary>
+    /// <param name="workerId">Identifier of the worker whose logs
+    /// this basename groups. Must be non-empty.</param>
+    /// <returns>The rotation basename.</returns>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="workerId"/> is <see langword="null"/> or
+    /// empty.
+    /// </exception>
+    public static string WorkerLogBaseName(string workerId)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(workerId);
+        return WorkerLogFilePrefix + workerId;
+    }
+
+    /// <summary>
+    /// Absolute path to a worker's active log file
+    /// (<c>worker-&lt;workerId&gt;.log</c>) under the per-instance
+    /// <see cref="LogsDirPath"/>. Records whose
+    /// <c>category</c> begins <c>worker.&lt;workerId&gt;.</c> land
+    /// here; every other record lands in
+    /// <see cref="EngineLogFilePath"/>.
+    /// </summary>
+    /// <param name="workerId">Identifier of the worker whose log
+    /// file to resolve. Must be non-empty.</param>
+    /// <returns>The absolute path to the worker's active log file.</returns>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="workerId"/> is <see langword="null"/> or
+    /// empty.
+    /// </exception>
+    public string WorkerLogFilePath(string workerId)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(workerId);
+        return Path.Combine(LogsDirPath, WorkerLogBaseName(workerId) + ".log");
+    }
 }
