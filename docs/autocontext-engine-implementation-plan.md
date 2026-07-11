@@ -496,7 +496,7 @@ src/
         # — Derived indices (built from the rule tables) —
         FlagExtensionIndex.cs                  # maps each flag to its extension-selector set (fed to Discovery, P7)
         FlagContributionIndex.cs               # inverted index — files → base flags and flags → contributor counts
-    Features/                                  # outward-facing capability tier (P11): served to the extension over RPC; the engine runs without these, but without them nothing can consume anything. Instructions/ + McpTools/ are built; Discovery/ + Agents/ (below) are not yet
+    Features/                                  # outward-facing capability tier (P11): served to the extension over RPC; the engine runs without these, but without them nothing can consume anything. Instructions/ + McpTools/ are built; Discovery/ + Agent/ (below) are not yet
       Instructions/                            # runtime services for the Instructions.* surface
         InstructionsManifestService.cs           # hosted service — loads the merged catalog+manifest snapshot at startup
         IInstructionsManifestAccessor.cs         # read-only accessor over the loaded corpus snapshot
@@ -550,7 +550,7 @@ src/
         CategoryIndex.cs                       # inverts McpToolsRegistryEntry.Category (ancestry-inclusive) → prompt category-word scan → MCP tools
         ExtensionIndex.cs                      # InstructionsFileManifestEntry.Extensions → prompt extension scan → instructions files
         # Discovery.{RouteForPrompt,RouteForTool} are served by Rpc/Handlers/DiscoveryRpcHandler.cs
-      Agents/                                  # Agent.* RPC family (P10 — NOT YET BUILT)
+      Agent/                                   # Agent.* RPC family (P10 — NOT YET BUILT)
         AgentEventFrameStream.cs               # BroadcasterFrameStream<AgentEvent, …> (IBroadcasterFrameStream impl) for Events.Subscribe: drains a BroadcasterSubscription<AgentEvent> (fanned out over a shared Infrastructure/Events/Broadcaster<T> — pure live tail, bounded per-subscriber buffers + drop) and yields event/dropped frames
         AgentSessionToolHistogram.cs           # in-memory per-session ToolUsed counts
         # Agent.* notifications + Agent.Events.Subscribe are served by Rpc/Handlers/AgentRpcHandler.cs
@@ -2722,7 +2722,40 @@ hooks (Phase 15) stop carrying their own scan logic.
 
 ## Phase 10 — Agent.* RPCs
 
-**Status**: Not started.
+**Status**: Completed on branch `features/agent-rpcs`.
+
+| # | Commit subject | State |
+|---|---|---|
+| 1 | `feat(engine-core): serve Agent.* notifications and Agent.Events.Subscribe` | DONE |
+| 2 | `docs(plan): mark Phase 10 complete` | DONE |
+
+**Commit grouping.** The `Agent.*` surface is a single fire-and-forget
+fan-out over infrastructure the engine already owns — Phase 8's inbound
+notification handling (`NotificationHandlerResult`), Phase 3's
+server-streaming, and the shared `Infrastructure/Events/Broadcaster<T>`
+— so the whole feature lands as one green, reviewable commit rather than
+an artificial ladder. Row 1 carries the `Messages/Agent/` DTOs and their
+source-generated JSON contexts, the `Features/Agent/` fan-out
+(`AgentEventFrameStream` draining a shared `Broadcaster<JsonAgentEvent>`),
+the `Rpc/Handlers/AgentRpcHandler` serving the five notifications and
+`Agent.Events.Subscribe`, the DI wiring, and the round-trip /
+slow-subscriber / concurrent-subscriber tests. Splitting the DTOs, the
+stream, and the handler into separate commits would only produce
+intermediate states that are meaningless on their own — a subscribe
+stream with no producer, a notification handler with nothing to fan out
+to — so grouping them keeps every commit boundary both green and
+coherent. Row 2 is the standard docs mark-complete step.
+
+**`AgentSessionToolHistogram` deferred.** The target tree lists an
+in-memory per-session `ToolUsed` histogram, but its only consumer
+(`Diagnostics.Run`) is out of scope for this release. Building an
+in-memory tally nothing reads would be dead scaffolding-ahead (against
+the *Just-in-time scaffolding* ground rule), so `ToolUsed` re-broadcasts
+like the other four notifications and the histogram lands with the
+`Diagnostics.Run` phase that first reads it. `Agent.ToolUsed` carries
+`sessionId` alongside `toolName`/`outcome` (like the other four
+session-scoped events), so that future histogram already has its
+per-session key on the wire.
 
 **Goal**: engine accepts the agent-loop notifications hooks fire
 (`SubagentStarted`/`SubagentStopped`/`Compacted`/`ToolUsed`/`TurnEnded`)
@@ -2733,13 +2766,17 @@ fire-and-forget; lost events tolerable (per the design).
 shape), `§ P10` (cross-process fan-out).
 
 **Code touch**:
-- `AutoContext.Engine.Core/Features/Agents/AgentEventFrameStream` over a shared
+- `AutoContext.Engine.Core/Features/Agent/AgentEventFrameStream` over a shared
   `Infrastructure/Events/Broadcaster<AgentEvent>` — same
   per-subscriber bounded-buffer / slow-subscriber-drop discipline
   Phase 2 introduced.
-- The five notification handlers; in-memory per-session histogram for
-  `ToolUsed` (consumed by `Diagnostics.Run` in a later out-of-scope
-  release).
+- The five notification handlers, each mapping its inbound params onto
+  the unified `JsonAgentEvent` envelope the broadcaster fans out.
+- The per-session `ToolUsed` histogram is **deferred** to the
+  `Diagnostics.Run` phase that first consumes it (see the grouping note
+  above): its consumer is out of scope, so building it here would be
+  scaffolding-ahead. `Agent.ToolUsed` still carries `sessionId` on the
+  wire so that future histogram has its per-session key.
 
 **Tests**:
 - Notification → broadcast round-trip per event family.
