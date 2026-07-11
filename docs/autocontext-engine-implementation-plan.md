@@ -2722,12 +2722,12 @@ hooks (Phase 15) stop carrying their own scan logic.
 
 ## Phase 10 — Agent.* RPCs
 
-**Status**: Not started.
+**Status**: Completed on branch `features/agent-rpcs`.
 
 | # | Commit subject | State |
 |---|---|---|
 | 1 | `feat(engine-core): serve Agent.* notifications and Agent.Events.Subscribe` | DONE |
-| 2 | `docs(plan): mark Phase 10 complete` | TODO |
+| 2 | `docs(plan): mark Phase 10 complete` | DONE |
 
 **Commit grouping.** The `Agent.*` surface is a single fire-and-forget
 fan-out over infrastructure the engine already owns — Phase 8's inbound
