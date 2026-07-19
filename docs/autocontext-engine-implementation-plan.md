@@ -2810,7 +2810,7 @@ shape), `§ P10` (cross-process fan-out).
 |---|---|---|
 | 1 | `feat(engine): serve instructions and mcp-tools over the stdio mcp-server role` | DONE |
 | 2 | `feat(engine): add the Instructions.SearchByMetadata capability and search_instructions_by_metadata tool` | DONE |
-| 3 | `test(engine): smoke the stdio mcp-server role end-to-end` | TODO |
+| 3 | `test(engine): smoke the stdio mcp-server role end-to-end` | DONE |
 | 4 | `refactor(mcp-server): delegate the legacy server to the engine stdio role` | TODO |
 | 5 | `docs(plan): mark Phase 11 complete` | TODO |
 
