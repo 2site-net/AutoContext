@@ -2811,8 +2811,7 @@ shape), `§ P10` (cross-process fan-out).
 | 1 | `feat(engine): serve instructions and mcp-tools over the stdio mcp-server role` | DONE |
 | 2 | `feat(engine): add the Instructions.SearchByMetadata capability and search_instructions_by_metadata tool` | DONE |
 | 3 | `test(engine): smoke the stdio mcp-server role end-to-end` | DONE |
-| 4 | `refactor(mcp-server): delegate the legacy server to the engine stdio role` | TODO |
-| 5 | `docs(plan): mark Phase 11 complete` | TODO |
+| 4 | `docs(plan): mark Phase 11 complete` | DONE |
 
 **Commit grouping.** The `--mcp-server with-stdio` role split already
 landed as Phase 1 scaffolding — `EngineCommand` parses the flag, rejects
@@ -2871,11 +2870,19 @@ the P1 cross-transport byte-identical `tools/call` diff against the pipe
 `McpTools.Invoke`, no-pipe-bind coexistence with a parallel daemon,
 per-request `.autocontext.json` re-read, clean stdio-EOF exit, and no
 `engine-registry.json` entry. It lands after rows 1–2 because it spawns
-what they build. Row 4 is a separate project's behavioural cutover: it
-shrinks `AutoContext.Mcp.Server/Program.cs` to a thin shim over the
-engine's role (kept only for the in-tree smoke test until Phase 16),
-bisectable on its own and landing only after row 1 has proven the
-replacement path. Row 5 is the standard docs mark-complete step.
+what they build. Row 4 is the standard docs mark-complete step.
+
+There is deliberately **no** legacy-server cutover row here.
+`AutoContext.Mcp.Server` stays untouched as the legacy stdio server
+until Phase 16 retires it — it is **not** shrunk to a shim that
+delegates to the engine's role. A delegating shim would forward into
+the same engine code row 1 builds, so it is not an independent
+regression signal, and row 3 already smoke-tests the engine's stdio
+role end-to-end over a real process boundary. Leaving the legacy
+server as-is keeps its still-legacy consumers working unchanged — the
+extension's `servers.json`-driven provider and the packaging layout —
+until Phase 13 (packaging) and Phase 14 (extension) repoint them at
+the engine binary and Phase 16 deletes the project wholesale.
 
 **Goal**: `autocontext-engine --mcp-server with-stdio` runs the
 reduced stdio MCP server — the daemon's read capabilities plus
@@ -2911,10 +2918,14 @@ and is killed on stdio EOF. Per-request disk read of
   `analyze_*` / `read_*` MCP tools (today's surface). The per-request
   `.autocontext.json` read is wired into the handler dependency
   graph for this role.
-- `AutoContext.Mcp.Server/Program.cs` shrinks to a thin shim that
-  delegates to the engine binary's MCP-server-only role — kept only
-  for the in-tree smoke test that still spawns it; deleted in
-  Phase 16.
+- `AutoContext.Mcp.Server` is left **untouched** as the legacy stdio
+  server — **not** shrunk to a delegating shim. The engine's stdio
+  role stands on its own (proven end-to-end by row 3's smoke test),
+  so a shim forwarding into the same engine code would add no
+  independent coverage. The legacy server keeps serving its
+  `servers.json`-driven consumers unchanged until Phase 13
+  (packaging) and Phase 14 (extension provider) repoint them at the
+  engine binary and Phase 16 deletes the project.
 
 **Tests**:
 - **In-process (row 1).** The adapter routes `tools/call` by name to the
@@ -3187,8 +3198,10 @@ hosts).
 
 **Status**: Not started.
 
-**Goal**: the standalone MCP-server project is gone. The MCP host
-servers manifest (`servers.json`) points at
+**Goal**: the standalone MCP-server project is gone. Phase 11 left it
+**untouched** as the legacy stdio server (no delegating shim), so this
+phase deletes it as-is once its last consumers have flipped to the
+engine binary. The MCP host servers manifest (`servers.json`) points at
 `autocontext-engine --mcp-server with-stdio`. Tests fold into
 `AutoContext.Engine.Core.Tests`.
 
@@ -3197,7 +3210,9 @@ servers manifest (`servers.json`) points at
 
 **Code touch**:
 - Delete `src/AutoContext.Mcp.Server/` and
-  `tests/AutoContext.Mcp.Server.Tests/`.
+  `tests/AutoContext.Mcp.Server.Tests/` — the legacy server, untouched
+  since it was superseded in Phase 11, retires here with no shim to
+  unwind.
 - Tests worth keeping move into `AutoContext.Engine.Core.Tests`
   (the schema-validation tests, the manifest-loader tests, the
   envelope-composition tests).
