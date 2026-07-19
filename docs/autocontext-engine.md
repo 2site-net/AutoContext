@@ -187,7 +187,7 @@ also land here so the index stays the system's table of contents.
 | Name | Kind | Scope | See |
 |---|---|---|---|
 | `autocontext-engine` (daemon role) | .NET binary | one process per (workspace, launcher instance); binds four pipes, owns writes, runs housekeeping | [Engine binary](#engine-binary) |
-| `autocontext-engine --mcp-server with-stdio` (MCP-server-only role) | same .NET binary, different role | one process per MCP-host launch; no pipes, no registry, stdio-only, re-reads `.autocontext.json` per request, exits on stdio EOF | [Engine binary](#engine-binary) |
+| `autocontext-engine --mcp-server with-stdio` (MCP-server-only role) | same .NET binary, different role | one process per MCP-host launch; no daemon pipes / registry entry, stdio-only, spawns workers on demand for worker-backed tools over private dispatch pipes (torn down on exit), re-reads `.autocontext.json` per request, exits on stdio EOF | [Engine binary](#engine-binary) |
 | `AutoContext.Worker.DotNet` / `.Workspace` / `.Web` | .NET / Node task workers | spawned lazily by the engine via `WorkerProcessService` | [What the engine absorbs](#what-the-engine-absorbs-from-todays-topology) |
 | `AutoContext.Mcp.Server` | retired in this plan | absorbed into the engine | [What the engine absorbs](#what-the-engine-absorbs-from-todays-topology) |
 
@@ -399,7 +399,7 @@ classes:
 
 | Today | Lives in | Becomes |
 |-------|----------|---------|
-| `AutoContext.Mcp.Server` (orchestrator + MCP/stdio + worker dispatch + registry) | Standalone process | **Same `autocontext-engine` binary, MCP-server-only role** (`--mcp-server with-stdio`). Reads workspace state directly from `.autocontext.json` (re-read per MCP request) and bundled side-car corpus; no pipes, no worker dispatch, no registry entry. Concurrent daemon-role engine on the same workspace (when launched by a different host) is the writer; MCP-server role is read-mostly view. |
+| `AutoContext.Mcp.Server` (orchestrator + MCP/stdio + worker dispatch + registry) | Standalone process | **Same `autocontext-engine` binary, MCP-server-only role** (`--mcp-server with-stdio`). Reads workspace state directly from `.autocontext.json` (re-read per MCP request) and bundled side-car corpus; binds no daemon pipes and writes no registry entry, but spawns workers on demand for worker-backed tools (`analyze_*` / `read_*`) over private dispatch pipes, torn down on process exit. Concurrent daemon-role engine on the same workspace (when launched by a different host) is the writer; MCP-server role is a read-mostly view plus on-demand worker dispatch. |
 | `AutoContextConfigManager` (TS, extension) | Extension process | **Engine internal**: `ConfigFileService` (.NET) |
 | `InstructionsFilesManager` + `InstructionsFileContentProjector` + `instructions-files-metadata-generator` + client-side content trigram index | Extension process | **Engine internal**: `InstructionsManifestService` + `InstructionsBodyProjector` + the build-time `instructions-manifest-gen` generator (now runs **both** at build time — reading the curated `Resources/instructions-catalog.json` and the corpus to emit the `Resources/instructions-manifest.json` side-car — **and** at engine startup, where the engine merges catalog + manifest into an immutable snapshot, applies per-request projection against workspace state, and returns rows via `Instructions.List`) + `InstructionsFullTextSearchService` (replaces the client-side trigram index; built lazily in-memory over the projected bodies `InstructionsBodyProjector` returns) |
 | `servers.json` (TS-side worker/MCP-server inventory) + `mcp-workers-registry.json` (MCP-server–side worker dispatch table) | Extension `resources/` + `AutoContext.Mcp.Server/` | **Replaced** by build-generated `Resources/workers.json` (scan of `src/AutoContext.Worker.*/` projects, id derived by stripping `AutoContext.Worker.` and replacing `.` with `-`, entrypoint written from the actual published path) + `Resources/mcp-tools-registry.json` (renamed from `mcp-workers-registry.json`; a hand-authored flat `tools[]` dispatch table, each tool carrying a `workerId` FK) + `Resources/mcp-tools-registry.schema.json` (its JSON-schema) + the hand-authored `Resources/mcp-tools-catalog.json` UI catalog. The old `servers.json` mixed MCP-server identity with worker identity; the MCP server is gone (consolidated into the engine), so the worker-only file is what remains. |
@@ -586,30 +586,48 @@ roles read as ordinary file I/O.
   `autocontext-engine --workspace <path> --instance-id <uuid>
   --idle-timeout 0 --parent-pid <host-pid>`.
 - **MCP-server-only role** (`--mcp-server with-stdio`) — a
-  **minimal** stdio MCP server. No pipes are bound, no
-  `engine-registry.json` entry is written, no `engine.log` file is
-  produced, no housekeeping runs, no `FileSystemWatcher` is
-  attached, no worker is spawned. The process speaks MCP
-  JSON-RPC on stdin/stdout, logs operational events to stderr
-  only, reads bundled side-car corpus (`Instructions/`,
-  `Resources/`) from `AppContext.BaseDirectory`, and **re-reads
-  `.autocontext.json` on every MCP request** (one stat-then-read
-  per `tools/list` / `tools/call`; small JSON on warm cache, the
-  authoritative source of truth at the moment the request is
-  served). The process exits cleanly on stdio EOF. The MCP host
-  (VS Code's MCP manager, Claude Desktop, Claude Code) owns its
-  lifecycle entirely — relaunch on crash is the host's job, not
-  the engine's. Argv accepted in this role: `--workspace`,
-  `--mcp-server`, `--version`. Every other engine switch
-  (`--instance-id`, `--instance-label`, `--idle-timeout`,
+  **reduced** stdio MCP server: the daemon's read capabilities
+  plus on-demand worker dispatch, and nothing else. None of the
+  four daemon pipes are bound, no `engine-registry.json` entry is
+  written, no `engine.log` file is produced, no housekeeping runs,
+  no `FileSystemWatcher` is attached, and no keep-alive /
+  idle-timeout clock exists. The process speaks MCP JSON-RPC on
+  stdin/stdout, logs operational events to stderr only, reads
+  bundled side-car corpus (`Instructions/`, `Resources/`) from
+  `AppContext.BaseDirectory`, and **re-reads `.autocontext.json`
+  on every MCP request** (one stat-then-read per `tools/list` /
+  `tools/call`; small JSON on warm cache, the authoritative source
+  of truth at the moment the request is served). In-process
+  capabilities (the `instructions_*` tools) are served directly
+  off the bundled corpus with no worker involvement.
+  **Worker-backed tools** (the `analyze_*` / `read_*` family) are
+  served by spawning the owning worker on demand — the same lazy
+  `WorkerProcessService.ensureRunning(workerId)` gate the daemon
+  uses — and round-tripping over a **private** worker-dispatch
+  pipe. These worker pipes are the only pipes this role ever
+  binds; they are namespaced by an **ephemeral instance id minted
+  internally at process start** (never accepted from argv), are
+  not advertised in any registry, and are torn down when the
+  MCP-server process exits. A worker spawned for one request stays
+  warm for the life of the process so repeat `tools/call`s reuse
+  it, matching the short-lived, host-managed nature of an MCP
+  server rather than maintaining a persistent pool. The process
+  exits cleanly on stdio EOF, killing any workers it spawned; the
+  MCP host (VS Code's MCP manager, Claude Desktop, Claude Code)
+  owns its lifecycle entirely — relaunch on crash is the host's
+  job, not the engine's. Argv accepted in this role:
+  `--workspace`, `--mcp-server`, `--version`. Every other engine
+  switch (`--instance-id`, `--instance-label`, `--idle-timeout`,
   `--parent-pid`, `--retention`, `--logging`) is **rejected at
-  argv parse time** — they describe pipe-and-registry concerns
-  this role does not have.
+  argv parse time** — they describe daemon pipe-and-registry
+  concerns this role does not have (the ephemeral worker-pipe
+  scope is internal, not the launcher-minted `--instance-id`).
 
 The two roles can coexist on the same workspace without
 coordination: a VS Code window runs the daemon role (state
 authority over pipes), an MCP host concurrently runs the
-MCP-server-only role (read-mostly view via stdio). Writes to
+MCP-server-only role (read-mostly view via stdio, with on-demand
+worker dispatch for compute tools). Writes to
 `.autocontext.json` from the daemon propagate to the MCP-server
 role on the next MCP request (β-style on-demand reads); writes
 from the MCP-server role propagate to the daemon through the
@@ -967,7 +985,9 @@ Consequences:
   sweep) describe the **daemon role** exclusively. When the engine
   is launched with `--mcp-server with-stdio` it runs the
   MCP-server-only role instead, and **none of those mechanisms
-  apply**: the process binds no pipes, performs no `Hello`
+  apply**: the process binds none of the four daemon pipes (its
+  only pipes are the private, on-demand worker-dispatch pipes
+  described in *Engine binary*), performs no `Hello`
   handshake (the wire protocol is MCP JSON-RPC on stdio, not the
   engine's pipe RPC), does not write an `engine-registry.json`
   entry, does not participate in the keep-alive gate or the
