@@ -572,7 +572,7 @@ src/
       McpSdkAdapter.cs                         # generic router: aggregates IMcpToolSource tools for tools/list, routes tools/call by name to the matching IMcpTool leaf, maps the response to CallToolResult. Knows no concrete tools.
       StdioMcpServerEntryPoint.cs              # composes AddMcpServer().WithStdioServerTransport() — the stdio host (a future HttpMcpServerEntryPoint would be the sibling transport)
       InputSchemaBuilder.cs                    # renders each tool's JSON-schema inputSchema for tools/list
-      McpStdioServerHostBuilderExtensions.cs   # AddAutoContextMcpStdioServer — the reduced-but-sufficient DI composition for the role
+      McpServerHostBuilderExtensions.cs        # AddMcpServer — the reduced-but-sufficient DI composition for the role
       McpStdioStartupLoader.cs                 # one-shot hosted service: initial config reload + workspace DetectAsync (no watcher)
       Tools/                                   # the flat tool model — leaves + sources grouped by nature; add a tool/family here, never in the adapter
         IMcpTool.cs                            # one tool: its Descriptor + InvokeAsync(itself). No routing.

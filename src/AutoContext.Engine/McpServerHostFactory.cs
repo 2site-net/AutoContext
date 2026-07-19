@@ -1,7 +1,6 @@
 namespace AutoContext.Engine;
 
 using AutoContext.Engine.Core;
-using AutoContext.Engine.Core.McpServer;
 
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -36,7 +35,7 @@ internal static class McpServerHostFactory
         builder.Logging.AddConsole(consoleOptions => consoleOptions.LogToStandardErrorThreshold = LogLevel.Trace);
         builder.Logging.SetMinimumLevel(LogLevel.Warning);
 
-        builder.AddAutoContextMcpStdioServer(target =>
+        builder.AddMcpServer(target =>
         {
             target.WorkspacePath = options.WorkspacePath;
             target.McpServerMode = options.McpServerMode;

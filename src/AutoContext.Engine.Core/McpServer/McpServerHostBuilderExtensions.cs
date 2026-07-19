@@ -38,7 +38,7 @@ using Microsoft.Extensions.Options;
 /// the config / workspace file watchers — so the process binds no pipes,
 /// writes no registry entry, and attaches no <see cref="FileSystemWatcher"/>.
 /// </summary>
-internal static class McpStdioServerHostBuilderExtensions
+internal static class McpServerHostBuilderExtensions
 {
     /// <summary>
     /// Registers the stdio MCP-server role on <paramref name="builder"/>.
@@ -50,8 +50,8 @@ internal static class McpStdioServerHostBuilderExtensions
     /// <exception cref="ArgumentNullException">
     /// <paramref name="builder"/> or <paramref name="configure"/> is
     /// <see langword="null"/>.</exception>
-    public static IHostApplicationBuilder AddAutoContextMcpStdioServer(
-        this IHostApplicationBuilder builder,
+    public static IHostApplicationBuilder AddMcpServer(
+        IHostApplicationBuilder builder,
         Action<EngineOptions> configure)
     {
         ArgumentNullException.ThrowIfNull(builder);
