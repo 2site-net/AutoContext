@@ -13,6 +13,7 @@ using AutoContext.Engine.Core.Lifecycle;
 using AutoContext.Engine.Core.Logging;
 using AutoContext.Engine.Core.Machine;
 using AutoContext.Engine.Core.Machine.Housekeeping;
+using AutoContext.Engine.Core.McpServer;
 using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Rpc.Handlers;
 using AutoContext.Engine.Core.Rpc.Policies;
@@ -41,11 +42,11 @@ using Microsoft.Extensions.Options;
 /// and every test harness call this method; nothing else does.
 /// </summary>
 /// <remarks>
-/// Per <c>design § Composition contracts</c> this method is the
-/// engine library's <i>single</i> public entry point. Adding new
-/// engine capabilities means adding new hosted services and DI
-/// registrations behind this call, never new top-level extension
-/// methods.
+/// Per <c>design § Composition contracts</c> the engine library exposes
+/// one top-level extension per host role: <see cref="AddAutoContextEngine"/>
+/// for the daemon role and <see cref="AddMcpServer"/> for the
+/// <c>--mcp-server with-stdio</c> role. New daemon capabilities continue to
+/// land behind <see cref="AddAutoContextEngine"/>.
 /// </remarks>
 public static class EngineHostBuilderExtensions
 {
@@ -604,6 +605,24 @@ public static class EngineHostBuilderExtensions
 
         return builder;
     }
+
+    /// <summary>
+    /// Registers the reduced dependency graph for the
+    /// <c>--mcp-server with-stdio</c> role on
+    /// <paramref name="builder"/>.
+    /// </summary>
+    /// <param name="builder">Host application builder to extend.</param>
+    /// <param name="configure">Callback that mutates the
+    /// <see cref="EngineOptions"/> instance before it is validated.</param>
+    /// <returns><paramref name="builder"/>, for chaining.</returns>
+    /// <exception cref="ArgumentNullException">
+    /// <paramref name="builder"/> or <paramref name="configure"/> is
+    /// <see langword="null"/>.
+    /// </exception>
+    public static IHostApplicationBuilder AddMcpServer(
+        this IHostApplicationBuilder builder,
+        Action<EngineOptions> configure)
+        => McpServerHostBuilderExtensions.AddMcpServer(builder, configure);
 
     private static EngineResourcesDirectory ResolveResources(IServiceProvider services)
         => ResolveResources(services.GetRequiredService<IOptions<EngineOptions>>().Value);

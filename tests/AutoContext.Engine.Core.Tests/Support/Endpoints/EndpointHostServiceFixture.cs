@@ -125,15 +125,7 @@ public sealed class EndpointHostServiceFixture : IAsyncDisposable
                     CreateMcpToolsInvoker(),
                     CreateConfigAccessor(),
                     NullLogger<McpToolsRpcHandler>.Instance),
-                new InstructionsRpcHandler(
-                    CreateInstructionsManifestAccessor(),
-                    CreateInstructionsListProjector(),
-                    CreateInstructionsBodyProjector(),
-                    CreateInstructionsFileReader(),
-                    CreateInstructionsSearchService(),
-                    CreateInstructionsBroadcaster(),
-                    CreateConfigAccessor(),
-                    NullLogger<InstructionsRpcHandler>.Instance),
+                CreateInstructionsRpcHandler(),
                 new ConfigRpcHandler(
                     CreateConfigAccessor(),
                     CreateConfigUpdater(),
@@ -232,6 +224,25 @@ public sealed class EndpointHostServiceFixture : IAsyncDisposable
             overrides ?? CreateInstructionsOverridesAccessor(),
             config ?? CreateConfigAccessor(),
             workspace ?? CreateWorkspaceAccessor());
+
+    [SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "The full-text search service is owned by the constructed handler, whose owning host the fixture tracks and disposes during teardown.")]
+    internal static InstructionsRpcHandler CreateInstructionsRpcHandler(
+        IInstructionsManifestAccessor? manifest = null,
+        IInstructionsOverridesAccessor? overrides = null,
+        IConfigSnapshotAccessor? config = null,
+        IWorkspaceContextAccessor? workspace = null) =>
+        new(
+            manifest ?? CreateInstructionsManifestAccessor(),
+            CreateInstructionsListProjector(manifest, overrides, config, workspace),
+            CreateInstructionsBodyProjector(overrides, config),
+            CreateInstructionsFileReader(overrides),
+            CreateInstructionsSearchService(manifest, config: config),
+            CreateInstructionsBroadcaster(),
+            config ?? CreateConfigAccessor(),
+            NullLogger<InstructionsRpcHandler>.Instance);
 
     internal static InstructionsBodyProjector CreateInstructionsBodyProjector(
         IInstructionsOverridesAccessor? overrides = null,

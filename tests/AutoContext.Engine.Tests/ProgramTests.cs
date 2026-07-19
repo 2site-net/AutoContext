@@ -6,12 +6,12 @@ using AutoContext.Engine.Tests.Support;
 /// <summary>
 /// End-to-end smoke tests for <see cref="Program.Main"/> — exercises
 /// the wiring between the <c>System.CommandLine</c> parse pipeline,
-/// the <c>autocontext-engine: </c> stderr prefix, the built-in
-/// <c>--version</c> action, and the MCP-role stub. The daemon
-/// happy-path is not covered here because the host blocks on
-/// shutdown until later Phase 1 commits add an idle-timeout / parent
-/// watchdog; <see cref="EngineCommandTests"/> already covers the
-/// parser-and-build half end-to-end at unit speed.
+/// the <c>autocontext-engine: </c> stderr prefix, and the built-in
+/// <c>--version</c> action. The daemon and MCP-server happy paths are
+/// not covered here because the host blocks on shutdown until stdio EOF
+/// or a lifecycle clamp fires; <see cref="EngineCommandTests"/> already
+/// covers the parser-and-build half end-to-end at unit speed, and the
+/// stdio MCP-server role is exercised out-of-process by its smoke test.
 /// </summary>
 [Collection(ConsoleRedirection.Name)]
 public sealed class ProgramTests
@@ -97,36 +97,6 @@ public sealed class ProgramTests
                 () => Assert.Equal(string.Empty, stdout.ToString()),
                 () => Assert.Contains("autocontext-engine:", stderr.ToString(), StringComparison.Ordinal),
                 () => Assert.Contains("--instance-id", stderr.ToString(), StringComparison.Ordinal));
-        }
-        finally
-        {
-            Console.SetOut(originalOut);
-            Console.SetError(originalError);
-        }
-    }
-
-    [Fact]
-    public async Task Should_route_mcp_server_role_to_stub_and_exit_non_zero()
-    {
-        // Arrange
-        using var stdout = new StringWriter();
-        using var stderr = new StringWriter();
-        var originalOut = Console.Out;
-        var originalError = Console.Error;
-        Console.SetOut(stdout);
-        Console.SetError(stderr);
-
-        try
-        {
-            // Act
-            var exitCode = await Program.Main(EngineCommandArgsFakeData.CreateValidMcpServerArgs());
-
-            // Assert
-            Assert.Multiple(
-                () => Assert.NotEqual(0, exitCode),
-                () => Assert.Equal(string.Empty, stdout.ToString()),
-                () => Assert.Contains("not implemented", stderr.ToString(), StringComparison.Ordinal),
-                () => Assert.Contains("--mcp-server with-stdio", stderr.ToString(), StringComparison.Ordinal));
         }
         finally
         {

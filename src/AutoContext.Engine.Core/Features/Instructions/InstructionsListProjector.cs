@@ -118,6 +118,31 @@ internal sealed class InstructionsListProjector
     }
 
     /// <summary>
+    /// Projects a single manifest entry into its identity row — the same
+    /// shape <see cref="Project"/> produces per row — resolving its override
+    /// source and disabled state from workspace state. Used by the metadata
+    /// search handler to shape each matched entry.
+    /// </summary>
+    /// <param name="entry">The manifest entry to project.</param>
+    /// <param name="includeSections">Whether the row carries its section
+    /// index.</param>
+    /// <returns>The projected identity row.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="entry"/> is
+    /// <see langword="null"/>.</exception>
+    public JsonInstructionsListRow ProjectRow(
+        InstructionsFileManifestEntry entry, bool includeSections)
+    {
+        ArgumentNullException.ThrowIfNull(entry);
+
+        return CreateListRow(
+            entry,
+            _overridesAccessor.Current,
+            _workspaceAccessor.EngineInfo.WorkspacePath,
+            IsFileDisabled(entry.Key),
+            includeSections);
+    }
+
+    /// <summary>
     /// Maps a manifest entry's section index onto its wire shape.
     /// Shared with the body-projection handlers so the section
     /// mapping lives in one place.

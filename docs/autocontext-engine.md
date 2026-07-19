@@ -187,7 +187,7 @@ also land here so the index stays the system's table of contents.
 | Name | Kind | Scope | See |
 |---|---|---|---|
 | `autocontext-engine` (daemon role) | .NET binary | one process per (workspace, launcher instance); binds four pipes, owns writes, runs housekeeping | [Engine binary](#engine-binary) |
-| `autocontext-engine --mcp-server with-stdio` (MCP-server-only role) | same .NET binary, different role | one process per MCP-host launch; no pipes, no registry, stdio-only, re-reads `.autocontext.json` per request, exits on stdio EOF | [Engine binary](#engine-binary) |
+| `autocontext-engine --mcp-server with-stdio` (MCP-server-only role) | same .NET binary, different role | one process per MCP-host launch; no daemon pipes / registry entry, stdio-only, spawns workers on demand for worker-backed tools over private dispatch pipes (torn down on exit), re-reads `.autocontext.json` per request, exits on stdio EOF | [Engine binary](#engine-binary) |
 | `AutoContext.Worker.DotNet` / `.Workspace` / `.Web` | .NET / Node task workers | spawned lazily by the engine via `WorkerProcessService` | [What the engine absorbs](#what-the-engine-absorbs-from-todays-topology) |
 | `AutoContext.Mcp.Server` | retired in this plan | absorbed into the engine | [What the engine absorbs](#what-the-engine-absorbs-from-todays-topology) |
 
@@ -299,7 +299,7 @@ are marshalling shims — P1).
 |---|---|
 | `Engine.*` | `Hello`, `RegistryEntries`, `Shutdown`, `WriteLog` (fire-and-forget from workers), `Lifecycle.Subscribe` |
 | `Config.*` | `Get`, `Subscribe`, `ToggleFile`, `ToggleRule` |
-| `Instructions.*` | `List`, `Categories`, `Get`, `GetAll`, `GetAlwaysAttached`, `GetRaw`, `SearchContent`, `Subscribe` |
+| `Instructions.*` | `List`, `Categories`, `Get`, `GetAll`, `GetAlwaysAttached`, `GetRaw`, `SearchContent`, `SearchByMetadata`, `Subscribe` |
 | `Workspace.*` | `Detect`, `Info` |
 | `Logs.*` | `GetEngine`, `TailEngine`, `GetWorker`, `TailWorker` |
 | `McpTools.*` | `List`, `Invoke` (future: `InvokeStream`, `GetDescription`, `SearchByMetadata`, `SearchByContent`) |
@@ -399,7 +399,7 @@ classes:
 
 | Today | Lives in | Becomes |
 |-------|----------|---------|
-| `AutoContext.Mcp.Server` (orchestrator + MCP/stdio + worker dispatch + registry) | Standalone process | **Same `autocontext-engine` binary, MCP-server-only role** (`--mcp-server with-stdio`). Reads workspace state directly from `.autocontext.json` (re-read per MCP request) and bundled side-car corpus; no pipes, no worker dispatch, no registry entry. Concurrent daemon-role engine on the same workspace (when launched by a different host) is the writer; MCP-server role is read-mostly view. |
+| `AutoContext.Mcp.Server` (orchestrator + MCP/stdio + worker dispatch + registry) | Standalone process | **Same `autocontext-engine` binary, MCP-server-only role** (`--mcp-server with-stdio`). Reads workspace state directly from `.autocontext.json` (re-read per MCP request) and bundled side-car corpus; binds no daemon pipes and writes no registry entry, but spawns workers on demand for worker-backed tools (`analyze_*` / `read_*`) over private dispatch pipes, torn down on process exit. Concurrent daemon-role engine on the same workspace (when launched by a different host) is the writer; MCP-server role is a read-mostly view plus on-demand worker dispatch. |
 | `AutoContextConfigManager` (TS, extension) | Extension process | **Engine internal**: `ConfigFileService` (.NET) |
 | `InstructionsFilesManager` + `InstructionsFileContentProjector` + `instructions-files-metadata-generator` + client-side content trigram index | Extension process | **Engine internal**: `InstructionsManifestService` + `InstructionsBodyProjector` + the build-time `instructions-manifest-gen` generator (now runs **both** at build time — reading the curated `Resources/instructions-catalog.json` and the corpus to emit the `Resources/instructions-manifest.json` side-car — **and** at engine startup, where the engine merges catalog + manifest into an immutable snapshot, applies per-request projection against workspace state, and returns rows via `Instructions.List`) + `InstructionsFullTextSearchService` (replaces the client-side trigram index; built lazily in-memory over the projected bodies `InstructionsBodyProjector` returns) |
 | `servers.json` (TS-side worker/MCP-server inventory) + `mcp-workers-registry.json` (MCP-server–side worker dispatch table) | Extension `resources/` + `AutoContext.Mcp.Server/` | **Replaced** by build-generated `Resources/workers.json` (scan of `src/AutoContext.Worker.*/` projects, id derived by stripping `AutoContext.Worker.` and replacing `.` with `-`, entrypoint written from the actual published path) + `Resources/mcp-tools-registry.json` (renamed from `mcp-workers-registry.json`; a hand-authored flat `tools[]` dispatch table, each tool carrying a `workerId` FK) + `Resources/mcp-tools-registry.schema.json` (its JSON-schema) + the hand-authored `Resources/mcp-tools-catalog.json` UI catalog. The old `servers.json` mixed MCP-server identity with worker identity; the MCP server is gone (consolidated into the engine), so the worker-only file is what remains. |
@@ -586,30 +586,48 @@ roles read as ordinary file I/O.
   `autocontext-engine --workspace <path> --instance-id <uuid>
   --idle-timeout 0 --parent-pid <host-pid>`.
 - **MCP-server-only role** (`--mcp-server with-stdio`) — a
-  **minimal** stdio MCP server. No pipes are bound, no
-  `engine-registry.json` entry is written, no `engine.log` file is
-  produced, no housekeeping runs, no `FileSystemWatcher` is
-  attached, no worker is spawned. The process speaks MCP
-  JSON-RPC on stdin/stdout, logs operational events to stderr
-  only, reads bundled side-car corpus (`Instructions/`,
-  `Resources/`) from `AppContext.BaseDirectory`, and **re-reads
-  `.autocontext.json` on every MCP request** (one stat-then-read
-  per `tools/list` / `tools/call`; small JSON on warm cache, the
-  authoritative source of truth at the moment the request is
-  served). The process exits cleanly on stdio EOF. The MCP host
-  (VS Code's MCP manager, Claude Desktop, Claude Code) owns its
-  lifecycle entirely — relaunch on crash is the host's job, not
-  the engine's. Argv accepted in this role: `--workspace`,
-  `--mcp-server`, `--version`. Every other engine switch
-  (`--instance-id`, `--instance-label`, `--idle-timeout`,
+  **reduced** stdio MCP server: the daemon's read capabilities
+  plus on-demand worker dispatch, and nothing else. None of the
+  four daemon pipes are bound, no `engine-registry.json` entry is
+  written, no `engine.log` file is produced, no housekeeping runs,
+  no `FileSystemWatcher` is attached, and no keep-alive /
+  idle-timeout clock exists. The process speaks MCP JSON-RPC on
+  stdin/stdout, logs operational events to stderr only, reads
+  bundled side-car corpus (`Instructions/`, `Resources/`) from
+  `AppContext.BaseDirectory`, and **re-reads `.autocontext.json`
+  on every MCP request** (one stat-then-read per `tools/list` /
+  `tools/call`; small JSON on warm cache, the authoritative source
+  of truth at the moment the request is served). In-process
+  capabilities (the `instructions_*` tools) are served directly
+  off the bundled corpus with no worker involvement.
+  **Worker-backed tools** (the `analyze_*` / `read_*` family) are
+  served by spawning the owning worker on demand — the same lazy
+  `WorkerProcessService.ensureRunning(workerId)` gate the daemon
+  uses — and round-tripping over a **private** worker-dispatch
+  pipe. These worker pipes are the only pipes this role ever
+  binds; they are namespaced by an **ephemeral instance id minted
+  internally at process start** (never accepted from argv), are
+  not advertised in any registry, and are torn down when the
+  MCP-server process exits. A worker spawned for one request stays
+  warm for the life of the process so repeat `tools/call`s reuse
+  it, matching the short-lived, host-managed nature of an MCP
+  server rather than maintaining a persistent pool. The process
+  exits cleanly on stdio EOF, killing any workers it spawned; the
+  MCP host (VS Code's MCP manager, Claude Desktop, Claude Code)
+  owns its lifecycle entirely — relaunch on crash is the host's
+  job, not the engine's. Argv accepted in this role:
+  `--workspace`, `--mcp-server`, `--version`. Every other engine
+  switch (`--instance-id`, `--instance-label`, `--idle-timeout`,
   `--parent-pid`, `--retention`, `--logging`) is **rejected at
-  argv parse time** — they describe pipe-and-registry concerns
-  this role does not have.
+  argv parse time** — they describe daemon pipe-and-registry
+  concerns this role does not have (the ephemeral worker-pipe
+  scope is internal, not the launcher-minted `--instance-id`).
 
 The two roles can coexist on the same workspace without
 coordination: a VS Code window runs the daemon role (state
 authority over pipes), an MCP host concurrently runs the
-MCP-server-only role (read-mostly view via stdio). Writes to
+MCP-server-only role (read-mostly view via stdio, with on-demand
+worker dispatch for compute tools). Writes to
 `.autocontext.json` from the daemon propagate to the MCP-server
 role on the next MCP request (β-style on-demand reads); writes
 from the MCP-server role propagate to the daemon through the
@@ -967,7 +985,9 @@ Consequences:
   sweep) describe the **daemon role** exclusively. When the engine
   is launched with `--mcp-server with-stdio` it runs the
   MCP-server-only role instead, and **none of those mechanisms
-  apply**: the process binds no pipes, performs no `Hello`
+  apply**: the process binds none of the four daemon pipes (its
+  only pipes are the private, on-demand worker-dispatch pipes
+  described in *Engine binary*), performs no `Hello`
   handshake (the wire protocol is MCP JSON-RPC on stdio, not the
   engine's pipe RPC), does not write an `engine-registry.json`
   entry, does not participate in the keep-alive gate or the
@@ -1646,11 +1666,18 @@ way to set it.
   [Batching policy](#batching-policy)).
 - **`Instructions.*`** — `List`, `Get(name)`, `GetAll`,
   `GetAlwaysAttached`, `GetRaw(name, opts?)`, `SearchContent(query, opts?)`,
-  `Subscribe`. `List` returns identity rows; `Get` / `GetAll` /
+  `SearchByMetadata(predicate?, opts?)`, `Subscribe`. `List` returns
+  identity rows; `Get` / `GetAll` /
   `GetAlwaysAttached` return **projected** bodies (disabled rules
   filtered out, `[INSTxxxx]` tags preserved as cross-reference
   anchors, the highest-precedence workspace override preferred over
-  bundled); `SearchContent` searches the projected index; `GetRaw`
+  bundled); `SearchContent` searches the projected index;
+  `SearchByMetadata` filters the identity rows by a field predicate
+  (case-insensitive regex over the string fields, coarse `applyTo`
+  extension intersection, boolean / numeric equality, and per-section
+  `sections.*` AND-intersection reported as `matchedAnchors`), returning
+  a discriminated `ok` / `error` envelope so an invalid predicate comes
+  back as structured feedback rather than an empty result; `GetRaw`
   returns the **source-faithful** bytes of the on-disk markdown file;
   `Subscribe` notifies on corpus reload. Overrides resolve against the
   `engine.instructions.overridesRoots` roots in precedence order
@@ -2094,8 +2121,8 @@ in **two separate processes of the same engine binary**:
   `FileSystemWatcher` → debounced reload pipeline, so reads do not
   hit disk on the hot path.
 - **MCP `tools/call` (MCP-server-only role)** — exposes
-  `instructions_list`, `instructions_search_metadata`,
-  `instructions_search_content`, `instructions_get` as MCP tools
+  `list_instructions`, `search_instructions_by_metadata`,
+  `search_instructions_by_content`, `get_instructions` as MCP tools
   over stdio, **always registered unconditionally**. Each MCP-tool
   handler instantiates the same service classes the daemon uses
   and answers from a **per-request** disk read of `.autocontext.json`
@@ -2120,7 +2147,7 @@ in **two separate processes of the same engine binary**:
 **Double exposure is intentional, no suppression flag is needed.**
 Inside VS Code Copilot the model sees both `#list_autocontext_instructions_files`
 (first-class LM tool, never deferred, `#`-mentionable) and
-`mcp_autocontext_instructions_list` (deferred MCP tool, reachable via
+`mcp_autocontext_list_instructions` (deferred MCP tool, reachable via
 `tool_search`). Either path terminates at the same engine handler,
 so the outcomes are identical. The LM tool exists solely to **escape
 the deferred-tool discoverability tax** by promoting the discovery
@@ -2136,7 +2163,7 @@ handler):
 | Surface | Tool names | Why this shape |
 |---|---|---|
 | Engine pipe RPC | `Instructions.List`, `Instructions.SearchContent`, `Instructions.Get`, `Instructions.GetAlwaysAttached` | Dotted, namespaced — matches the rest of the engine RPC vocabulary (`Config.*`, `Workspace.*`, `Discovery.*`, `McpTools.*`, `Agent.*`). |
-| Engine MCP/stdio | `instructions_list`, `instructions_search_metadata`, `instructions_search_content`, `instructions_get` | snake_case prefix-grouped — standard MCP-tool convention, consistent with the analyzer tools the engine already exposes (`analyze_csharp_code`, `read_editorconfig`, …). |
+| Engine MCP/stdio | `list_instructions`, `search_instructions_by_metadata`, `search_instructions_by_content`, `get_instructions` | snake_case, verb-first — consistent with the analyzer tools the engine already exposes (`analyze_csharp_code`, `read_editorconfig`, …) and with the verb-first LM-tool names. |
 | VS Code LM tools | `list_autocontext_instructions_files`, `search_autocontext_instructions_files_by_metadata`, `search_autocontext_instructions_files_by_content`, `get_autocontext_instructions_file` | Verb-first, fully self-describing — the LM-tool name is what the model sees in its tool list, so it reads like documentation. |
 
 Breaking the LM-tool names would force migration of every
@@ -2361,7 +2388,7 @@ protocol event.
 | Discriminated-envelope `kind` literals (P2) | **kebab-case** wire strings | `ok`, `disabled`, `not-found`, `tool-error`, `schema-error`, `shutting-down`, `evicted` |
 | JSON field names (requests, responses, envelope payloads) | camelCase | `instanceId`, `workspaceHash`, `revision`, `isError`, `applyTo`, `contentHash` |
 | Endpoint kinds | lowercase, no separators | `rpc`, `events`, `health`, `logs` |
-| MCP tool names (stdio surface) | snake_case, one verb-noun (or noun-verb) pair | `instructions_list`, `analyze_csharp_code`, `read_editorconfig` |
+| MCP tool names (stdio surface) | snake_case, verb-first verb-noun pair | `list_instructions`, `analyze_csharp_code`, `read_editorconfig` |
 | VS Code LM tool names | snake_case, verb-first, fully self-describing | `list_autocontext_instructions_files`, `get_autocontext_instructions_file` |
 | CLI verbs | lowercase, space-separated `noun verb [args]` | `instructions list`, `config toggle`, `workspace info`, `engine logs` |
 | Log-category prefixes | Dotted; lowercase namespace, PascalCase tail when the tail mirrors an RPC name | `engine.rpc.Instructions.Get`, `engine.lifecycle`, `worker.dotnet.RoslynAnalyzer` |
@@ -2374,7 +2401,7 @@ protocol event.
 - **One handler, up to four name shapes.** A capability has at most
   four names — one per surface. For "list the instructions" that's
   `Instructions.List` (RPC) ↔ `instructions list` (CLI) ↔
-  `instructions_list` (MCP) ↔ `list_autocontext_instructions_files`
+  `list_instructions` (MCP) ↔ `list_autocontext_instructions_files`
   (LM tool). All terminate at the same engine handler (P1); the
   shape difference is per-surface convention, not a behavioural
   distinction. See [Naming convention split](#lm-tool-surface-host-specific-registration-mcp-backed-handlers)
@@ -2650,7 +2677,7 @@ logic of their own.
   against transport B for the same input. The pipe `McpTools.Invoke`
   response and the MCP/stdio `tools/call` response must produce zero
   diff for `content`; the LM-tool `get_autocontext_instructions_file`
-  result and the MCP `instructions_get` result must produce zero
+  result and the MCP `get_instructions` result must produce zero
   diff for the projected body.
 - The named instances of this principle in this doc — instruction-discovery
   shims, `McpTools.Invoke` shim — are illustrations, not exhaustions.

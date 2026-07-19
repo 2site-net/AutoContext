@@ -568,9 +568,24 @@ src/
         JsonWorkerEntry.cs                     # disk model (id, type, label, command with ${root} placeholder)
         WorkersManifestJsonContext.cs          # System.Text.Json source-generation context (camelCase)
     # — NOT YET BUILT (kept here as the Phase target) —
-    # Mcp/ (stdio MCP-server role) — the McpTools.{List,Invoke} handlers already live in Features/McpTools/ above;
-    #   the stdio adapter layer (McpSdkAdapter, StdioMcpServerEntryPoint, InputSchemaBuilder, PerRequestConfigReader)
-    #   is not implemented yet — AutoContext.Engine/McpServerHostFactory is currently a stub (P11/P12).
+    McpServer/                                 # stdio MCP-server role (P11) — a transport shim, sibling of Rpc/ + Endpoints/, NOT a Feature: it owns no capability logic, it re-exposes Features/Instructions + Features/McpTools over MCP stdio, depending on Features/* exactly as Rpc/Handlers/ do
+      McpSdkAdapter.cs                         # generic router: aggregates IMcpToolSource tools for tools/list, routes tools/call by name to the matching IMcpTool leaf, maps the response to CallToolResult. Knows no concrete tools.
+      StdioMcpServerEntryPoint.cs              # composes AddMcpServer().WithStdioServerTransport() — the stdio host (a future HttpMcpServerEntryPoint would be the sibling transport)
+      InputSchemaBuilder.cs                    # renders each tool's JSON-schema inputSchema for tools/list
+      McpServerHostBuilderExtensions.cs        # AddMcpServer — the reduced-but-sufficient DI composition for the role
+      McpStdioStartupLoader.cs                 # one-shot hosted service: initial config reload + workspace DetectAsync (no watcher)
+      Tools/                                   # the flat tool model — leaves + sources grouped by nature; add a tool/family here, never in the adapter
+        IMcpTool.cs                            # one tool: its Descriptor + InvokeAsync(itself). No routing.
+        IMcpToolSource.cs                      # produces the IMcpTool leaves for one family
+        HandlerMarshaller.cs                   # marshals a tools/call into an IRpcMethodHandler and returns its JsonRpcResponse
+        JsonArguments.cs                       # reads tools/call args by name+kind (shared by the leaves)
+        Intrinsics/                            # in-process, engine-native tools (no worker)
+          InstructionsListTool.cs / InstructionsSearchContentTool.cs / InstructionsGetTool.cs   # instructions_* leaves, shimming over Instructions.*
+          InstructionsToolSource.cs            # the instruction family (the fixed set of instruction leaves)
+        Registry/                              # worker-backed tools, data-driven from mcp-tools-registry.json
+          RegistryMcpTool.cs                   # one analyze_*/read_* leaf per registry entry, dispatching through McpTools.Invoke
+          RegistryToolSource.cs                # the worker-backed family (one leaf per mcp-tools-registry entry)
+      # NOTE: the per-request .autocontext.json reload is exposed as IConfigReloader implemented by ConfigFileManager (Workspace/Config/) — no separate reader class. AutoContext.Engine/McpServerHostFactory composes this host for the --mcp-server with-stdio role (P11/P12).
     Rpc/                                       # pipe-side connection processing + the policy/result framing shared by every handler
       RpcConnectionProcessor.cs                # per-connection loop — reads frames, routes via the active IRpcConnectionPolicy, writes responses
       IRpcConnectionPolicy.cs                  # strategy contract — handshake gate, frame-failure policy, and method→handler table for a connection
@@ -2791,11 +2806,94 @@ shape), `§ P10` (cross-process fan-out).
 
 **Status**: Not started.
 
+| # | Commit subject | State |
+|---|---|---|
+| 1 | `feat(engine): serve instructions and mcp-tools over the stdio mcp-server role` | DONE |
+| 2 | `feat(engine): add the Instructions.SearchByMetadata capability and search_instructions_by_metadata tool` | DONE |
+| 3 | `test(engine): smoke the stdio mcp-server role end-to-end` | DONE |
+| 4 | `docs(plan): mark Phase 11 complete` | DONE |
+
+**Commit grouping.** The `--mcp-server with-stdio` role split already
+landed as Phase 1 scaffolding — `EngineCommand` parses the flag, rejects
+every daemon-only switch under the MCP role (`TryFindDaemonOnlySwitch`),
+and `Program.cs` dispatches into `McpServerHostFactory`, which today is a
+stub that exits non-zero with a "not implemented yet" diagnostic
+(asserted by `ProgramTests`). Phase 11 does **not** rebuild the argv role
+split; it fills that stub. What remains is one coherent behavioural unit
+— a second, state-free composition of handlers the engine already owns —
+so it lands as few commits as stay individually green rather than an
+artificial per-file ladder. Row 1 carries the whole role: the
+`McpServerHostFactory` fill-in composing
+`AddMcpServer().WithStdioServerTransport()`, the root-level
+`Engine.Core/McpServer/` transport shim (sibling of `Rpc/` + `Endpoints/`,
+**not** a Feature: the `tools/list` + `tools/call` bridge + an
+`InputSchemaBuilder`, porting the shape today's
+`AutoContext.Mcp.Server/Tools/McpSdkAdapter` proves out), an
+`IConfigReloader` seam on `ConfigFileManager` that re-reads `.autocontext.json`
+per request, and the registration of the Phase 6 (`Instructions.*`) and
+Phase 7 (`McpTools.*`) capability services as the stdio tool surface.
+The instruction tools are grouped behind an `McpServer/Tools/InstructionsToolSource`
+(one `IMcpTool` leaf per tool); the adapter is a generic router over the
+registered `IMcpToolSource`s and knows no concrete tools.
+Row 1's instruction surface is exactly the tools that already have engine
+handlers to shim over — `list_instructions` (`Instructions.List`),
+`search_instructions_by_content` (`Instructions.SearchContent`),
+`get_instructions` (`Instructions.Get`) — plus every `McpTools`
+`analyze_*` / `read_*` tool. It also flips the
+existing `ProgramTests` stub assertion to the real role and ships the
+in-process unit tests for the composable pieces — the `tools/list` /
+`tools/call` adapter mapping, the `InputSchemaBuilder`, the
+`InstructionsToolSet`, and the config reload seam. Splitting that into "adapter",
+"registration", and "tool-surface" commits would only produce
+meaningless intermediate states — a host that serves no tools, tools
+with no transport — so grouping them keeps every boundary green and
+reviewable. Row 2 adds the one instruction surface the engine does **not**
+yet own as a handler: `search_instructions_by_metadata` is backed by a
+metadata **predicate** matching engine (typed fields, regex/glob/equality,
+`unknown-field` / `type-mismatch` / `invalid-regex` / `pattern-too-long`
+error envelopes, section AND-intersection) that lives only in the TS
+extension today and is listed as *future* (`McpTools.SearchByMetadata`) in
+the design. Because a transport shim must not re-implement matching, row 2
+first ports that engine into `Engine.Core/Features/Instructions/` (the
+predicate evaluator + apply-to matcher + metadata-view assembly) behind a
+new `Instructions.SearchByMetadata` capability the **pipe RPC reuses too**,
+then registers the `search_instructions_by_metadata` stdio tool on top of it
+— keeping the two surfaces byte-identical by construction. It lands after
+row 1 because it is additive to the adapter row 1 builds, and carries a
+small design delta promoting `SearchByMetadata` from future to present.
+Row 3 is the end-to-end smoke test (gated `Category=Smoke`,
+matching the phase-4 `Workspace.Detect` row and the phase-16 regression
+set): it spawns the real `autocontext-engine --mcp-server with-stdio`
+binary and drives `tools/list` / `tools/call` over actual stdio —
+proving the process-boundary behaviour no in-process test can, namely
+the P1 cross-transport byte-identical `tools/call` diff against the pipe
+`McpTools.Invoke`, no-pipe-bind coexistence with a parallel daemon,
+per-request `.autocontext.json` re-read, clean stdio-EOF exit, and no
+`engine-registry.json` entry. It lands after rows 1–2 because it spawns
+what they build. Row 4 is the standard docs mark-complete step.
+
+There is deliberately **no** legacy-server cutover row here.
+`AutoContext.Mcp.Server` stays untouched as the legacy stdio server
+until Phase 16 retires it — it is **not** shrunk to a shim that
+delegates to the engine's role. A delegating shim would forward into
+the same engine code row 1 builds, so it is not an independent
+regression signal, and row 3 already smoke-tests the engine's stdio
+role end-to-end over a real process boundary. Leaving the legacy
+server as-is keeps its still-legacy consumers working unchanged — the
+extension's `servers.json`-driven provider and the packaging layout —
+until Phase 13 (packaging) and Phase 14 (extension) repoint them at
+the engine binary and Phase 16 deletes the project wholesale.
+
 **Goal**: `autocontext-engine --mcp-server with-stdio` runs the
-minimal stdio MCP server. No pipes, no registry entry, no
-`engine.log`, no `FileSystemWatcher`, no worker dispatch.
-Per-request disk read of `.autocontext.json`. Stdio EOF exits
-cleanly.
+reduced stdio MCP server — the daemon's read capabilities plus
+on-demand worker dispatch, and nothing else. No daemon pipes, no
+registry entry, no `engine.log`, no `FileSystemWatcher`, no
+keep-alive / idle clock. Worker-backed tools (`analyze_*` /
+`read_*`) spawn their worker lazily over a **private** dispatch
+pipe namespaced by an ephemeral, internally-minted instance id
+(never from argv); the worker stays warm for the process lifetime
+and is killed on stdio EOF. Per-request disk read of
+`.autocontext.json`. Stdio EOF exits cleanly.
 
 **Design anchors**: `§ Engine binary` (role split),
 `§ Engine options (CLI surface)` (MCP-server argv subset),
@@ -2803,11 +2901,15 @@ cleanly.
 `§ MCP-server role argv discipline` pitfall.
 
 **Code touch**:
-- `AutoContext.Engine/Program.cs` — argv parser splits on
-  `--mcp-server` and routes into one of two disjoint
-  `IHostBuilder` compositions. MCP-only branch registers
-  `AddMcpServer().WithStdioServerTransport()` and **nothing else
-  state-bearing**.
+- `AutoContext.Engine/McpServerHostFactory.cs` — fills the stub,
+  composing `AddMcpServer().WithStdioServerTransport()` plus the
+  reduced-but-sufficient service set: the `Instructions.*`
+  in-process services, and — for worker-backed tools — the
+  `McpToolsRegistryAccessor` + `McpToolsInvoker` +
+  `WorkerProcessService` over an ephemeral, internally-minted
+  instance id. **No** daemon pipe host, endpoint host,
+  subscription broadcasters, registry-file writer, `engine.log`
+  sink, watchdogs, or `FileSystemWatcher`.
 - Argv parser rejects `--instance-id`, `--instance-label`,
   `--idle-timeout`, `--parent-pid`, `--retention`, `--logging` in
   the MCP-only role with a stderr error and non-zero exit.
@@ -2816,22 +2918,38 @@ cleanly.
   `analyze_*` / `read_*` MCP tools (today's surface). The per-request
   `.autocontext.json` read is wired into the handler dependency
   graph for this role.
-- `AutoContext.Mcp.Server/Program.cs` shrinks to a thin shim that
-  delegates to the engine binary's MCP-server-only role — kept only
-  for the in-tree smoke test that still spawns it; deleted in
-  Phase 16.
+- `AutoContext.Mcp.Server` is left **untouched** as the legacy stdio
+  server — **not** shrunk to a delegating shim. The engine's stdio
+  role stands on its own (proven end-to-end by row 3's smoke test),
+  so a shim forwarding into the same engine code would add no
+  independent coverage. The legacy server keeps serving its
+  `servers.json`-driven consumers unchanged until Phase 13
+  (packaging) and Phase 14 (extension provider) repoint them at the
+  engine binary and Phase 16 deletes the project.
 
 **Tests**:
-- Stdio mode rejects each daemon-only switch.
-- Stdio mode does not bind any pipe (assert with a parallel daemon
-  on the same workspace — they coexist).
-- `tools/list` and `tools/call` return byte-identical `content` for
-  the same input as the pipe `McpTools.Invoke` (P1 cross-transport
-  diff test).
-- Per-request disk re-read: a write to `.autocontext.json` from a
-  parallel daemon is observed on the next stdio request.
-- Stdio EOF exits cleanly.
-- No `engine-registry.json` entry written.
+- **In-process (row 1).** The adapter routes `tools/call` by name to the
+  matching `IMcpTool` leaf and maps the response onto the MCP SDK shapes;
+  `InputSchemaBuilder` renders each tool's parameters; the instruction
+  leaves and the `RegistryMcpTool` translate their arguments and marshal
+  into the shared `Instructions.*` / `McpTools.*` handlers; the
+  `IConfigReloader` seam re-reads `.autocontext.json` on each call.
+  (Daemon-only-switch rejection is already covered by the Phase 1
+  `EngineCommand` argv tests — the role split shipped there.)
+- **Smoke, gated `Category=Smoke` (row 3)** — spawns the real
+  `autocontext-engine --mcp-server with-stdio` binary and drives it
+  over actual stdio:
+  - `tools/list` and `tools/call` return byte-identical `content` for
+    the same input as the pipe `McpTools.Invoke` (P1 cross-transport
+    diff test).
+  - Stdio mode binds none of the four daemon pipes and writes no
+    `engine-registry.json` entry (asserted with a parallel daemon
+    on the same workspace — they coexist; any worker-dispatch
+    pipes the stdio role opens are private, namespaced by its
+    ephemeral instance id, so they never collide with the daemon).
+  - Per-request disk re-read: a write to `.autocontext.json` from a
+    parallel daemon is observed on the next stdio request.
+  - Stdio EOF exits cleanly.
 
 **Out of scope**: deleting `AutoContext.Mcp.Server` (Phase 16);
 extension's MCP server definition repointing (Phase 14).
@@ -3080,8 +3198,10 @@ hosts).
 
 **Status**: Not started.
 
-**Goal**: the standalone MCP-server project is gone. The MCP host
-servers manifest (`servers.json`) points at
+**Goal**: the standalone MCP-server project is gone. Phase 11 left it
+**untouched** as the legacy stdio server (no delegating shim), so this
+phase deletes it as-is once its last consumers have flipped to the
+engine binary. The MCP host servers manifest (`servers.json`) points at
 `autocontext-engine --mcp-server with-stdio`. Tests fold into
 `AutoContext.Engine.Core.Tests`.
 
@@ -3090,7 +3210,9 @@ servers manifest (`servers.json`) points at
 
 **Code touch**:
 - Delete `src/AutoContext.Mcp.Server/` and
-  `tests/AutoContext.Mcp.Server.Tests/`.
+  `tests/AutoContext.Mcp.Server.Tests/` — the legacy server, untouched
+  since it was superseded in Phase 11, retires here with no shim to
+  unwind.
 - Tests worth keeping move into `AutoContext.Engine.Core.Tests`
   (the schema-validation tests, the manifest-loader tests, the
   envelope-composition tests).

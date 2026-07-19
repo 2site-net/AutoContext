@@ -46,7 +46,7 @@ internal static class Program
         }
 
         return options.McpServerMode == EngineMcpServerMode.WithStdio
-            ? McpServerHostFactory.Run(options)
+            ? await McpServerHostFactory.RunAsync(options).ConfigureAwait(false)
             : await DaemonHostFactory.RunAsync(options).ConfigureAwait(false);
     }
 
