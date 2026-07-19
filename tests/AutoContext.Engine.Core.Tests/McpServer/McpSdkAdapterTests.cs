@@ -36,7 +36,7 @@ public sealed class McpSdkAdapterTests
                 ConfigSnapshot.Empty,
                 [
                     new FakeMcpToolSource(new FakeMcpTool("analyze_a")),
-                    new FakeMcpToolSource(new FakeMcpTool("instructions_list")),
+                    new FakeMcpToolSource(new FakeMcpTool("list_instructions")),
                 ]);
 
             // Act
@@ -46,7 +46,7 @@ public sealed class McpSdkAdapterTests
             var names = tools.Select(t => t.Name!).ToArray();
             Assert.Multiple(
                 () => Assert.Contains("analyze_a", names),
-                () => Assert.Contains("instructions_list", names));
+                () => Assert.Contains("list_instructions", names));
         }
 
         [Fact]

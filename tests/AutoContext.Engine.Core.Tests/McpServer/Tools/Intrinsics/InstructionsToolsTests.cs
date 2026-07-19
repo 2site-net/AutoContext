@@ -13,12 +13,15 @@ public sealed class InstructionsToolsTests
     public void Should_name_each_instruction_tool()
         => Assert.Multiple(
             () => Assert.Equal(
-                "instructions_list", new InstructionsListTool(new FakeRpcMethodHandler()).Descriptor.Name),
+                "list_instructions", new InstructionsListTool(new FakeRpcMethodHandler()).Descriptor.Name),
             () => Assert.Equal(
-                "instructions_search_content",
+                "search_instructions_by_content",
                 new InstructionsSearchContentTool(new FakeRpcMethodHandler()).Descriptor.Name),
             () => Assert.Equal(
-                "instructions_get", new InstructionsGetTool(new FakeRpcMethodHandler()).Descriptor.Name));
+                "search_instructions_by_metadata",
+                new InstructionsSearchMetadataTool(new FakeRpcMethodHandler()).Descriptor.Name),
+            () => Assert.Equal(
+                "get_instructions", new InstructionsGetTool(new FakeRpcMethodHandler()).Descriptor.Name));
 
     [Fact]
     public async Task Should_marshal_list_into_the_instructions_handler()
@@ -74,5 +77,30 @@ public sealed class InstructionsToolsTests
             () => Assert.Equal(InstructionsMethods.Get, handler.LastRequest!.Method),
             () => Assert.Equal(
                 "testing", handler.LastRequest!.Params!.Value.GetProperty("name").GetString()));
+    }
+
+    [Fact]
+    public async Task Should_marshal_search_metadata_with_its_predicate()
+    {
+        // Arrange
+        var handler = new FakeRpcMethodHandler();
+        var tool = new InstructionsSearchMetadataTool(handler);
+        var arguments = new Dictionary<string, JsonElement>
+        {
+            ["predicate"] = JsonSerializer.SerializeToElement(new Dictionary<string, object> { ["category"] = "Languages" }),
+            ["includeSections"] = JsonSerializer.SerializeToElement(true),
+        };
+
+        // Act
+        await tool.InvokeAsync(arguments, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Multiple(
+            () => Assert.Equal(InstructionsMethods.SearchByMetadata, handler.LastRequest!.Method),
+            () => Assert.Equal(
+                "Languages",
+                handler.LastRequest!.Params!.Value.GetProperty("predicate").GetProperty("category").GetString()),
+            () => Assert.True(
+                handler.LastRequest!.Params!.Value.GetProperty("includeSections").GetBoolean()));
     }
 }

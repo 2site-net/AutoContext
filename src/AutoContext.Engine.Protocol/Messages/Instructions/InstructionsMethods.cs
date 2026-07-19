@@ -79,6 +79,18 @@ public static class InstructionsMethods
     public const string SearchContent = "Instructions.SearchContent";
 
     /// <summary>
+    /// Engine-owned metadata search over the corpus. Evaluates a free-form
+    /// field predicate (case-insensitive regex for string fields, coarse
+    /// <c>applyTo</c> glob intersection, boolean/number equality, and
+    /// per-section <c>sections.*</c> AND-intersection) and returns the matched
+    /// identity rows with their matched section anchors. Disabled files are
+    /// omitted. Takes <see cref="JsonInstructionsSearchByMetadataParams"/>;
+    /// returns the discriminated <see cref="JsonInstructionsSearchByMetadataResult"/>
+    /// — <c>ok</c> (matched rows) / <c>error</c> (structured predicate fault).
+    /// </summary>
+    public const string SearchByMetadata = "Instructions.SearchByMetadata";
+
+    /// <summary>
     /// Opens a server-streaming subscription to the corpus. The engine
     /// emits one <see cref="JsonInstructionsStreamFrame"/> per frame — a
     /// <see cref="JsonInstructionsSnapshotFrame"/> with the current

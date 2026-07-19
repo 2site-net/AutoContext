@@ -299,7 +299,7 @@ are marshalling shims — P1).
 |---|---|
 | `Engine.*` | `Hello`, `RegistryEntries`, `Shutdown`, `WriteLog` (fire-and-forget from workers), `Lifecycle.Subscribe` |
 | `Config.*` | `Get`, `Subscribe`, `ToggleFile`, `ToggleRule` |
-| `Instructions.*` | `List`, `Categories`, `Get`, `GetAll`, `GetAlwaysAttached`, `GetRaw`, `SearchContent`, `Subscribe` |
+| `Instructions.*` | `List`, `Categories`, `Get`, `GetAll`, `GetAlwaysAttached`, `GetRaw`, `SearchContent`, `SearchByMetadata`, `Subscribe` |
 | `Workspace.*` | `Detect`, `Info` |
 | `Logs.*` | `GetEngine`, `TailEngine`, `GetWorker`, `TailWorker` |
 | `McpTools.*` | `List`, `Invoke` (future: `InvokeStream`, `GetDescription`, `SearchByMetadata`, `SearchByContent`) |
@@ -1666,11 +1666,18 @@ way to set it.
   [Batching policy](#batching-policy)).
 - **`Instructions.*`** — `List`, `Get(name)`, `GetAll`,
   `GetAlwaysAttached`, `GetRaw(name, opts?)`, `SearchContent(query, opts?)`,
-  `Subscribe`. `List` returns identity rows; `Get` / `GetAll` /
+  `SearchByMetadata(predicate?, opts?)`, `Subscribe`. `List` returns
+  identity rows; `Get` / `GetAll` /
   `GetAlwaysAttached` return **projected** bodies (disabled rules
   filtered out, `[INSTxxxx]` tags preserved as cross-reference
   anchors, the highest-precedence workspace override preferred over
-  bundled); `SearchContent` searches the projected index; `GetRaw`
+  bundled); `SearchContent` searches the projected index;
+  `SearchByMetadata` filters the identity rows by a field predicate
+  (case-insensitive regex over the string fields, coarse `applyTo`
+  extension intersection, boolean / numeric equality, and per-section
+  `sections.*` AND-intersection reported as `matchedAnchors`), returning
+  a discriminated `ok` / `error` envelope so an invalid predicate comes
+  back as structured feedback rather than an empty result; `GetRaw`
   returns the **source-faithful** bytes of the on-disk markdown file;
   `Subscribe` notifies on corpus reload. Overrides resolve against the
   `engine.instructions.overridesRoots` roots in precedence order
@@ -2114,8 +2121,8 @@ in **two separate processes of the same engine binary**:
   `FileSystemWatcher` → debounced reload pipeline, so reads do not
   hit disk on the hot path.
 - **MCP `tools/call` (MCP-server-only role)** — exposes
-  `instructions_list`, `instructions_search_metadata`,
-  `instructions_search_content`, `instructions_get` as MCP tools
+  `list_instructions`, `search_instructions_by_metadata`,
+  `search_instructions_by_content`, `get_instructions` as MCP tools
   over stdio, **always registered unconditionally**. Each MCP-tool
   handler instantiates the same service classes the daemon uses
   and answers from a **per-request** disk read of `.autocontext.json`
@@ -2140,7 +2147,7 @@ in **two separate processes of the same engine binary**:
 **Double exposure is intentional, no suppression flag is needed.**
 Inside VS Code Copilot the model sees both `#list_autocontext_instructions_files`
 (first-class LM tool, never deferred, `#`-mentionable) and
-`mcp_autocontext_instructions_list` (deferred MCP tool, reachable via
+`mcp_autocontext_list_instructions` (deferred MCP tool, reachable via
 `tool_search`). Either path terminates at the same engine handler,
 so the outcomes are identical. The LM tool exists solely to **escape
 the deferred-tool discoverability tax** by promoting the discovery
@@ -2156,7 +2163,7 @@ handler):
 | Surface | Tool names | Why this shape |
 |---|---|---|
 | Engine pipe RPC | `Instructions.List`, `Instructions.SearchContent`, `Instructions.Get`, `Instructions.GetAlwaysAttached` | Dotted, namespaced — matches the rest of the engine RPC vocabulary (`Config.*`, `Workspace.*`, `Discovery.*`, `McpTools.*`, `Agent.*`). |
-| Engine MCP/stdio | `instructions_list`, `instructions_search_metadata`, `instructions_search_content`, `instructions_get` | snake_case prefix-grouped — standard MCP-tool convention, consistent with the analyzer tools the engine already exposes (`analyze_csharp_code`, `read_editorconfig`, …). |
+| Engine MCP/stdio | `list_instructions`, `search_instructions_by_metadata`, `search_instructions_by_content`, `get_instructions` | snake_case, verb-first — consistent with the analyzer tools the engine already exposes (`analyze_csharp_code`, `read_editorconfig`, …) and with the verb-first LM-tool names. |
 | VS Code LM tools | `list_autocontext_instructions_files`, `search_autocontext_instructions_files_by_metadata`, `search_autocontext_instructions_files_by_content`, `get_autocontext_instructions_file` | Verb-first, fully self-describing — the LM-tool name is what the model sees in its tool list, so it reads like documentation. |
 
 Breaking the LM-tool names would force migration of every
@@ -2381,7 +2388,7 @@ protocol event.
 | Discriminated-envelope `kind` literals (P2) | **kebab-case** wire strings | `ok`, `disabled`, `not-found`, `tool-error`, `schema-error`, `shutting-down`, `evicted` |
 | JSON field names (requests, responses, envelope payloads) | camelCase | `instanceId`, `workspaceHash`, `revision`, `isError`, `applyTo`, `contentHash` |
 | Endpoint kinds | lowercase, no separators | `rpc`, `events`, `health`, `logs` |
-| MCP tool names (stdio surface) | snake_case, one verb-noun (or noun-verb) pair | `instructions_list`, `analyze_csharp_code`, `read_editorconfig` |
+| MCP tool names (stdio surface) | snake_case, verb-first verb-noun pair | `list_instructions`, `analyze_csharp_code`, `read_editorconfig` |
 | VS Code LM tool names | snake_case, verb-first, fully self-describing | `list_autocontext_instructions_files`, `get_autocontext_instructions_file` |
 | CLI verbs | lowercase, space-separated `noun verb [args]` | `instructions list`, `config toggle`, `workspace info`, `engine logs` |
 | Log-category prefixes | Dotted; lowercase namespace, PascalCase tail when the tail mirrors an RPC name | `engine.rpc.Instructions.Get`, `engine.lifecycle`, `worker.dotnet.RoslynAnalyzer` |
@@ -2394,7 +2401,7 @@ protocol event.
 - **One handler, up to four name shapes.** A capability has at most
   four names — one per surface. For "list the instructions" that's
   `Instructions.List` (RPC) ↔ `instructions list` (CLI) ↔
-  `instructions_list` (MCP) ↔ `list_autocontext_instructions_files`
+  `list_instructions` (MCP) ↔ `list_autocontext_instructions_files`
   (LM tool). All terminate at the same engine handler (P1); the
   shape difference is per-surface convention, not a behavioural
   distinction. See [Naming convention split](#lm-tool-surface-host-specific-registration-mcp-backed-handlers)
@@ -2670,7 +2677,7 @@ logic of their own.
   against transport B for the same input. The pipe `McpTools.Invoke`
   response and the MCP/stdio `tools/call` response must produce zero
   diff for `content`; the LM-tool `get_autocontext_instructions_file`
-  result and the MCP `instructions_get` result must produce zero
+  result and the MCP `get_instructions` result must produce zero
   diff for the projected body.
 - The named instances of this principle in this doc — instruction-discovery
   shims, `McpTools.Invoke` shim — are illustrations, not exhaustions.

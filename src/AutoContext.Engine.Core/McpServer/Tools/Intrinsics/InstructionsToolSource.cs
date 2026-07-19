@@ -30,6 +30,7 @@ internal sealed class InstructionsToolSource : IMcpToolSource
         [
             new InstructionsListTool(instructionsHandler),
             new InstructionsSearchContentTool(instructionsHandler),
+            new InstructionsSearchMetadataTool(instructionsHandler),
             new InstructionsGetTool(instructionsHandler),
         ];
     }

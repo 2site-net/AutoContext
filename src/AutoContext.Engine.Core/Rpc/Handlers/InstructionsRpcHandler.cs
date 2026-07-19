@@ -85,6 +85,7 @@ internal sealed partial class InstructionsRpcHandler : IRpcMethodHandler
         InstructionsMethods.GetAlwaysAttached,
         InstructionsMethods.GetRaw,
         InstructionsMethods.SearchContent,
+        InstructionsMethods.SearchByMetadata,
         InstructionsMethods.Subscribe,
     ];
 
@@ -102,6 +103,7 @@ internal sealed partial class InstructionsRpcHandler : IRpcMethodHandler
             InstructionsMethods.GetAlwaysAttached => await HandleInstructionsGetAlwaysAttachedAsync(cancellationToken).ConfigureAwait(false),
             InstructionsMethods.GetRaw => await HandleInstructionsGetRawAsync(request, cancellationToken).ConfigureAwait(false),
             InstructionsMethods.SearchContent => await HandleInstructionsSearchContentAsync(request, cancellationToken).ConfigureAwait(false),
+            InstructionsMethods.SearchByMetadata => HandleInstructionsSearchByMetadata(request),
             InstructionsMethods.Subscribe => HandleInstructionsSubscribe(),
             _ => HandleInstructionsList(request),
         };
@@ -139,6 +141,44 @@ internal sealed partial class InstructionsRpcHandler : IRpcMethodHandler
         };
     }
 
+    private static JsonInstructionsSearchByMetadataErrorResult MapMetadataError(
+        InstructionsMetadataSearchError error)
+        => new()
+        {
+            Error = MapMetadataErrorKind(error.Kind),
+            Field = error.Field,
+            Reason = error.Reason,
+            RecognizedFields = MapRecognizedFields(),
+        };
+
+    private static string MapMetadataErrorKind(InstructionsMetadataSearchErrorKind kind)
+        => kind switch
+        {
+            InstructionsMetadataSearchErrorKind.UnknownField => "unknown-field",
+            InstructionsMetadataSearchErrorKind.TypeMismatch => "type-mismatch",
+            InstructionsMetadataSearchErrorKind.InvalidRegex => "invalid-regex",
+            InstructionsMetadataSearchErrorKind.PatternTooLong => "pattern-too-long",
+            _ => "unknown-field",
+        };
+
+    private static List<JsonInstructionsMetadataFieldInfo> MapRecognizedFields()
+    {
+        var fields = new List<JsonInstructionsMetadataFieldInfo>(
+            InstructionsMetadataSearchService.RecognizedFields.Count);
+
+        foreach (var descriptor in InstructionsMetadataSearchService.RecognizedFields)
+        {
+            fields.Add(new JsonInstructionsMetadataFieldInfo
+            {
+                Field = descriptor.Field,
+                Type = descriptor.Type,
+                Match = descriptor.Match,
+            });
+        }
+
+        return fields;
+    }
+
     private static UnaryHandlerResult RawNotFound(string name)
         => RpcMethodResults.Success(
             new JsonInstructionsGetRawNotFoundResult { Name = name },
@@ -157,6 +197,9 @@ internal sealed partial class InstructionsRpcHandler : IRpcMethodHandler
                 Content = content,
             },
             ProtocolJsonContext.Default.JsonInstructionsGetRawResult);
+
+    private static UnaryHandlerResult SearchByMetadataResult(JsonInstructionsSearchByMetadataResult result)
+        => RpcMethodResults.Success(result, ProtocolJsonContext.Default.JsonInstructionsSearchByMetadataResult);
 
     private UnaryHandlerResult HandleInstructionsCategories()
     {
@@ -268,7 +311,7 @@ internal sealed partial class InstructionsRpcHandler : IRpcMethodHandler
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             LogInstructionsFailed(_logger, InstructionsMethods.Get, ex);
-            return RpcMethodResults.InternalError("Failed to read the instruction file.");
+            return RpcMethodResults.InternalError("Failed to read the instructions file.");
         }
     }
 
@@ -373,6 +416,56 @@ internal sealed partial class InstructionsRpcHandler : IRpcMethodHandler
         {
             LogInstructionsFailed(_logger, InstructionsMethods.List, ex);
             return RpcMethodResults.InternalError("Failed to list the instruction corpus.");
+        }
+    }
+
+    private UnaryHandlerResult HandleInstructionsSearchByMetadata(JsonRpcRequest request)
+    {
+        if (RpcMethodResults.TryDeserialize(
+                request,
+                InstructionsMethods.SearchByMetadata,
+                ProtocolJsonContext.Default.JsonInstructionsSearchByMetadataParams,
+                _logger,
+                out var parameters) is { } failure)
+        {
+            return failure;
+        }
+
+        try
+        {
+            var evaluation = InstructionsMetadataSearchService.Evaluate(
+                _instructionsManifestAccessor.Current.Files, parameters?.Predicate);
+
+            if (evaluation is InstructionsMetadataSearchError error)
+            {
+                return SearchByMetadataResult(MapMetadataError(error));
+            }
+
+            var includeSections = parameters?.IncludeSections ?? false;
+            var matches = ((InstructionsMetadataSearchOk)evaluation).Matches;
+            var results = new List<JsonInstructionsMetadataMatch>(matches.Count);
+
+            foreach (var match in matches)
+            {
+                if (IsFileDisabled(match.Entry.Key))
+                {
+                    continue;
+                }
+
+                results.Add(new JsonInstructionsMetadataMatch
+                {
+                    File = _instructionsListProjector.ProjectRow(
+                        match.Entry, includeSections || match.MatchedAnchors is not null),
+                    MatchedAnchors = match.MatchedAnchors,
+                });
+            }
+
+            return SearchByMetadataResult(new JsonInstructionsSearchByMetadataOkResult { Results = results });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            LogInstructionsFailed(_logger, InstructionsMethods.SearchByMetadata, ex);
+            return RpcMethodResults.InternalError("Failed to search the instruction metadata.");
         }
     }
 

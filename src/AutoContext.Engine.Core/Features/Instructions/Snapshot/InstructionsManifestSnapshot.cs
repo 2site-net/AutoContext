@@ -55,7 +55,7 @@ internal sealed class InstructionsManifestSnapshot
             if (!_byFileName.TryAdd(file.FileName, file))
             {
                 throw new ArgumentException(
-                    $"Duplicate instruction file name '{file.FileName}' in corpus.",
+                    $"Duplicate instructions file name '{file.FileName}' in corpus.",
                     nameof(files));
             }
         }

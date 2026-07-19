@@ -50,6 +50,14 @@ internal static class JsonArguments
                 ? value.GetString()
                 : null;
 
+    /// <summary>Reads an object argument, or <see langword="null"/>.</summary>
+    public static JsonElement? TryGetObject(IDictionary<string, JsonElement>? arguments, string name)
+        => arguments is not null
+            && arguments.TryGetValue(name, out var value)
+            && value.ValueKind == JsonValueKind.Object
+                ? value
+                : null;
+
     /// <summary>
     /// Reads a string-array argument (non-string elements skipped), or
     /// <see langword="null"/> when the key is absent or not an array.

@@ -13,14 +13,14 @@ using ModelContextProtocol.Protocol;
 using JsonRpcResponse = Protocol.JsonRpc.JsonRpcResponse;
 
 /// <summary>
-/// The <c>instructions_search_content</c> MCP tool. Full-text searches the
-/// instruction file bodies, shimming over the engine's
+/// The <c>search_instructions_by_content</c> MCP tool. Full-text searches the
+/// instructions file bodies, shimming over the engine's
 /// <c>Instructions.SearchContent</c> capability handler.
 /// </summary>
 internal sealed class InstructionsSearchContentTool : IMcpTool
 {
     /// <summary>The tool name.</summary>
-    public const string ToolName = "instructions_search_content";
+    public const string ToolName = "search_instructions_by_content";
 
     private readonly IRpcMethodHandler _handler;
 
@@ -63,7 +63,7 @@ internal sealed class InstructionsSearchContentTool : IMcpTool
         return new Tool
         {
             Name = ToolName,
-            Description = "Full-text search across the bodies of the AutoContext instruction files.",
+            Description = "Full-text search across the bodies of the AutoContext instructions files.",
             InputSchema = InputSchemaBuilder.Build(
             [
                 new McpToolsRegistryParameterEntry

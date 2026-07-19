@@ -2809,7 +2809,7 @@ shape), `§ P10` (cross-process fan-out).
 | # | Commit subject | State |
 |---|---|---|
 | 1 | `feat(engine): serve instructions and mcp-tools over the stdio mcp-server role` | DONE |
-| 2 | `feat(engine): add the Instructions.SearchByMetadata capability and instructions_search_metadata tool` | TODO |
+| 2 | `feat(engine): add the Instructions.SearchByMetadata capability and search_instructions_by_metadata tool` | DONE |
 | 3 | `test(engine): smoke the stdio mcp-server role end-to-end` | TODO |
 | 4 | `refactor(mcp-server): delegate the legacy server to the engine stdio role` | TODO |
 | 5 | `docs(plan): mark Phase 11 complete` | TODO |
@@ -2837,9 +2837,9 @@ The instruction tools are grouped behind an `McpServer/Tools/InstructionsToolSou
 (one `IMcpTool` leaf per tool); the adapter is a generic router over the
 registered `IMcpToolSource`s and knows no concrete tools.
 Row 1's instruction surface is exactly the tools that already have engine
-handlers to shim over — `instructions_list` (`Instructions.List`),
-`instructions_search_content` (`Instructions.SearchContent`),
-`instructions_get` (`Instructions.Get`) — plus every `McpTools`
+handlers to shim over — `list_instructions` (`Instructions.List`),
+`search_instructions_by_content` (`Instructions.SearchContent`),
+`get_instructions` (`Instructions.Get`) — plus every `McpTools`
 `analyze_*` / `read_*` tool. It also flips the
 existing `ProgramTests` stub assertion to the real role and ships the
 in-process unit tests for the composable pieces — the `tools/list` /
@@ -2849,7 +2849,7 @@ in-process unit tests for the composable pieces — the `tools/list` /
 meaningless intermediate states — a host that serves no tools, tools
 with no transport — so grouping them keeps every boundary green and
 reviewable. Row 2 adds the one instruction surface the engine does **not**
-yet own as a handler: `instructions_search_metadata` is backed by a
+yet own as a handler: `search_instructions_by_metadata` is backed by a
 metadata **predicate** matching engine (typed fields, regex/glob/equality,
 `unknown-field` / `type-mismatch` / `invalid-regex` / `pattern-too-long`
 error envelopes, section AND-intersection) that lives only in the TS
@@ -2858,7 +2858,7 @@ the design. Because a transport shim must not re-implement matching, row 2
 first ports that engine into `Engine.Core/Features/Instructions/` (the
 predicate evaluator + apply-to matcher + metadata-view assembly) behind a
 new `Instructions.SearchByMetadata` capability the **pipe RPC reuses too**,
-then registers the `instructions_search_metadata` stdio tool on top of it
+then registers the `search_instructions_by_metadata` stdio tool on top of it
 — keeping the two surfaces byte-identical by construction. It lands after
 row 1 because it is additive to the adapter row 1 builds, and carries a
 small design delta promoting `SearchByMetadata` from future to present.

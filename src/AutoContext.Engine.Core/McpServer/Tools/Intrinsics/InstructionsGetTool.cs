@@ -13,14 +13,14 @@ using ModelContextProtocol.Protocol;
 using JsonRpcResponse = Protocol.JsonRpc.JsonRpcResponse;
 
 /// <summary>
-/// The <c>instructions_get</c> MCP tool. Returns the projected body of a
-/// single instruction file, shimming over the engine's <c>Instructions.Get</c>
+/// The <c>get_instructions</c> MCP tool. Returns the projected body of a
+/// single instructions file, shimming over the engine's <c>Instructions.Get</c>
 /// capability handler.
 /// </summary>
 internal sealed class InstructionsGetTool : IMcpTool
 {
     /// <summary>The tool name.</summary>
-    public const string ToolName = "instructions_get";
+    public const string ToolName = "get_instructions";
 
     private readonly IRpcMethodHandler _handler;
 
@@ -62,7 +62,7 @@ internal sealed class InstructionsGetTool : IMcpTool
         {
             Name = ToolName,
             Description =
-                "Get the projected body of a single AutoContext instruction file, "
+                "Get the projected body of a single AutoContext instructions file, "
                 + "optionally limited to specific sections.",
             InputSchema = InputSchemaBuilder.Build(
             [
@@ -70,7 +70,7 @@ internal sealed class InstructionsGetTool : IMcpTool
                 {
                     Name = "name",
                     Type = "string",
-                    Description = "The instruction file name or key.",
+                    Description = "The instructions file name or key.",
                     Required = true,
                 },
                 new McpToolsRegistryParameterEntry

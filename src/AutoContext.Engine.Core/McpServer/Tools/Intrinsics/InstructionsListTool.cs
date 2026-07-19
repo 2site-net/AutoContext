@@ -13,14 +13,14 @@ using ModelContextProtocol.Protocol;
 using JsonRpcResponse = Protocol.JsonRpc.JsonRpcResponse;
 
 /// <summary>
-/// The <c>instructions_list</c> MCP tool. Lists the available AutoContext
-/// instruction files, shimming over the engine's <c>Instructions.List</c>
+/// The <c>list_instructions</c> MCP tool. Lists the available AutoContext
+/// instructions files, shimming over the engine's <c>Instructions.List</c>
 /// capability handler.
 /// </summary>
 internal sealed class InstructionsListTool : IMcpTool
 {
     /// <summary>The tool name.</summary>
-    public const string ToolName = "instructions_list";
+    public const string ToolName = "list_instructions";
 
     private readonly IRpcMethodHandler _handler;
 
@@ -62,7 +62,7 @@ internal sealed class InstructionsListTool : IMcpTool
         {
             Name = ToolName,
             Description =
-                "List the available AutoContext instruction files with their metadata "
+                "List the available AutoContext instructions files with their metadata "
                 + "(applyTo, category, disabled state, and optional section index).",
             InputSchema = InputSchemaBuilder.Build(
             [
