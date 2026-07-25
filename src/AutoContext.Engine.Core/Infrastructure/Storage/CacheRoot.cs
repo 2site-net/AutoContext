@@ -54,7 +54,7 @@ public sealed record class CacheRoot
         WorkspaceUserPath = value.WorkspacePath;
 
         FullPath = CacheRootPathResolver.Resolve(value.CacheRootOverride);
-        WorkspaceHash = Storage.WorkspaceHash.Compute(WorkspaceUserPath).Value;
+        WorkspaceHash = Protocol.WorkspaceHash.Compute(WorkspaceUserPath).Value;
 
         WorkspaceBucketPath = Path.Combine(
             FullPath,

@@ -3,7 +3,7 @@ namespace AutoContext.Engine.Tests.Integration;
 using System.Globalization;
 using System.IO;
 
-using AutoContext.Engine.Core.Infrastructure.Storage;
+using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Tests.Support.Diagnostics;
 using AutoContext.Engine.Tests.Support.IO;
 using AutoContext.Engine.Tests.Support.Pipes;

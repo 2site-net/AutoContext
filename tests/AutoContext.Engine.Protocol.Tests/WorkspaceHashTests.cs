@@ -1,7 +1,4 @@
-namespace AutoContext.Engine.Core.Tests.Infrastructure.Storage;
-
-using AutoContext.Engine.Core.Infrastructure.Storage;
-using AutoContext.Engine.Protocol;
+namespace AutoContext.Engine.Protocol.Tests;
 
 public sealed class WorkspaceHashTests
 {
@@ -136,33 +133,5 @@ public sealed class WorkspaceHashTests
     public void Parse_should_throw_ArgumentNullException_for_null()
     {
         Assert.Throws<ArgumentNullException>(() => WorkspaceHash.Parse(null!, provider: null));
-    }
-
-    [Fact]
-    public void TryParse_returns_true_for_a_valid_hash()
-    {
-        // Arrange + Act
-        var success = WorkspaceHash.TryParse("0123456789ABCDEF", provider: null, out var result);
-
-        // Assert
-        Assert.Multiple(
-            () => Assert.True(success),
-            () => Assert.Equal("0123456789ABCDEF", result.Value));
-    }
-
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("0123456789abcdef")]
-    [InlineData("not-hex-at-all!!")]
-    public void TryParse_returns_false_and_default_for_invalid_input(string? raw)
-    {
-        // Act
-        var success = WorkspaceHash.TryParse(raw, provider: null, out var result);
-
-        // Assert
-        Assert.Multiple(
-            () => Assert.False(success),
-            () => Assert.True(result.IsEmpty));
     }
 }

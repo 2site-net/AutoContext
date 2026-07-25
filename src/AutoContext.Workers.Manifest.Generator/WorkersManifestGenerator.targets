@@ -9,7 +9,10 @@
     because the engine binary host owns the output Resources/ folder. The generator
     assembly is built by the ProjectReference the engine declares to
     AutoContext.Workers.Manifest.Generator (ReferenceOutputAssembly=false), so it
-    exists by the time this target runs.
+    exists by the time this target runs during a real build. Design-time builds
+    (DesignTimeBuild=true, e.g. IDE project load) do not produce project-reference
+    outputs, so the target is skipped there — the generator assembly would be
+    absent and the Exec would fail the project load.
   -->
 
   <PropertyGroup>
@@ -18,7 +21,8 @@
 
   <Target Name="GenerateWorkersManifest"
           AfterTargets="ResolveProjectReferences"
-          BeforeTargets="CoreCompile">
+          BeforeTargets="CoreCompile"
+          Condition="'$(DesignTimeBuild)' != 'true' and Exists('$(_WorkersManifestGeneratorAssembly)')">
     <Exec Command="dotnet &quot;$(_WorkersManifestGeneratorAssembly)&quot; &quot;$(MSBuildProjectDirectory)\..&quot; &quot;$(MSBuildProjectDirectory)\Resources\workers.json&quot;" />
   </Target>
 
