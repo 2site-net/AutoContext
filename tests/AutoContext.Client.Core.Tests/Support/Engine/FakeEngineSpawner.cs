@@ -1,12 +1,12 @@
-namespace AutoContext.Client.Core.Tests.Support;
+namespace AutoContext.Client.Core.Tests.Support.Engine;
 
 using AutoContext.Client.Core.Engine;
 
 /// <summary>
 /// Test <see cref="IEngineSpawner"/> that records how many times it was
 /// asked to spawn and runs a caller-supplied callback each time — used
-/// to stand a <see cref="FakeEnginePipeServer"/> up on demand so the
-/// resolver's cold-retry loop can then connect.
+/// to stand a <c>FakeEnginePipeServer</c> up on demand so the resolver's
+/// cold-retry loop can then connect.
 /// </summary>
 internal sealed class FakeEngineSpawner(
     Func<EngineSpawnRequest, CancellationToken, Task>? onSpawn = null) : IEngineSpawner

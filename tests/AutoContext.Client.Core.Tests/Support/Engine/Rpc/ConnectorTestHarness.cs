@@ -1,5 +1,6 @@
-namespace AutoContext.Client.Core.Tests.Support;
+namespace AutoContext.Client.Core.Tests.Support.Engine.Rpc;
 
+using AutoContext.Client.Core;
 using AutoContext.Client.Core.Engine;
 using AutoContext.Client.Core.Engine.Rpc;
 using AutoContext.Engine.Protocol;
