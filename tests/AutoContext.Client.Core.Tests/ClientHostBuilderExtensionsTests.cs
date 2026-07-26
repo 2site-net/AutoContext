@@ -1,6 +1,7 @@
 namespace AutoContext.Client.Core.Tests;
 
 using AutoContext.Client.Core.Engine.Rpc;
+using AutoContext.Client.Core.Tests.Support;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -9,56 +10,57 @@ using Microsoft.Extensions.Options;
 public sealed class ClientHostBuilderExtensionsTests
 {
     [Fact]
-    public void Null_builder_throws()
-    {
-        Assert.Throws<ArgumentNullException>(
+    public void Should_throw_when_the_builder_is_null()
+        => Assert.Throws<ArgumentNullException>(
             () => ClientHostBuilderExtensions.AddAutoContextClient(builder: null!, _ => { }));
+
+    [Fact]
+    public void Should_throw_when_the_configure_callback_is_null()
+    {
+        // Arrange
+        var builder = Host.CreateApplicationBuilder();
+
+        // Act + Assert
+        Assert.Throws<ArgumentNullException>(() => builder.AddAutoContextClient(configure: null!));
     }
 
     [Fact]
-    public void Null_configure_throws()
+    public void Should_return_the_same_builder_for_chaining()
     {
+        // Arrange
         var builder = Host.CreateApplicationBuilder();
 
-        Assert.Throws<ArgumentNullException>(
-            () => builder.AddAutoContextClient(configure: null!));
-    }
+        // Act
+        var result = builder.AddAutoContextClient(ClientOptionsFakeData.ConfigureValid);
 
-    [Fact]
-    public void Returns_the_same_builder_for_chaining()
-    {
-        var builder = Host.CreateApplicationBuilder();
-
-        var result = builder.AddAutoContextClient(ConfigureValid);
-
+        // Assert
         Assert.Same(builder, result);
     }
 
     [Fact]
-    public void Registers_the_engine_connector()
+    public void Should_register_the_engine_connector()
     {
+        // Arrange
         var builder = Host.CreateApplicationBuilder();
-        builder.AddAutoContextClient(ConfigureValid);
+        builder.AddAutoContextClient(ClientOptionsFakeData.ConfigureValid);
+
+        // Act
         using var host = builder.Build();
 
+        // Assert
         Assert.NotNull(host.Services.GetService<EngineConnector>());
     }
 
     [Fact]
-    public async Task Invalid_options_fail_on_start()
+    public async Task Should_fail_on_start_when_the_options_are_invalid()
     {
+        // Arrange
         var builder = Host.CreateApplicationBuilder();
         builder.AddAutoContextClient(options => options.WorkspacePath = string.Empty);
         using var host = builder.Build();
 
+        // Act + Assert
         await Assert.ThrowsAsync<OptionsValidationException>(
             () => host.StartAsync(TestContext.Current.CancellationToken));
-    }
-
-    private static void ConfigureValid(ClientOptions options)
-    {
-        options.WorkspacePath = OperatingSystem.IsWindows() ? @"C:\workspace" : "/workspace";
-        options.InstanceId = Guid.NewGuid();
-        options.SpawnDisabled = true;
     }
 }

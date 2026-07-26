@@ -1,12 +1,19 @@
 namespace AutoContext.Client.Core.Tests;
 
+using AutoContext.Client.Core.Tests.Support;
+
 public sealed class ClientOptionsValidatorTests
 {
     [Fact]
-    public void Valid_options_succeed()
+    public void Should_succeed_for_valid_options()
     {
-        var result = Validate(ValidOptions());
+        // Arrange
+        var options = ClientOptionsFakeData.CreateValid();
 
+        // Act
+        var result = new ClientOptionsValidator().Validate(name: null, options);
+
+        // Assert
         Assert.False(result.Failed);
     }
 
@@ -14,90 +21,119 @@ public sealed class ClientOptionsValidatorTests
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
-    public void Missing_workspace_path_fails(string? workspacePath)
+    public void Should_fail_when_the_workspace_path_is_missing(string? workspacePath)
     {
-        var options = ValidOptions();
+        // Arrange
+        var options = ClientOptionsFakeData.CreateValid();
         options.WorkspacePath = workspacePath!;
 
-        Assert.True(Validate(options).Failed);
+        // Act
+        var result = new ClientOptionsValidator().Validate(name: null, options);
+
+        // Assert
+        Assert.True(result.Failed);
     }
 
     [Fact]
-    public void Relative_workspace_path_fails()
+    public void Should_fail_when_the_workspace_path_is_relative()
     {
-        var options = ValidOptions();
+        // Arrange
+        var options = ClientOptionsFakeData.CreateValid();
         options.WorkspacePath = "relative/workspace";
 
-        Assert.True(Validate(options).Failed);
+        // Act
+        var result = new ClientOptionsValidator().Validate(name: null, options);
+
+        // Assert
+        Assert.True(result.Failed);
     }
 
     [Fact]
-    public void Empty_instance_id_fails()
+    public void Should_fail_when_the_instance_id_is_empty()
     {
-        var options = ValidOptions();
+        // Arrange
+        var options = ClientOptionsFakeData.CreateValid();
         options.InstanceId = Guid.Empty;
 
-        Assert.True(Validate(options).Failed);
+        // Act
+        var result = new ClientOptionsValidator().Validate(name: null, options);
+
+        // Assert
+        Assert.True(result.Failed);
     }
 
     [Fact]
-    public void Over_length_instance_label_fails()
+    public void Should_fail_when_the_instance_label_exceeds_the_maximum_length()
     {
-        var options = ValidOptions();
+        // Arrange
+        var options = ClientOptionsFakeData.CreateValid();
         options.InstanceLabel = new string('a', ClientOptions.InstanceLabelMaxLength + 1);
 
-        Assert.True(Validate(options).Failed);
+        // Act
+        var result = new ClientOptionsValidator().Validate(name: null, options);
+
+        // Assert
+        Assert.True(result.Failed);
     }
 
     [Fact]
-    public void Control_character_instance_label_fails()
+    public void Should_fail_when_the_instance_label_carries_a_control_character()
     {
-        var options = ValidOptions();
+        // Arrange
+        var options = ClientOptionsFakeData.CreateValid();
         options.InstanceLabel = "line\nbreak";
 
-        Assert.True(Validate(options).Failed);
+        // Act
+        var result = new ClientOptionsValidator().Validate(name: null, options);
+
+        // Assert
+        Assert.True(result.Failed);
     }
 
     [Fact]
-    public void Relative_engine_binary_path_fails()
+    public void Should_fail_when_the_engine_binary_path_is_relative()
     {
-        var options = ValidOptions();
+        // Arrange
+        var options = ClientOptionsFakeData.CreateValid();
         options.EngineBinaryPath = "engine/autocontext-engine";
 
-        Assert.True(Validate(options).Failed);
+        // Act
+        var result = new ClientOptionsValidator().Validate(name: null, options);
+
+        // Assert
+        Assert.True(result.Failed);
     }
 
     [Fact]
-    public void Negative_idle_timeout_fails()
+    public void Should_fail_when_the_idle_timeout_is_negative()
     {
-        var options = ValidOptions();
+        // Arrange
+        var options = ClientOptionsFakeData.CreateValid();
         options.IdleTimeout = TimeSpan.FromSeconds(-1);
 
-        Assert.True(Validate(options).Failed);
+        // Act
+        var result = new ClientOptionsValidator().Validate(name: null, options);
+
+        // Assert
+        Assert.True(result.Failed);
     }
 
     [Fact]
-    public void Zero_idle_timeout_succeeds()
+    public void Should_succeed_when_the_idle_timeout_is_zero()
     {
-        var options = ValidOptions();
+        // Arrange
+        var options = ClientOptionsFakeData.CreateValid();
         options.IdleTimeout = TimeSpan.Zero;
 
-        Assert.False(Validate(options).Failed);
+        // Act
+        var result = new ClientOptionsValidator().Validate(name: null, options);
+
+        // Assert
+        Assert.False(result.Failed);
     }
 
     [Fact]
-    public void Null_options_throws()
-    {
-        Assert.Throws<ArgumentNullException>(
+    public void Should_throw_when_the_options_are_null()
+        => Assert.Throws<ArgumentNullException>(
             () => new ClientOptionsValidator().Validate(name: null, options: null!));
-    }
-
-    private static Microsoft.Extensions.Options.ValidateOptionsResult Validate(ClientOptions options)
-        => new ClientOptionsValidator().Validate(name: null, options);
-
-    private static ClientOptions ValidOptions() => new()
-    {
-        WorkspacePath = OperatingSystem.IsWindows() ? @"C:\workspace" : "/workspace",
-        InstanceId = Guid.NewGuid(),
-    };
 }
