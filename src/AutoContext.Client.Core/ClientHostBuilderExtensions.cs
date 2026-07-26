@@ -54,6 +54,11 @@ public static class ClientHostBuilderExtensions
         builder.Services.TryAddSingleton<IEngineSpawner, EngineSpawner>();
         builder.Services.TryAddSingleton<EngineConnector>();
 
+        builder.Services.TryAddSingleton<Func<CancellationToken, Task<EngineClient>>>(
+            serviceProvider => cancellationToken =>
+                EngineClient.ConnectAsync(
+                    serviceProvider.GetRequiredService<EngineConnector>(), cancellationToken));
+
         return builder;
     }
 }
