@@ -1,5 +1,7 @@
 namespace AutoContext.Framework.Pipes.Tests;
 
+using System.Diagnostics;
+
 using AutoContext.Framework.Pipes;
 using AutoContext.Framework.Tests.Support.Encodings;
 using AutoContext.Framework.Tests.Support.Pipes;
@@ -75,6 +77,62 @@ public sealed class PipePersistentExchangeClientTests
             _ = await client.ExchangeAsync(TestEncodings.Utf8NoBom.GetBytes("three"), cancellationToken);
 
             Assert.Equal(1, Volatile.Read(ref connections));
+        }
+        finally
+        {
+            await cts.CancelAsync();
+            await serverTask;
+            await bound.DisposeAsync();
+        }
+    }
+
+    [Fact]
+    public async Task Should_complete_dispose_while_an_exchange_is_stuck()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var name = PipeTestServer.UniqueName("actx-ppe-test");
+        var listener = new PipeListener(name, NullLogger<PipeListener>.Instance);
+        var bound = listener.Bind();
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        using var accepted = new SemaphoreSlim(initialCount: 0, maxCount: 1);
+        // Server accepts and reads the request, then answers nothing and
+        // holds the connection open for the rest of the test.
+        var serverTask = bound.RunAsync(
+            async (stream, ct) =>
+            {
+                var codec = new LengthPrefixedFrameCodec(stream);
+                _ = await codec.ReadAsync(ct);
+                accepted.Release();
+                await Task.Delay(Timeout.Infinite, ct);
+            },
+            cts.Token);
+        var client = new PipePersistentExchangeClient(
+            new PipeTransport(NullLogger<PipeTransport>.Instance),
+            name,
+            NullLogger<PipePersistentExchangeClient>.Instance);
+
+        try
+        {
+            // Never completes on its own: the exchange holds the gate
+            // waiting for a response the server will never send, and it
+            // carries no token of its own to cancel it.
+            var stuck = client.ExchangeAsync(
+                TestEncodings.Utf8NoBom.GetBytes("hi"), CancellationToken.None);
+            await accepted.WaitAsync(cancellationToken);
+
+            var started = Stopwatch.GetTimestamp();
+            await client.DisposeAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(30), cancellationToken);
+            var elapsed = Stopwatch.GetElapsedTime(started);
+
+            // Dispose closes the handle and returns; it does not wait on
+            // the exchange, so teardown is not paced by the dead peer.
+            Assert.True(elapsed < TimeSpan.FromSeconds(1), $"Dispose took {elapsed}.");
+
+            // The abort surfaces as the I/O failure it is. An
+            // ObjectDisposedException here would mean teardown had
+            // disposed the gate out from under the exchange's release
+            // and masked the real cause.
+            _ = await Assert.ThrowsAsync<IOException>(async () => await stuck);
         }
         finally
         {

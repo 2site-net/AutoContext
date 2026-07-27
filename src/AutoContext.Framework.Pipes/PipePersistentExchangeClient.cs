@@ -1,5 +1,6 @@
 namespace AutoContext.Framework.Pipes;
 
+using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipes;
 
 using Microsoft.Extensions.Logging;
@@ -22,6 +23,9 @@ public sealed partial class PipePersistentExchangeClient : IPipeExchangeClient
     private readonly string _pipeName;
     private readonly int _connectTimeoutMs;
     private readonly ILogger<PipePersistentExchangeClient> _logger;
+
+    [SuppressMessage("Usage", "CA2213",
+        Justification = "Disposing the gate would race the concurrent Release in ExchangeAsync's finally and mask the I/O error teardown just caused; SemaphoreSlim.Dispose only frees AvailableWaitHandle, which this type never uses.")]
     private readonly SemaphoreSlim _gate = new(initialCount: 1, maxCount: 1);
 
     private NamedPipeClientStream? _pipe;
@@ -98,7 +102,11 @@ public sealed partial class PipePersistentExchangeClient : IPipeExchangeClient
         }
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Closes the pipe, faulting any exchange still in flight. Returns
+    /// as soon as the handle is closed and never waits on the exchange,
+    /// so a peer that stops answering cannot hold teardown open.
+    /// </summary>
     public async ValueTask DisposeAsync()
     {
         if (_disposed)
@@ -107,16 +115,10 @@ public sealed partial class PipePersistentExchangeClient : IPipeExchangeClient
         }
         _disposed = true;
 
-        await _gate.WaitAsync().ConfigureAwait(false);
-        try
-        {
-            await ClosePipeAsync().ConfigureAwait(false);
-        }
-        finally
-        {
-            _gate.Release();
-            _gate.Dispose();
-        }
+        // Deliberately does not take the gate: the in-flight exchange is
+        // being cancelled, not awaited, and closing the handle is what
+        // aborts its pending read.
+        await ClosePipeAsync().ConfigureAwait(false);
     }
 
     private async Task<Stream> GetOrConnectAsync(CancellationToken cancellationToken)
@@ -130,6 +132,15 @@ public sealed partial class PipePersistentExchangeClient : IPipeExchangeClient
 
         var stream = await _transport.ConnectAsync(
             _pipeName, _connectTimeoutMs, PipeDirection.InOut, cancellationToken).ConfigureAwait(false);
+
+        // Dispose may have closed the pipe while this connect was
+        // pending, in which case nothing will ever close the stream we
+        // just opened.
+        if (_disposed)
+        {
+            await stream.DisposeAsync().ConfigureAwait(false);
+            throw new ObjectDisposedException(nameof(PipePersistentExchangeClient));
+        }
 
         // PipeTransport.ConnectAsync builds a NamedPipeClientStream
         // and returns it as Stream; we hold it as the concrete type
