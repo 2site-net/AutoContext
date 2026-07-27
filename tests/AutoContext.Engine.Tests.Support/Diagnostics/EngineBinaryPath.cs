@@ -30,20 +30,6 @@ public static class EngineBinaryPath
     /// </summary>
     public static string Value { get; } = Resolve();
 
-    private static string FindRepoRoot(string start)
-    {
-        for (var dir = new DirectoryInfo(start); dir is not null; dir = dir.Parent)
-        {
-            if (File.Exists(Path.Combine(dir.FullName, "AutoContext.slnx")))
-            {
-                return dir.FullName;
-            }
-        }
-
-        throw new InvalidOperationException(
-            $"Could not locate repository root (AutoContext.slnx) starting from '{start}'.");
-    }
-
     private static string Resolve()
     {
         // AppContext.BaseDirectory:
@@ -57,7 +43,7 @@ public static class EngineBinaryPath
 
         var tfm = Path.GetFileName(baseDir);
         var configuration = Path.GetFileName(Path.GetDirectoryName(baseDir)!);
-        var repoDir = FindRepoRoot(baseDir);
+        var repoDir = RepositoryRoot.Value;
         var exeExtension = OperatingSystem.IsWindows() ? ".exe" : string.Empty;
 
         return Path.Combine(repoDir, "src", "AutoContext.Engine", "bin", configuration, tfm, "autocontext-engine" + exeExtension);

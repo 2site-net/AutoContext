@@ -24,23 +24,9 @@ public static class EngineInstructionsPath
     /// </summary>
     public static string Value { get; } = Resolve();
 
-    private static string FindRepoRoot(string start)
-    {
-        for (var dir = new DirectoryInfo(start); dir is not null; dir = dir.Parent)
-        {
-            if (File.Exists(Path.Combine(dir.FullName, "AutoContext.slnx")))
-            {
-                return dir.FullName;
-            }
-        }
-
-        throw new InvalidOperationException(
-            $"Could not locate repository root (AutoContext.slnx) starting from '{start}'.");
-    }
-
     private static string Resolve()
     {
-        var repoDir = FindRepoRoot(AppContext.BaseDirectory);
+        var repoDir = RepositoryRoot.Value;
 
         return Path.Combine(repoDir, "src", "AutoContext.Engine", "Instructions");
     }
