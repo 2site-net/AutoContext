@@ -2477,11 +2477,11 @@ reuses these same handlers).
 
 ## Phase 8 — Worker → engine logging integration
 
-**Status**: In progress on branch `features/worker-engine-logging`.
+**Status**: Completed on branch `features/worker-engine-logging`.
 
 | # | Commit subject | State |
 |---|---|---|
-| 1 | `refactor(workers): rename Framework.Workers to Workers.Core` | DONE (uncommitted) |
+| 1 | `refactor(workers): rename Framework.Workers to Workers.Core` | DONE |
 | 2 | `feat(engine-core): serve Engine.WriteLog as a fire-and-forget notification routed by category to per-worker logs` | DONE |
 | 3 | `feat(workers-core): add worker→engine log sender with bounded ring and stderr drop fallback` | DONE |
 | 4 | `feat(engine): serve Logs.GetWorker and TailWorker and capture worker stderr` | DONE |
@@ -2634,7 +2634,7 @@ design.
 
 ## Phase 9 — Discovery
 
-**Status**: Not started.
+**Status**: Completed on branch `features/discovery`.
 
 | # | Commit subject | State |
 |---|---|---|
@@ -2809,7 +2809,7 @@ shape), `§ P10` (cross-process fan-out).
 
 ## Phase 11 — MCP-server-only role
 
-**Status**: Not started.
+**Status**: Completed on branch `features/mcp-server-stdio-role`.
 
 | # | Commit subject | State |
 |---|---|---|
