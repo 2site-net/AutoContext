@@ -236,7 +236,8 @@ shapes, and host-side resolution rules.
 | `--idle-timeout <seconds>` | no | non-negative integer; default `300`; `0` disables the idle gate |
 | `--parent-pid <pid>` | no | watchdog: engine self-exits when the named OS process vanishes (start-time matched to defeat pid recycling) |
 | `--retention <duration>` | no | housekeeping retention window; default `1d` |
-| `--logging <verbosity>` | no | `normal` (default) — rotate at 1,000 lines OR 5 MB; `debug` — rotate at 5,000 lines OR 25 MB |
+| `--log-level <level>` | no | `trace` \| `debug` \| `information` \| `warning` \| `error` \| `critical` \| `none`; minimum level a record must carry to be emitted. Omitted leaves the host's own logging configuration in force |
+| `--log-rotation <size>` | no | `small` (default) — rotate at 1,000 lines OR 5 MB; `large` — rotate at 5,000 lines OR 25 MB |
 | `--mcp-server <mode>` | no | `with-stdio` (only value today); selects MCP-server-only role |
 | `--version` | no | RID-independent |
 
@@ -268,7 +269,7 @@ Every path AutoContext touches has exactly one owner (P5).
 | `<workspace>/<root>/instructions/<name>.instructions.md` (each `<root>` from `engine.instructions.overridesRoots`, default `.github`) | user | workspace; overrides bundled |
 | `<host-bundle>/engine/{autocontext-engine, Instructions/, Resources/, Workers/}` | build | read-only at runtime |
 | `…\autocontext\engine-registry.json` | every live engine (co-owned) | entry-per-instance liveness registry; **append-only at startup**, own entry removed at graceful shutdown |
-| `…\autocontext\<workspaceHash>\<instanceId>\logs\engine.log` | engine | rotated in-process by `--logging` thresholds; rotated files retained per `--retention` |
+| `…\autocontext\<workspaceHash>\<instanceId>\logs\engine.log` | engine | rotated in-process by `--log-rotation` thresholds; rotated files retained per `--retention` |
 | `…\autocontext\<workspaceHash>\<instanceId>\logs\crash.log` | engine | write-once tombstone for unhandled-exception / fail-fast exits; absent on graceful shutdown; reaped with the rest of the per-instance subtree under `--retention` |
 | `…\autocontext\<workspaceHash>\<instanceId>\logs\worker-<workerId>.log` | engine | one file per spawned worker; records routed by `category` prefix; same rotation + retention rules as `engine.log` |
 | `…\autocontext\<workspaceHash>\<instanceId>\cache\<client>\…` | client | client-managed |
@@ -616,12 +617,18 @@ roles read as ordinary file I/O.
   MCP host (VS Code's MCP manager, Claude Desktop, Claude Code)
   owns its lifecycle entirely — relaunch on crash is the host's
   job, not the engine's. Argv accepted in this role:
-  `--workspace`, `--mcp-server`, `--version`. Every other engine
+  `--workspace`, `--mcp-server`, `--log-level`, `--version`. Every other engine
   switch (`--instance-id`, `--instance-label`, `--idle-timeout`,
-  `--parent-pid`, `--retention`, `--logging`) is **rejected at
+  `--parent-pid`, `--retention`, `--log-rotation`) is **rejected at
   argv parse time** — they describe daemon pipe-and-registry
   concerns this role does not have (the ephemeral worker-pipe
   scope is internal, not the launcher-minted `--instance-id`).
+  `--log-level` is accepted because operational logs go to stderr
+  only and the role would otherwise be undiagnosable: it defaults
+  to `warning` and raising it never touches stdout, which stays
+  protocol-only. A fault that escapes the host writes a
+  `crash.log` tombstone under the ephemeral instance's cache
+  subtree — the role's only on-disk artefact, and only on a crash.
 
 The two roles can coexist on the same workspace without
 coordination: a VS Code window runs the daemon role (state
@@ -1349,14 +1356,14 @@ automatically with how often engines actually shut down cleanly.
   up unconditionally. The design trades worst-case unbounded
   growth on a pathological host pattern for a strictly simpler
   lifecycle on every other host.
-- **Log rotation (within-instance, driven by `--logging`).** The
+- **Log rotation (within-instance, driven by `--log-rotation`).** The
   engine's own `engine.log` and per-worker `worker-<workerId>.log`
   files rotate in-process by line-count or size threshold:
 
-  | Verbosity | Rotation threshold |
+  | Rotation size | Rotation threshold |
   |---|---|
-  | `normal` (default) | 1,000 lines OR 5 MB, whichever fires first |
-  | `debug` | 5,000 lines OR 25 MB, whichever fires first |
+  | `small` (default) | 1,000 lines OR 5 MB, whichever fires first |
+  | `large` | 5,000 lines OR 25 MB, whichever fires first |
 
   When a threshold fires, the engine renames the active file to
   `engine-<iso8601>.log` (and worker equivalents to
@@ -1398,9 +1405,9 @@ and any stray write corrupts it).
 The table below is the **daemon role** surface (no `--mcp-server`).
 In the **MCP-server-only role** (`--mcp-server with-stdio`) the
 argv parser accepts a **strict subset** — `--workspace`,
-`--mcp-server`, `--version` — and **rejects every other switch in
+`--mcp-server`, `--log-level`, `--version` — and **rejects every other switch in
 the table** (`--instance-id`, `--instance-label`, `--idle-timeout`,
-`--parent-pid`, `--retention`, `--logging`) with a non-zero exit
+`--parent-pid`, `--retention`, `--log-rotation`) with a non-zero exit
 and a stderr error naming the rejected switch and the active role.
 The rejected switches describe pipe-and-registry concerns the
 MCP-server role does not have; silently ignoring them would let a
@@ -1415,7 +1422,8 @@ See [Engine binary](#engine-binary) for the role split itself.
 | `--idle-timeout <seconds>` | no | non-negative integer (`0` = disable idle gate; host-driven shutdown only) | `300` | optional override |
 | `--parent-pid <pid>` | no | positive integer; engine self-exits when that process vanishes | unset | long-lived host launchers |
 | `--retention <duration>` | no | duration string (`<n>{s\|m\|h\|d}`; `0` = sweep immediately) | `1d` | optional override |
-| `--logging <verbosity>` | no | `normal` \| `debug` | `normal` | optional override |
+| `--log-level <level>` | no | `trace` \| `debug` \| `information` \| `warning` \| `error` \| `critical` \| `none` | host configuration | optional override |
+| `--log-rotation <size>` | no | `small` \| `large` | `small` | optional override |
 | `--mcp-server <mode>` | no | `with-stdio` (the only accepted value today) | off | MCP hosts only |
 | `--version` | no | — | — | humans, CI |
 
@@ -1532,10 +1540,16 @@ Semantics:
   stale (see `### Housekeeping`). The same window governs
   rotated-log pruning within the engine's own per-instance
   subtree.
-- **`--logging <verbosity>`** sets the in-process rotation
+- **`--log-level <level>`** sets the minimum level a record must
+  carry to be emitted, for the engine's own records and the worker
+  records it ingests. Omitting it leaves the host's own logging
+  configuration in force (`information` unless configured otherwise);
+  `debug` and `trace` raise volume substantially, so pair them with
+  `--log-rotation large` to keep a diagnostic session in fewer files.
+- **`--log-rotation <size>`** sets the in-process rotation
   thresholds for the engine's own `engine.log` and per-worker
-  `worker-<workerId>.log` files. Accepted values are `normal`
-  (default; rotate at 1,000 lines OR 5 MB) and `debug` (rotate at
+  `worker-<workerId>.log` files. Accepted values are `small`
+  (default; rotate at 1,000 lines OR 5 MB) and `large` (rotate at
   5,000 lines OR 25 MB). The switch does **not** change which
   records are emitted — log level filtering remains an in-process
   configuration concern, separate from rotation policy — only the
@@ -2266,7 +2280,7 @@ small blemish that buys consistency on each surface.
   `worker-<workerId>.log`; everything else → `engine.log`). One file
   per spawned worker; the file is created lazily on the worker's
   first record and rotated by the engine's in-process rotation
-  logic (`--logging` thresholds), so the active file tracks the
+  logic (`--log-rotation` thresholds), so the active file tracks the
   current rotation window and rotated history sits beside it under
   retention (see `### Housekeeping`).
 
@@ -3605,7 +3619,7 @@ Source-side locations for the editable inputs the build consumes:
   and are routed by `category` prefix (see the *Log pipeline
   backpressure* and *Worker–engine connectivity* pitfalls). Every
   file under `logs\` is engine-owned per P5 — the engine is the
-  sole writer — and is rotated in-process by the `--logging`
+  sole writer — and is rotated in-process by the `--log-rotation`
   thresholds (see `### Housekeeping` > *Log rotation*), with
   rotated history pruned per `--retention`. Active files survive
   shutdown for postmortem reading by anyone who knows the

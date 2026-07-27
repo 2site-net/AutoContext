@@ -2,6 +2,7 @@ namespace AutoContext.Engine;
 
 using System.CommandLine;
 using System.CommandLine.Parsing;
+using System.Diagnostics.CodeAnalysis;
 
 using AutoContext.Engine.Core;
 using AutoContext.Engine.Core.Logging;
@@ -36,9 +37,21 @@ internal sealed class EngineCommand : RootCommand
 {
     public const string McpServerWithStdioValue = "with-stdio";
 
-    public const string LoggingNormalValue = "normal";
+    public const string LogRotationSmallValue = "small";
 
-    public const string LoggingDebugValue = "debug";
+    public const string LogRotationLargeValue = "large";
+
+    /// <summary>
+    /// Accepted <c>--log-level</c> values, derived from the level enum
+    /// so the CLI surface cannot drift from the levels it maps onto.
+    /// </summary>
+    [SuppressMessage(
+        "Globalization",
+        "CA1308:Normalize strings to uppercase",
+        Justification = "CLI switch values are lowercase by convention; these are parsed case-insensitively, never used as normalization keys.")]
+    private static readonly string[] LogLevelValues =
+        [.. Enum.GetNames<Microsoft.Extensions.Logging.LogLevel>()
+            .Select(static name => name.ToLowerInvariant())];
 
     public EngineCommand()
         : base("AutoContext Engine binary — pinned, per-workspace host for AutoContext clients.")
@@ -78,11 +91,20 @@ internal sealed class EngineCommand : RootCommand
         };
         Retention.Validators.Add(ValidateRetentionShape);
 
-        Logging = new Option<string?>("--logging")
+        LogLevel = new Option<string?>("--log-level")
         {
-            Description = "Log rotation verbosity (daemon role only).",
+            Description = "Minimum level a record must carry to be emitted: "
+                + "trace, debug, information, warning, error, critical or none. "
+                + "Omitted leaves the role's own logging configuration in force.",
         };
-        Logging.AcceptOnlyFromAmong(LoggingNormalValue, LoggingDebugValue);
+        LogLevel.AcceptOnlyFromAmong(LogLevelValues);
+
+        LogRotation = new Option<string?>("--log-rotation")
+        {
+            Description = "Log file rotation size: small (1k lines/5MB) or "
+                + "large (5k lines/25MB). Does not change log level. Daemon role only.",
+        };
+        LogRotation.AcceptOnlyFromAmong(LogRotationSmallValue, LogRotationLargeValue);
 
         McpServer = new Option<string?>("--mcp-server")
         {
@@ -108,7 +130,8 @@ internal sealed class EngineCommand : RootCommand
         Options.Add(IdleTimeoutSeconds);
         Options.Add(ParentProcessId);
         Options.Add(Retention);
-        Options.Add(Logging);
+        Options.Add(LogLevel);
+        Options.Add(LogRotation);
         Options.Add(McpServer);
         Options.Add(CacheRoot);
         Options.Add(ResourcesRoot);
@@ -126,7 +149,9 @@ internal sealed class EngineCommand : RootCommand
 
     public Option<string?> Retention { get; }
 
-    public Option<string?> Logging { get; }
+    public Option<string?> LogLevel { get; }
+
+    public Option<string?> LogRotation { get; }
 
     public Option<string?> McpServer { get; }
 
@@ -189,6 +214,13 @@ internal sealed class EngineCommand : RootCommand
             options.ResourcesRootOverride = resourcesRootValue;
         }
 
+        var logLevelRaw = parseResult.GetValue(LogLevel);
+        if (logLevelRaw is not null)
+        {
+            options.LogLevel = Enum.Parse<Microsoft.Extensions.Logging.LogLevel>(
+                logLevelRaw, ignoreCase: true);
+        }
+
         if (isMcpRole)
         {
             options.McpServerMode = EngineMcpServerMode.WithStdio;
@@ -223,13 +255,13 @@ internal sealed class EngineCommand : RootCommand
             options.Retention = ParseRetention(retentionRaw);
         }
 
-        var loggingRaw = parseResult.GetValue(Logging);
-        if (loggingRaw is not null)
+        var logRotationRaw = parseResult.GetValue(LogRotation);
+        if (logRotationRaw is not null)
         {
-            options.Logging = loggingRaw switch
+            options.LogRotation = logRotationRaw switch
             {
-                LoggingDebugValue => LogVerbosity.Debug,
-                _ => LogVerbosity.Normal,
+                LogRotationLargeValue => LogRotationSize.Large,
+                _ => LogRotationSize.Small,
             };
         }
 
@@ -393,9 +425,9 @@ internal sealed class EngineCommand : RootCommand
             return true;
         }
 
-        if (parseResult.GetValue(Logging) is not null)
+        if (parseResult.GetValue(LogRotation) is not null)
         {
-            switchName = "--logging";
+            switchName = "--log-rotation";
             return true;
         }
 

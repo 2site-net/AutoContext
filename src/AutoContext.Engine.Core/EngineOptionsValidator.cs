@@ -2,6 +2,8 @@ namespace AutoContext.Engine.Core;
 
 using AutoContext.Engine.Core.Logging;
 
+using Microsoft.Extensions.Logging;
+
 using Microsoft.Extensions.Options;
 
 /// <summary>
@@ -81,11 +83,18 @@ internal sealed class EngineOptionsValidator : IValidateOptions<EngineOptions>
                 $"{nameof(EngineOptions.ShutdownDrainTimeout)} must be non-negative; got {options.ShutdownDrainTimeout}.");
         }
 
-        if (!Enum.IsDefined(options.Logging))
+        if (options.LogLevel is { } logLevel && !Enum.IsDefined(logLevel))
         {
             (failures ??= []).Add(
-                $"{nameof(EngineOptions.Logging)} '{options.Logging}' is not a defined "
-                + $"{nameof(LogVerbosity)} value.");
+                $"{nameof(EngineOptions.LogLevel)} '{logLevel}' is not a defined "
+                + $"{nameof(LogLevel)} value.");
+        }
+
+        if (!Enum.IsDefined(options.LogRotation))
+        {
+            (failures ??= []).Add(
+                $"{nameof(EngineOptions.LogRotation)} '{options.LogRotation}' is not a defined "
+                + $"{nameof(LogRotationSize)} value.");
         }
 
         if (!Enum.IsDefined(options.McpServerMode))

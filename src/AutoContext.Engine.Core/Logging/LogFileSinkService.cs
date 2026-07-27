@@ -53,7 +53,7 @@ using Microsoft.Extensions.Options;
 /// </list>
 /// </para>
 /// <para>
-/// Rotation per <c>--logging</c> thresholds and retention-aware
+/// Rotation per <c>--log-rotation</c> thresholds and retention-aware
 /// cleanup of rotated files run in the same drain loop: every
 /// record drained from the channel updates a running byte / line
 /// counter against the configured
@@ -104,9 +104,9 @@ internal sealed partial class LogFileSinkService : BackgroundService
     /// each per-worker <c>worker-&lt;workerId&gt;.log</c> path are
     /// resolved from it; the layout is retained for the lifetime
     /// of the service.</param>
-    /// <param name="thresholds">Per-verbosity rotation thresholds
+    /// <param name="thresholds">Per-rotation-size thresholds
     /// — production composes via
-    /// <see cref="LogRotationThresholds.ForVerbosity(LogVerbosity)"/>;
+    /// <see cref="LogRotationThresholds.ForRotationSize(LogRotationSize)"/>;
     /// tests pass small values directly to keep fixtures cheap.</param>
     /// <param name="cleaner">Retention-aware sweeper invoked on
     /// every successful rotation.</param>

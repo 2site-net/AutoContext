@@ -321,6 +321,7 @@ src/
     AutoContext.Engine.Protocol.csproj
     EndpointKind.cs                            # enum { Rpc, Events, Health, Logs } — the four logical channels per (workspace, launcher instance)
     Endpoint.cs                                # `readonly record struct` implementing IParsable<Endpoint> — builder + parser for rpc/events/health/logs × hash#instance
+    WorkspaceHash.cs                           # 16-uppercase-hex SHA-256 prefix of the normalised workspace path — `readonly record struct` implementing `IParsable<WorkspaceHash>`; the `<workspaceHash>` segment of every Endpoint, on the shared leaf so the engine and every client derive it from one implementation (moved from Engine.Core in Phase 12)
     ServiceAddressFormatter.cs                 # legacy `autocontext.<role>#<instance-id>` formatter — kept until every current-topology dialer flips to Endpoint (Phase 12); deleted in Phase 16
     ProtocolVersion.cs                         # Engine.Hello version constant
     LogRecord.cs                               # canonical log-record envelope (timestamp, category, level, …)
@@ -378,7 +379,6 @@ src/
       Storage/                                 # cache-root vocabulary — identity coordinates and path resolution; leaf, consumed by Machine/ (EngineCacheLayout, Housekeeping) and Registry/ (RegistryEntryBuilder), depends on nothing engine-side itself
         CacheRoot.cs                           # per-instance identity bundle — composes EngineOptions into resolved cache-root subtree paths (FullPath / WorkspaceBucketPath / InstancePath / WorkspaceUserPath); the DI singleton every on-disk path resolves through
         CacheRootPathResolver.cs               # pure static — resolves the OS-level engine cache root (%LOCALAPPDATA%\autocontext, $XDG_CACHE_HOME/autocontext, …) with --cache-root override; sole reader of the env vars and override option
-        WorkspaceHash.cs                       # 16-uppercase-hex SHA-256 prefix of the workspace path — `readonly record struct` implementing `IParsable<WorkspaceHash>`; the `<workspaceHash>` segment in registry rows and on-disk paths
       Diagnostics/                             # System.Diagnostics.Process seam — internal abstractions used by Workers/ (launch + supervision), Watchdogs/, and registry-sweep liveness checks
         IProcess.cs                            # handle to a launched child process — pid + cancellable kill/exit operations
         IProcessHandle.cs                      # opens-once handle; exposes UTC start time and a cancellable WaitForExitAsync
@@ -441,8 +441,8 @@ src/
       EngineLoggerProvider.cs                  # ILoggerProvider caching one EngineLogger per category
       LogChannel.cs                            # single-channel ingest; TryWrite / ReadAllAsync / Complete (DropOldest on overflow)
       LogFileSinkService.cs                    # hosted service — drain loop + dispatcher; owns the per-target file appenders (engine.log / worker-<id>.log); also fans drained records out through a shared Infrastructure/Events/Broadcaster<JsonLogRecord> (pure live tail)
-      LogRotationThresholds.cs                 # per-verbosity line-count + byte-size rotation thresholds (replaces the old LogRotator)
-      LogVerbosity.cs                          # rotation-selector enum (Normal / Debug / Verbose)
+      LogRotationThresholds.cs                 # per-rotation-size line-count + byte-size rotation thresholds (replaces the old LogRotator)
+      LogRotationSize.cs                       # rotation-selector enum (Small / Large)
       RotatedLogCleaner.cs                     # deletes rotated log files past retention inside a live subtree (uses Logging/RetentionPolicy)
       RetentionPolicy.cs                       # single reader of `--retention` — resolves the retention window (per-entry, unregistered-fallback, foreign); shared with Machine/Housekeeping/
       LogFileReader.cs                         # forward-pass NDJSON reader over the engine's per-instance log files with since / lastN filtering (backs Logs.GetEngine + Logs.GetWorker)
@@ -611,29 +611,34 @@ src/
 
   AutoContext.Client.Core/                # in-process .NET dialler library (consumed by CLI, .NET tests, future .NET embedders)
     AutoContext.Client.Core.csproj
-    AddAutoContextClient.cs                    # IServiceCollection extension
-    ClientOptions.cs                           # workspace hash, instance-id, spawn policy
-    EngineSpawner/                             # find-or-spawn flow
-      IEngineSpawner.cs                        # seam — production = process spawn, tests = in-proc fake
-      ProcessEngineSpawner.cs                  # Process.Start against bundled binary
-      EngineConnectBudget.cs                   # cold-spawn retry shape
-      EngineLocator.cs                         # AppContext.BaseDirectory probe for engine binary
-    Rpc/                                       # typed clients (one per surface)
-      EngineRpcClient.cs                       # Engine.Hello/Shutdown/RegistryEntries/WriteLog
-      ConfigRpcClient.cs
-      InstructionsRpcClient.cs
-      WorkspaceRpcClient.cs
-      McpToolsRpcClient.cs
-      DiscoveryRpcClient.cs
-      AgentRpcClient.cs
-      LogsRpcClient.cs
-      EngineProtocolException.cs               # raised on Hello version mismatch
-    Subscriptions/                             # IAsyncEnumerable<T> consumers (P6, P8)
-      EngineLifecycleSubscription.cs
-      ConfigSubscription.cs
-      InstructionsSubscription.cs
-      AgentEventsSubscription.cs
-      LogsTailSubscription.cs
+    ClientHostBuilderExtensions.cs             # IHostApplicationBuilder extension — composition root (AddAutoContextClient)
+    ClientOptions.cs                           # workspace path, instance-id, instance-label, spawn policy, idle-timeout pass-through
+    ClientOptionsValidator.cs                  # validates ClientOptions shape (path rootedness, non-empty instance id, label charset)
+    Engine/                                    # everything that dials the engine — spawn seam + RPC layer
+      IEngineSpawner.cs                        # spawn seam — production = process spawn, tests = in-proc fake
+      EngineSpawner.cs                         # production IEngineSpawner — Process.Start against the bundled binary (was ProcessEngineSpawner)
+      EngineSpawnRequest.cs                    # immutable launch spec — workspace, instance id, label, idle-timeout, binary path
+      EngineLocator.cs                         # static AppContext.BaseDirectory probe for the bundled engine binary
+      EngineConnectBudget.cs                   # warm + cold connect timing / backoff shape
+      Rpc/                                     # connection primitives + typed clients (one per surface)
+        EngineConnection.cs                    # one handshaked pipe — Engine.Hello + serialised ExchangeAsync seam
+        EngineConnector.cs                     # find-or-spawn resolver — warm dial, spawn, cold-retry, handshake
+        EngineProtocolException.cs             # raised on Hello version mismatch / refusal
+        EngineUnavailableException.cs          # raised when no engine is reachable and spawning is disabled or timed out
+        EngineRpcClient.cs                     # Engine.Hello/Shutdown/RegistryEntries (NOT WriteLog — worker→engine, Workers.Core owns)
+        ConfigRpcClient.cs
+        InstructionsRpcClient.cs
+        WorkspaceRpcClient.cs
+        McpToolsRpcClient.cs
+        DiscoveryRpcClient.cs
+        AgentRpcClient.cs
+        LogsRpcClient.cs
+      Subscriptions/                           # IAsyncEnumerable<T> consumers (P6, P8)
+        EngineLifecycleSubscription.cs
+        ConfigSubscription.cs
+        InstructionsSubscription.cs
+        AgentEventsSubscription.cs
+        LogsTailSubscription.cs
 
   AutoContext.Instructions.Parser/        # shared parser library (net10.0) — referenced by both the generator and the engine runtime so one source is compiled for both
     AutoContext.Instructions.Parser.csproj     # TargetFramework=net10.0; class library
@@ -732,7 +737,7 @@ codebase's vertical-feature folder axis.
 > - `AddAutoContextEngine.cs` → `EngineHostBuilderExtensions.cs` (the
 >   `AddAutoContextEngine` extension method name is unchanged);
 >   `ArgvParser` / `Role` / `StartupBanner` → `EngineCommand`;
->   `LogRotator` → `LogRotationThresholds` (+ `LogVerbosity`);
+>   `LogRotator` → `LogRotationThresholds` (+ `LogRotationSize`);
 >   `FileExtensionsIndex` → `FlagExtensionIndex` (+ `FlagContributionIndex`).
 > - **Project rename:** `AutoContext.Framework.Workers` →
 >   `AutoContext.Workers.Core` (worker-side runtime). Renamed so no
@@ -1112,7 +1117,7 @@ features compose over, so it must land before row 9.
 
 **Goal**: every record the engine emits via `ILogger<T>` lands in
 `engine.log` under the per-instance subtree, fans out on the `logs`
-pipe and `Logs.TailEngine` RPC subscribers, rotates per `--logging`,
+pipe and `Logs.TailEngine` RPC subscribers, rotates per `--log-rotation`,
 and rotated files are cleaned per `--retention`.
 
 **Design anchors**: `§ Log categories`,
@@ -1142,7 +1147,7 @@ and rotated files are cleaned per `--retention`.
   "drain-and-dispatch" so the broadcaster sits next to the file
   sink as a sibling inner sink rather than as a second consumer
   of `LogChannel` (the channel stays single-reader).
-- Rotation per `--logging` thresholds (1k lines / 5 MB normal; 5k /
+- Rotation per `--log-rotation` thresholds (1k lines / 5 MB small; 5k /
   25 MB debug); rotated-file naming `engine-<iso8601>.log`.
 - `RotatedLogCleaner` deletes rotated files older than the
   `--retention` window during the next rotation. (Per-tenant
@@ -2911,7 +2916,7 @@ and is killed on stdio EOF. Per-request disk read of
   subscription broadcasters, registry-file writer, `engine.log`
   sink, watchdogs, or `FileSystemWatcher`.
 - Argv parser rejects `--instance-id`, `--instance-label`,
-  `--idle-timeout`, `--parent-pid`, `--retention`, `--logging` in
+  `--idle-timeout`, `--parent-pid`, `--retention`, `--log-rotation` in
   the MCP-only role with a stderr error and non-zero exit.
 - The same handler code from Phase 6 (`Instructions.*`) and Phase 7
   (`McpTools.*`) is registered as `instructions_*` and the existing
@@ -2956,7 +2961,57 @@ extension's MCP server definition repointing (Phase 14).
 
 ## Phase 12 — `Client.Core` (CLI-as-library) and `EngineDaemonManager` (TS)
 
-**Status**: Not started.
+**Status**: Completed on branch `features/engine-client-libraries`.
+
+| # | Commit subject | State |
+|---|---|---|
+| 1 | `feat(client-core): scaffold dialer, handshake, and find-or-spawn` | DONE |
+| 2 | `feat(client-core): add typed rpc clients and subscription consumers` | DONE |
+| 3 | `test(client-core): round-trip every rpc against an in-process engine` | DONE |
+| 4 | `feat(nodejs-core): add rpc-exchange and events-subscription pipe clients` | DONE |
+| 5 | `feat(nodejs-core): add EngineDaemonManager with find-or-spawn and typed rpc` | DONE |
+| 6 | `test(nodejs-core): round-trip every rpc against a spawned engine binary` | DONE |
+| 7 | `docs(plan): mark Phase 12 complete` | DONE |
+
+**Commit grouping.** Rows 1–3 implement **12a** (`AutoContext.Client.Core`,
+the .NET CLI-as-library; public surface
+`AddAutoContextClient(Action<ClientOptions>)`, references `Framework.Pipes` +
+`Engine.Protocol`, dials the pipes it never binds). Rows 4–6 implement
+**12b** (the TS `EngineDaemonManager`, a plain class under
+`Nodejs.Core/src/engine/`). The two deliverables are independent — no row
+in one half depends on a row in the other — and can land on parallel
+branches; they are grouped into one phase only because both first need
+the full engine wire surface from Phases 1–11.
+
+Within 12a, row 1 folds the project scaffold, the four-pipe dialer, the
+`Engine.Hello` exact-match handshake with its `EngineProtocolException`
+refusal, and the find-or-spawn / cold-start connect budget into one
+"can reach an engine" unit — the scaffold is not a standalone commit (a
+bare `AddAutoContextClient` registering nothing is scaffolding-ahead) and
+the dialer, handshake, and spawner are meaningless apart. Row 2 folds the
+typed unary / notification RPC clients and the `IAsyncEnumerable`
+subscription consumers into one "typed surface over the dialer" layer —
+each RPC family's client is thin marshalling over the same seam. Row 3
+keeps the cross-cutting round-trip suite (in-process engine via
+`AddAutoContextEngine`) as its own `test(...)` commit — the authoritative
+conformance gate reads best as a distinct "here is the evidence it's
+right" diff.
+
+Within 12b, row 4 adds the two framed pipe clients the TS substrate still
+lacks (today `pipes/` carries only the liveness keep-alive and passive
+streaming clients — the `rpc` request/response and `events` subscription
+shapes are new), the transport floor the manager needs. Row 5 folds the
+manager's find-or-spawn / supervision and its typed RPC-method +
+subscription surface into one class — splitting "add the class" from
+"give it methods" leaves a manager that does nothing in between. Row 6
+keeps the round-trip suite (a spawned `autocontext-engine` binary via
+`child_process`) as its own `test(...)` commit, symmetric with row 3.
+
+Each feature commit ships its own unit tests; rows 3 and 6 are the
+cross-cutting round-trip gates that exercise cold spawn, warm reuse,
+snapshot-on-subscribe streams, slow-subscriber drop, and the
+protocol-version-mismatch refusal. Row 7 is the standard docs
+mark-complete step.
 
 **Goal**: two independent deliverables that happen to land together
 because both first need the engine's wire surface from Phases 1–11.

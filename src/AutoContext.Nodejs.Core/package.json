@@ -12,6 +12,11 @@
     }
   },
   "imports": {
+    "#types/*.js": {
+      "types": "./src/types/*.ts",
+      "default": "./dist/types/*.js"
+    },
+    "#support/*": "./tests/support/*",
     "#src/*": "./src/*"
   },
   "scripts": {

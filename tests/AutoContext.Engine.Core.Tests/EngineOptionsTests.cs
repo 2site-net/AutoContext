@@ -19,7 +19,7 @@ public sealed class EngineOptionsTests
             () => Assert.Equal(TimeSpan.FromSeconds(300), options.IdleTimeout),
             () => Assert.Null(options.ParentProcessId),
             () => Assert.Equal(TimeSpan.FromDays(1), options.Retention),
-            () => Assert.Equal(LogVerbosity.Normal, options.Logging),
+            () => Assert.Equal(LogRotationSize.Small, options.LogRotation),
             () => Assert.Equal(EngineMcpServerMode.Off, options.McpServerMode),
             () => Assert.Null(options.CorpusRootOverride));
     }

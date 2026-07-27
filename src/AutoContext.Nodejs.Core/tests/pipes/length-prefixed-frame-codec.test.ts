@@ -42,6 +42,34 @@ describe('LengthPrefixedFrameCodec', () => {
         expect(result).toBeNull();
     });
 
+    it('returns null when the stream is destroyed under a pending read', async () => {
+        const stream = new PassThrough();
+        const codec = new LengthPrefixedFrameCodec(stream);
+
+        const pending = codec.read();
+        stream.destroy();
+
+        await expect(pending).resolves.toBeNull();
+    });
+
+    it('returns null when the stream was already destroyed', async () => {
+        const stream = new PassThrough();
+        const codec = new LengthPrefixedFrameCodec(stream);
+        stream.destroy();
+
+        const result = await codec.read();
+
+        expect(result).toBeNull();
+    });
+
+    it('rejects the write when the stream is destroyed', async () => {
+        const stream = new PassThrough();
+        const codec = new LengthPrefixedFrameCodec(stream);
+        stream.destroy();
+
+        await expect(codec.write(Buffer.from('a', 'utf8'))).rejects.toThrow();
+    });
+
     it('returns null when stream ends mid-payload', async () => {
         const stream = new PassThrough();
         const codec = new LengthPrefixedFrameCodec(stream);

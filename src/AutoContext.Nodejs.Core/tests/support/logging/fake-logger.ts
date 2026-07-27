@@ -1,4 +1,4 @@
-import type { LoggerFacade } from '#src/logging/logger-facade.js';
+import type { LoggerFacade } from '#types/logger-facade.js';
 
 export interface FakeLogEntry {
     readonly level: string;

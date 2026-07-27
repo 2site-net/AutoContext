@@ -8,6 +8,8 @@ using AutoContext.Engine.Core;
 using AutoContext.Engine.Core.Logging;
 using AutoContext.Engine.Tests.Support;
 
+using Microsoft.Extensions.Logging;
+
 /// <summary>
 /// Direct tests for <see cref="EngineCommand"/> — drives the
 /// <c>System.CommandLine</c> parser and the
@@ -83,7 +85,7 @@ public sealed class EngineCommandTests
             "--idle-timeout", "0",
             "--parent-pid", "1234",
             "--retention", "12h",
-            "--logging", "debug",
+            "--log-rotation", "large",
         };
 
         // Act
@@ -98,7 +100,7 @@ public sealed class EngineCommandTests
             () => Assert.Equal(TimeSpan.Zero, options.IdleTimeout),
             () => Assert.Equal(1234, options.ParentProcessId),
             () => Assert.Equal(TimeSpan.FromHours(12), options.Retention),
-            () => Assert.Equal(LogVerbosity.Debug, options.Logging));
+            () => Assert.Equal(LogRotationSize.Large, options.LogRotation));
     }
 
     [Fact]
@@ -422,9 +424,14 @@ public sealed class EngineCommandTests
     }
 
     [Theory]
-    [InlineData("normal", LogVerbosity.Normal)]
-    [InlineData("debug", LogVerbosity.Debug)]
-    public void Should_parse_logging_verbosity(string value, LogVerbosity expected)
+    [InlineData("trace", LogLevel.Trace)]
+    [InlineData("debug", LogLevel.Debug)]
+    [InlineData("information", LogLevel.Information)]
+    [InlineData("warning", LogLevel.Warning)]
+    [InlineData("error", LogLevel.Error)]
+    [InlineData("critical", LogLevel.Critical)]
+    [InlineData("none", LogLevel.None)]
+    public void Should_parse_log_level(string value, LogLevel expected)
     {
         // Arrange
         var command = new EngineCommand();
@@ -432,7 +439,7 @@ public sealed class EngineCommandTests
         {
             "--workspace", EngineCommandArgsFakeData.GetWorkspacePathArgValue(),
             "--instance-id", EngineCommandArgsFakeData.GetInstanceIdArgValue(),
-            "--logging", value,
+            "--log-level", value,
         };
 
         // Act
@@ -443,7 +450,72 @@ public sealed class EngineCommandTests
         Assert.Multiple(
             () => Assert.Empty(parseResult.Errors),
             () => Assert.True(built, error),
-            () => Assert.Equal(expected, options.Logging));
+            () => Assert.Equal(expected, options.LogLevel));
+    }
+
+    [Fact]
+    public void Should_leave_the_log_level_unset_when_the_switch_is_omitted()
+    {
+        // Arrange
+        var command = new EngineCommand();
+        var args = new[]
+        {
+            "--workspace", EngineCommandArgsFakeData.GetWorkspacePathArgValue(),
+            "--instance-id", EngineCommandArgsFakeData.GetInstanceIdArgValue(),
+        };
+
+        // Act
+        var parseResult = command.Parse(args);
+        var built = command.TryBuildOptions(parseResult, out var options, out var error);
+
+        // Assert
+        Assert.Multiple(
+            () => Assert.True(built, error),
+            () => Assert.Null(options.LogLevel));
+    }
+
+    [Fact]
+    public void Should_reject_unknown_log_level_value()
+    {
+        // Arrange
+        var command = new EngineCommand();
+        var args = new[]
+        {
+            "--workspace", EngineCommandArgsFakeData.GetWorkspacePathArgValue(),
+            "--instance-id", EngineCommandArgsFakeData.GetInstanceIdArgValue(),
+            "--log-level", "chatty",
+        };
+
+        // Act
+        var parseResult = command.Parse(args);
+
+        // Assert
+        Assert.NotEmpty(parseResult.Errors);
+    }
+
+    [Theory]
+    [InlineData("small", LogRotationSize.Small)]
+    [InlineData("large", LogRotationSize.Large)]
+    public void Should_parse_log_rotation_size(string value, LogRotationSize expected)
+    {
+        // Arrange
+        var command = new EngineCommand();
+        var args = new[]
+        {
+            "--workspace", EngineCommandArgsFakeData.GetWorkspacePathArgValue(),
+            "--instance-id", EngineCommandArgsFakeData.GetInstanceIdArgValue(),
+            "--log-rotation", value,
+        };
+
+        // Act
+        var parseResult = command.Parse(args);
+        var built = command.TryBuildOptions(parseResult, out var options, out var error);
+
+        // Assert
+        Assert.Multiple(
+            () => Assert.Empty(parseResult.Errors),
+            () => Assert.True(built, error),
+            () => Assert.Equal(expected, options.LogRotation));
     }
 
     [Fact]
@@ -455,7 +527,7 @@ public sealed class EngineCommandTests
         {
             "--workspace", EngineCommandArgsFakeData.GetWorkspacePathArgValue(),
             "--instance-id", EngineCommandArgsFakeData.GetInstanceIdArgValue(),
-            "--logging", "verbose",
+            "--log-rotation", "verbose",
         };
 
         // Act
@@ -513,7 +585,7 @@ public sealed class EngineCommandTests
     [InlineData("--idle-timeout", "0")]
     [InlineData("--parent-pid", "1234")]
     [InlineData("--retention", "1d")]
-    [InlineData("--logging", "debug")]
+    [InlineData("--log-rotation", "large")]
     public void Should_reject_daemon_only_switches_in_mcp_server_role(
         string switchName,
         string value)
@@ -538,6 +610,29 @@ public sealed class EngineCommandTests
             () => Assert.NotNull(error),
             () => Assert.Contains(switchName, error!, StringComparison.Ordinal),
             () => Assert.Contains("--mcp-server with-stdio", error!, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Should_accept_the_log_level_in_mcp_server_role()
+    {
+        // Arrange
+        var command = new EngineCommand();
+        var args = new[]
+        {
+            "--workspace", EngineCommandArgsFakeData.GetWorkspacePathArgValue(),
+            "--mcp-server", "with-stdio",
+            "--log-level", "debug",
+        };
+
+        // Act
+        var parseResult = command.Parse(args);
+        var built = command.TryBuildOptions(parseResult, out var options, out var error);
+
+        // Assert
+        Assert.Multiple(
+            () => Assert.Empty(parseResult.Errors),
+            () => Assert.True(built, error),
+            () => Assert.Equal(LogLevel.Debug, options.LogLevel));
     }
 
     [Fact]

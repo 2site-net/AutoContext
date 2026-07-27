@@ -2,9 +2,9 @@ namespace AutoContext.Engine.Core.Tests.Machine;
 
 using System.Text.Json;
 
-using AutoContext.Engine.Core.Infrastructure.Storage;
 using AutoContext.Engine.Core.Machine;
 using AutoContext.Engine.Core.Tests.Support.Machine;
+using AutoContext.Engine.Protocol;
 
 public sealed class EngineCrashWriterTests
 {

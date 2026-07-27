@@ -241,12 +241,12 @@ public sealed class EngineOptionsValidatorTests
     }
 
     [Fact]
-    public void Should_reject_undefined_logging_verbosity()
+    public void Should_reject_undefined_log_rotation_size()
     {
         // Arrange
         var validator = new EngineOptionsValidator();
         var options = EngineOptionsFakeData.CreateValidOptions();
-        options.Logging = (LogVerbosity)99;
+        options.LogRotation = (LogRotationSize)99;
 
         // Act
         var result = validator.Validate(null, options);
@@ -257,7 +257,7 @@ public sealed class EngineOptionsValidatorTests
             () =>
             {
                 Assert.NotNull(result.Failures);
-                Assert.Contains(result.Failures, m => m.Contains("Logging", StringComparison.Ordinal));
+                Assert.Contains(result.Failures, m => m.Contains("LogRotation", StringComparison.Ordinal));
             });
     }
 

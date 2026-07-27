@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createFakeLogger } from '../support/logging/fake-logger.js';
+import { createFakeLogger } from '#support/logging/fake-logger.js';
 import { createTestPipeName, waitFor } from 'autocontext-nodejs-tests-support';
 import { PipeKeepAliveClient } from '#src/pipes/pipe-keep-alive-client.js';
 import { PipeTransport } from '#src/pipes/pipe-transport.js';

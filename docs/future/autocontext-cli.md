@@ -97,7 +97,8 @@ these verbatim to `autocontext-engine` and never interprets them.
 |---|---|---|
 | `--idle-timeout <seconds>` | `autocontext-engine --idle-timeout` | Sets the spawned engine's idle gate. Non-negative integer; `0` disables the gate and ties the engine's lifetime to explicit shutdown only. The CLI never passes `0` itself (it owns no long-lived launcher and wants its spawned engines to clean up after the verb completes), but accepts the value on the CLI surface for testing scenarios where the operator wants to keep the engine alive past the verb. See [autocontext-engine.md → Engine options](./autocontext-engine.md#engine-options-cli-surface). |
 | `--retention <duration>` | `autocontext-engine --retention` | Sets the spawned engine's housekeeping retention window for its own per-instance log subtree. Duration string (`<n>{s\|m\|h\|d}`; `0` = sweep immediately). |
-| `--logging <verbosity>` | `autocontext-engine --logging` | Sets the spawned engine's log verbosity and rotation thresholds. `normal` rotates at 1,000 lines or 5 MB; `debug` rotates at 5,000 lines or 25 MB. |
+| `--log-level <level>` | `autocontext-engine --log-level` | Sets the minimum level a record must carry to be emitted. One of `trace`, `debug`, `information`, `warning`, `error`, `critical`, `none`. Omitted leaves the engine host's own logging configuration in force. |
+| `--log-rotation <size>` | `autocontext-engine --log-rotation` | Sets the spawned engine's log rotation thresholds; it does not change the log level. `small` rotates at 1,000 lines or 5 MB; `large` rotates at 5,000 lines or 25 MB. |
 
 The CLI also always mints a fresh `--instance-id` (UUIDv4, one per
 invocation) and a fixed
@@ -462,7 +463,7 @@ the same flow, dialling only the pipes that verb needs:
    convention label (see
    [autocontext-engine.md → Engine options](./autocontext-engine.md#engine-options-cli-surface)).
    Optional pass-through switches (`--idle-timeout`, `--retention`,
-   `--logging`) are forwarded from the CLI's global-switch surface.
+   `--log-level`, `--log-rotation`) are forwarded from the CLI's global-switch surface.
    The CLI uses `Process.Start` with `UseShellExecute = false` and
    redirected/null stdio; the spawned engine is not a child in any
    meaningful sense — no parent-child IPC, no inherited handles.

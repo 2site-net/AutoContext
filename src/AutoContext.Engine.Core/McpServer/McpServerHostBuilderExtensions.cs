@@ -63,6 +63,18 @@ internal static class McpServerHostBuilderExtensions
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IValidateOptions<EngineOptions>, EngineOptionsValidator>());
 
+        // Resolve the level eagerly and hand the logging pipeline a
+        // constant. An absent level leaves the role's own configuration in
+        // force, so the quiet stderr default holds unless an operator asks
+        // for detail; stdout stays protocol-only either way, since the
+        // stderr redirection is independent of the level.
+        var loggingProbe = new EngineOptions();
+        configure(loggingProbe);
+        if (loggingProbe.LogLevel is { } minimumLevel)
+        {
+            builder.Logging.SetMinimumLevel(minimumLevel);
+        }
+
         builder.Services.TryAddSingleton(TimeProvider.System);
 
         // In-process log ingest channel. WorkerProcessService and the

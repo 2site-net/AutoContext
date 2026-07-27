@@ -1,17 +1,17 @@
-namespace AutoContext.Engine.Core.Infrastructure.Storage;
+namespace AutoContext.Engine.Protocol;
 
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using System.Text;
-
-using AutoContext.Engine.Protocol;
 
 /// <summary>
 /// The 16-character uppercase-hex workspace identity hash used as
 /// the <c>&lt;workspaceHash&gt;</c> segment of every
 /// <see cref="Endpoint"/> and of every on-disk artefact the engine
 /// owns. Derived from the normalised workspace path so the same
-/// workspace resolves to the same identity across launches.
+/// workspace resolves to the same identity across launches, and so
+/// the engine and every client derive the same endpoint address from
+/// one shared implementation.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -30,9 +30,7 @@ using AutoContext.Engine.Protocol;
 /// same identity. Symlinks, junctions, and 8.3 short names are
 /// deliberately <b>not</b> resolved: two paths that traverse the
 /// same inode via different surface names hash differently. This
-/// matches the registry-mutex trade-off (see
-/// <c>Registry.RegistryFileService.ComposeMutexName</c>) and avoids
-/// an extra I/O hit on every endpoint composition.
+/// avoids an extra I/O hit on every endpoint composition.
 /// </para>
 /// </remarks>
 public readonly record struct WorkspaceHash : IParsable<WorkspaceHash>

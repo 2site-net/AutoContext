@@ -3,7 +3,7 @@ namespace AutoContext.Engine.Core.Registry;
 using System.Diagnostics;
 
 using AutoContext.Engine.Core.Infrastructure;
-using AutoContext.Engine.Core.Infrastructure.Storage;
+using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.Messages.Registry;
 
 /// <summary>

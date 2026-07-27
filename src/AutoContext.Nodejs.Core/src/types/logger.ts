@@ -1,4 +1,4 @@
-import type { LogLevel } from './log-level.js';
+import type { LogLevel } from '../logging/log-level.js';
 
 /**
  * Narrow logging sink: a single `log()` method that accepts a level,

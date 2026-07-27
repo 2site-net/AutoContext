@@ -90,6 +90,23 @@ public sealed class HandshakePolicyTests
     }
 
     [Fact]
+    public async Task Should_log_the_accepted_handshake_as_Information()
+    {
+        // Arrange
+        var recorder = new FakeRecordingLogger();
+        var policy = new HandshakePolicy(EndpointKind.Rpc, recorder);
+        var request = JsonRpcRequestTestFactory.BuildHelloRequest(
+            ProtocolMethods.Hello, protocolVersion: ProtocolVersion.Current);
+
+        // Act
+        await policy.InvokeAsync(request, TestContext.Current.CancellationToken);
+
+        // Assert
+        var entry = Assert.Single(recorder.Entries);
+        Assert.Equal(LogLevel.Information, entry.Level);
+    }
+
+    [Fact]
     public async Task Should_abort_with_HelloRequired_when_method_is_not_Hello()
     {
         // Arrange
