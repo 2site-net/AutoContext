@@ -2961,7 +2961,7 @@ extension's MCP server definition repointing (Phase 14).
 
 ## Phase 12 — `Client.Core` (CLI-as-library) and `EngineDaemonManager` (TS)
 
-**Status**: Not started.
+**Status**: Completed on branch `features/engine-client-libraries`.
 
 | # | Commit subject | State |
 |---|---|---|
@@ -2971,7 +2971,7 @@ extension's MCP server definition repointing (Phase 14).
 | 4 | `feat(nodejs-core): add rpc-exchange and events-subscription pipe clients` | DONE |
 | 5 | `feat(nodejs-core): add EngineDaemonManager with find-or-spawn and typed rpc` | DONE |
 | 6 | `test(nodejs-core): round-trip every rpc against a spawned engine binary` | DONE |
-| 7 | `docs(plan): mark Phase 12 complete` | TODO |
+| 7 | `docs(plan): mark Phase 12 complete` | DONE |
 
 **Commit grouping.** Rows 1–3 implement **12a** (`AutoContext.Client.Core`,
 the .NET CLI-as-library; public surface
