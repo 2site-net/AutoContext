@@ -11,6 +11,7 @@ using AutoContext.Engine.Core.Workers;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 
@@ -24,6 +25,41 @@ public sealed class EngineHostBuilderExtensionsTests
 
     public sealed class AddAutoContextEngine
     {
+        [Fact]
+        public void Should_drive_the_logger_minimum_level_from_the_options()
+        {
+            // Arrange
+            var builder = Host.CreateApplicationBuilder();
+            builder.AddAutoContextEngine(options =>
+            {
+                ConfigureValid(options);
+                options.LogLevel = LogLevel.Debug;
+            });
+
+            // Act
+            using var host = builder.Build();
+            var filter = host.Services.GetRequiredService<IOptions<LoggerFilterOptions>>().Value;
+
+            // Assert
+            Assert.Equal(LogLevel.Debug, filter.MinLevel);
+        }
+
+        [Fact]
+        public void Should_leave_the_host_minimum_level_alone_when_no_level_is_set()
+        {
+            // Arrange
+            var builder = Host.CreateApplicationBuilder();
+            builder.Logging.SetMinimumLevel(LogLevel.Trace);
+            builder.AddAutoContextEngine(ConfigureValid);
+
+            // Act
+            using var host = builder.Build();
+            var filter = host.Services.GetRequiredService<IOptions<LoggerFilterOptions>>().Value;
+
+            // Assert
+            Assert.Equal(LogLevel.Trace, filter.MinLevel);
+        }
+
         [Fact]
         public void Should_throw_on_null_builder()
         {

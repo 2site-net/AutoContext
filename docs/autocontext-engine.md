@@ -236,6 +236,7 @@ shapes, and host-side resolution rules.
 | `--idle-timeout <seconds>` | no | non-negative integer; default `300`; `0` disables the idle gate |
 | `--parent-pid <pid>` | no | watchdog: engine self-exits when the named OS process vanishes (start-time matched to defeat pid recycling) |
 | `--retention <duration>` | no | housekeeping retention window; default `1d` |
+| `--log-level <level>` | no | `trace` \| `debug` \| `information` \| `warning` \| `error` \| `critical` \| `none`; minimum level a record must carry to be emitted. Omitted leaves the host's own logging configuration in force |
 | `--log-rotation <size>` | no | `small` (default) — rotate at 1,000 lines OR 5 MB; `large` — rotate at 5,000 lines OR 25 MB |
 | `--mcp-server <mode>` | no | `with-stdio` (only value today); selects MCP-server-only role |
 | `--version` | no | RID-independent |
@@ -618,7 +619,7 @@ roles read as ordinary file I/O.
   job, not the engine's. Argv accepted in this role:
   `--workspace`, `--mcp-server`, `--version`. Every other engine
   switch (`--instance-id`, `--instance-label`, `--idle-timeout`,
-  `--parent-pid`, `--retention`, `--log-rotation`) is **rejected at
+  `--parent-pid`, `--retention`, `--log-level`, `--log-rotation`) is **rejected at
   argv parse time** — they describe daemon pipe-and-registry
   concerns this role does not have (the ephemeral worker-pipe
   scope is internal, not the launcher-minted `--instance-id`).
@@ -1400,7 +1401,7 @@ In the **MCP-server-only role** (`--mcp-server with-stdio`) the
 argv parser accepts a **strict subset** — `--workspace`,
 `--mcp-server`, `--version` — and **rejects every other switch in
 the table** (`--instance-id`, `--instance-label`, `--idle-timeout`,
-`--parent-pid`, `--retention`, `--log-rotation`) with a non-zero exit
+`--parent-pid`, `--retention`, `--log-level`, `--log-rotation`) with a non-zero exit
 and a stderr error naming the rejected switch and the active role.
 The rejected switches describe pipe-and-registry concerns the
 MCP-server role does not have; silently ignoring them would let a
@@ -1415,6 +1416,7 @@ See [Engine binary](#engine-binary) for the role split itself.
 | `--idle-timeout <seconds>` | no | non-negative integer (`0` = disable idle gate; host-driven shutdown only) | `300` | optional override |
 | `--parent-pid <pid>` | no | positive integer; engine self-exits when that process vanishes | unset | long-lived host launchers |
 | `--retention <duration>` | no | duration string (`<n>{s\|m\|h\|d}`; `0` = sweep immediately) | `1d` | optional override |
+| `--log-level <level>` | no | `trace` \| `debug` \| `information` \| `warning` \| `error` \| `critical` \| `none` | host configuration | optional override |
 | `--log-rotation <size>` | no | `small` \| `large` | `small` | optional override |
 | `--mcp-server <mode>` | no | `with-stdio` (the only accepted value today) | off | MCP hosts only |
 | `--version` | no | — | — | humans, CI |
@@ -1532,6 +1534,12 @@ Semantics:
   stale (see `### Housekeeping`). The same window governs
   rotated-log pruning within the engine's own per-instance
   subtree.
+- **`--log-level <level>`** sets the minimum level a record must
+  carry to be emitted, for the engine's own records and the worker
+  records it ingests. Omitting it leaves the host's own logging
+  configuration in force (`information` unless configured otherwise);
+  `debug` and `trace` raise volume substantially, so pair them with
+  `--log-rotation large` to keep a diagnostic session in fewer files.
 - **`--log-rotation <size>`** sets the in-process rotation
   thresholds for the engine's own `engine.log` and per-worker
   `worker-<workerId>.log` files. Accepted values are `small`

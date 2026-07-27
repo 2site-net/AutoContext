@@ -2,6 +2,7 @@ namespace AutoContext.Engine;
 
 using System.CommandLine;
 using System.CommandLine.Parsing;
+using System.Diagnostics.CodeAnalysis;
 
 using AutoContext.Engine.Core;
 using AutoContext.Engine.Core.Logging;
@@ -39,6 +40,18 @@ internal sealed class EngineCommand : RootCommand
     public const string LogRotationSmallValue = "small";
 
     public const string LogRotationLargeValue = "large";
+
+    /// <summary>
+    /// Accepted <c>--log-level</c> values, derived from the level enum
+    /// so the CLI surface cannot drift from the levels it maps onto.
+    /// </summary>
+    [SuppressMessage(
+        "Globalization",
+        "CA1308:Normalize strings to uppercase",
+        Justification = "CLI switch values are lowercase by convention; these are parsed case-insensitively, never used as normalization keys.")]
+    private static readonly string[] LogLevelValues =
+        [.. Enum.GetNames<Microsoft.Extensions.Logging.LogLevel>()
+            .Select(static name => name.ToLowerInvariant())];
 
     public EngineCommand()
         : base("AutoContext Engine binary — pinned, per-workspace host for AutoContext clients.")
@@ -78,6 +91,14 @@ internal sealed class EngineCommand : RootCommand
         };
         Retention.Validators.Add(ValidateRetentionShape);
 
+        LogLevel = new Option<string?>("--log-level")
+        {
+            Description = "Minimum level a record must carry to be emitted: "
+                + "trace, debug, information (default), warning, error, critical or none. "
+                + "Daemon role only.",
+        };
+        LogLevel.AcceptOnlyFromAmong(LogLevelValues);
+
         LogRotation = new Option<string?>("--log-rotation")
         {
             Description = "Log file rotation size: small (1k lines/5MB) or "
@@ -109,6 +130,7 @@ internal sealed class EngineCommand : RootCommand
         Options.Add(IdleTimeoutSeconds);
         Options.Add(ParentProcessId);
         Options.Add(Retention);
+        Options.Add(LogLevel);
         Options.Add(LogRotation);
         Options.Add(McpServer);
         Options.Add(CacheRoot);
@@ -126,6 +148,8 @@ internal sealed class EngineCommand : RootCommand
     public Option<int?> ParentProcessId { get; }
 
     public Option<string?> Retention { get; }
+
+    public Option<string?> LogLevel { get; }
 
     public Option<string?> LogRotation { get; }
 
@@ -222,6 +246,13 @@ internal sealed class EngineCommand : RootCommand
         if (retentionRaw is not null)
         {
             options.Retention = ParseRetention(retentionRaw);
+        }
+
+        var logLevelRaw = parseResult.GetValue(LogLevel);
+        if (logLevelRaw is not null)
+        {
+            options.LogLevel = Enum.Parse<Microsoft.Extensions.Logging.LogLevel>(
+                logLevelRaw, ignoreCase: true);
         }
 
         var logRotationRaw = parseResult.GetValue(LogRotation);
@@ -391,6 +422,12 @@ internal sealed class EngineCommand : RootCommand
         if (parseResult.GetValue(Retention) is not null)
         {
             switchName = "--retention";
+            return true;
+        }
+
+        if (parseResult.GetValue(LogLevel) is not null)
+        {
+            switchName = "--log-level";
             return true;
         }
 

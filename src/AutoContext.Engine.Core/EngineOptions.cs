@@ -3,6 +3,8 @@ namespace AutoContext.Engine.Core;
 using AutoContext.Engine.Core.Infrastructure;
 using AutoContext.Engine.Core.Logging;
 
+using Microsoft.Extensions.Logging;
+
 /// <summary>
 /// Composition-time configuration for an
 /// <c>AutoContext.Engine.Core</c> registration. Surfaces both the
@@ -116,6 +118,15 @@ public sealed class EngineOptions : IWorkspaceEngineInfo
     /// printable-ASCII charset rule and length cap.
     /// </summary>
     public string InstanceLabel { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Minimum level a record must carry to be emitted, per the
+    /// <c>--log-level</c> switch. <see langword="null"/> — the default
+    /// — leaves the host's own logging configuration in force.
+    /// Ignored by the <c>--mcp-server</c> role, which pins its level to
+    /// keep the stdio transport clean.
+    /// </summary>
+    public LogLevel? LogLevel { get; set; }
 
     /// <summary>
     /// Log-rotation size per the <c>--log-rotation</c> switch.

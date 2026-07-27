@@ -58,8 +58,9 @@ public static class EngineHostBuilderExtensions
     /// Must not be <see langword="null"/>.</param>
     /// <param name="configure">Callback that mutates the
     /// <see cref="EngineOptions"/> instance before it is validated.
-    /// The callback runs once when the options pipeline first
-    /// materialises the instance. Must not be <see langword="null"/>.</param>
+    /// Invoked once here to resolve the logging level and again when
+    /// the options pipeline materialises the instance, so it must be
+    /// free of side effects. Must not be <see langword="null"/>.</param>
     /// <returns><paramref name="builder"/>, for chaining.</returns>
     /// <exception cref="ArgumentNullException">
     /// <paramref name="builder"/> or <paramref name="configure"/> is
@@ -78,6 +79,18 @@ public static class EngineHostBuilderExtensions
 
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IValidateOptions<EngineOptions>, EngineOptionsValidator>());
+
+        // Resolve the level eagerly and hand the logging pipeline a
+        // constant. Binding LoggerFilterOptions to IOptions<EngineOptions>
+        // instead would drag option validation into logger construction,
+        // surfacing an invalid workspace path as a logging failure. An
+        // absent level leaves the host's own configuration in force.
+        var loggingProbe = new EngineOptions();
+        configure(loggingProbe);
+        if (loggingProbe.LogLevel is { } minimumLevel)
+        {
+            builder.Logging.SetMinimumLevel(minimumLevel);
+        }
 
         // Clock source for hosted services that stamp wire-visible
         // timestamps (RegistryFileService's own-entry row et al.).

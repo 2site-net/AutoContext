@@ -8,6 +8,8 @@ using AutoContext.Engine.Core;
 using AutoContext.Engine.Core.Logging;
 using AutoContext.Engine.Tests.Support;
 
+using Microsoft.Extensions.Logging;
+
 /// <summary>
 /// Direct tests for <see cref="EngineCommand"/> — drives the
 /// <c>System.CommandLine</c> parser and the
@@ -422,6 +424,76 @@ public sealed class EngineCommandTests
     }
 
     [Theory]
+    [InlineData("trace", LogLevel.Trace)]
+    [InlineData("debug", LogLevel.Debug)]
+    [InlineData("information", LogLevel.Information)]
+    [InlineData("warning", LogLevel.Warning)]
+    [InlineData("error", LogLevel.Error)]
+    [InlineData("critical", LogLevel.Critical)]
+    [InlineData("none", LogLevel.None)]
+    public void Should_parse_log_level(string value, LogLevel expected)
+    {
+        // Arrange
+        var command = new EngineCommand();
+        var args = new[]
+        {
+            "--workspace", EngineCommandArgsFakeData.GetWorkspacePathArgValue(),
+            "--instance-id", EngineCommandArgsFakeData.GetInstanceIdArgValue(),
+            "--log-level", value,
+        };
+
+        // Act
+        var parseResult = command.Parse(args);
+        var built = command.TryBuildOptions(parseResult, out var options, out var error);
+
+        // Assert
+        Assert.Multiple(
+            () => Assert.Empty(parseResult.Errors),
+            () => Assert.True(built, error),
+            () => Assert.Equal(expected, options.LogLevel));
+    }
+
+    [Fact]
+    public void Should_leave_the_log_level_unset_when_the_switch_is_omitted()
+    {
+        // Arrange
+        var command = new EngineCommand();
+        var args = new[]
+        {
+            "--workspace", EngineCommandArgsFakeData.GetWorkspacePathArgValue(),
+            "--instance-id", EngineCommandArgsFakeData.GetInstanceIdArgValue(),
+        };
+
+        // Act
+        var parseResult = command.Parse(args);
+        var built = command.TryBuildOptions(parseResult, out var options, out var error);
+
+        // Assert
+        Assert.Multiple(
+            () => Assert.True(built, error),
+            () => Assert.Null(options.LogLevel));
+    }
+
+    [Fact]
+    public void Should_reject_unknown_log_level_value()
+    {
+        // Arrange
+        var command = new EngineCommand();
+        var args = new[]
+        {
+            "--workspace", EngineCommandArgsFakeData.GetWorkspacePathArgValue(),
+            "--instance-id", EngineCommandArgsFakeData.GetInstanceIdArgValue(),
+            "--log-level", "chatty",
+        };
+
+        // Act
+        var parseResult = command.Parse(args);
+
+        // Assert
+        Assert.NotEmpty(parseResult.Errors);
+    }
+
+    [Theory]
     [InlineData("small", LogRotationSize.Small)]
     [InlineData("large", LogRotationSize.Large)]
     public void Should_parse_log_rotation_size(string value, LogRotationSize expected)
@@ -513,6 +585,7 @@ public sealed class EngineCommandTests
     [InlineData("--idle-timeout", "0")]
     [InlineData("--parent-pid", "1234")]
     [InlineData("--retention", "1d")]
+    [InlineData("--log-level", "debug")]
     [InlineData("--log-rotation", "large")]
     public void Should_reject_daemon_only_switches_in_mcp_server_role(
         string switchName,
