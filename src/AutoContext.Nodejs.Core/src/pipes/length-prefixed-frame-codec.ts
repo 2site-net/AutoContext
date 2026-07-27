@@ -30,9 +30,10 @@ export class LengthPrefixedFrameCodec {
 
     /**
      * Reads one length-prefixed frame from the wrapped stream.
-     * Returns `null` when the connection is closed before a full
-     * header is received. Throws on header overflow or when
-     * cancellation is signaled mid-read.
+     * Returns `null` when the connection is closed — ended by the peer
+     * or destroyed underneath the read — before a full frame is
+     * received. Throws on header overflow or when cancellation is
+     * signaled mid-read.
      */
     async read(signal?: AbortSignal): Promise<Buffer | null> {
         const header = await this.readExact(4, signal);
@@ -117,6 +118,11 @@ export class LengthPrefixedFrameCodec {
                 return;
             }
 
+            if (stream.destroyed) {
+                resolve(null);
+                return;
+            }
+
             let settled = false;
 
             const settle = (action: () => void): void => {
@@ -126,6 +132,7 @@ export class LengthPrefixedFrameCodec {
                 settled = true;
                 stream.removeListener('readable', onReadable);
                 stream.removeListener('end', onEnd);
+                stream.removeListener('close', onClose);
                 stream.removeListener('error', onError);
                 if (signal !== undefined) {
                     signal.removeEventListener('abort', onAbort);
@@ -161,6 +168,13 @@ export class LengthPrefixedFrameCodec {
                 settle(() => resolve(null));
             };
 
+            // A destroyed stream emits 'close' without 'end', so this is
+            // the only settle path when the socket is torn down under a
+            // pending read.
+            const onClose = (): void => {
+                settle(() => resolve(null));
+            };
+
             const onError = (err: Error): void => {
                 settle(() => reject(err));
             };
@@ -171,6 +185,7 @@ export class LengthPrefixedFrameCodec {
 
             stream.on('readable', onReadable);
             stream.on('end', onEnd);
+            stream.on('close', onClose);
             stream.on('error', onError);
             if (signal !== undefined) {
                 signal.addEventListener('abort', onAbort, { once: true });
