@@ -657,7 +657,10 @@ function Test-DotNet {
         # error message and stack trace inline; without it the default
         # runner reports only a pass/fail count, hiding why a test failed.
         dotnet test $Context.SolutionFile.FullName -c Release --no-build --filter 'Category!=Smoke' --logger 'console;verbosity=normal'
-        if ($LASTEXITCODE -ne 0) { throw '.NET tests failed.' }
+        # Carry the runner's exit code: 1 means tests asserted false and the
+        # inline logger has already named them, while a crash code means the
+        # host died and named nothing.
+        if ($LASTEXITCODE -ne 0) { throw ".NET tests failed (dotnet test exit code $LASTEXITCODE)." }
         Write-Status '.NET tests passed' 'OK'
     }
 }
@@ -719,7 +722,7 @@ function Test-DotNetSmoke {
             # test's error message and stack trace inline (smoke failures
             # are otherwise reported only as a bare count).
             dotnet test $project.FullName -c Release --no-build --filter 'Category=Smoke' --logger 'console;verbosity=normal'
-            if ($LASTEXITCODE -ne 0) { throw ".NET smoke tests failed ($($project.Name))." }
+            if ($LASTEXITCODE -ne 0) { throw ".NET smoke tests failed ($($project.Name), dotnet test exit code $LASTEXITCODE)." }
         }
 
         Write-Status '.NET smoke tests passed' 'OK'
@@ -1616,11 +1619,44 @@ function Invoke-Tag {
     Write-Status 'Push with: git push origin main --follow-tags' 'INFO'
 }
 
+function Remove-BuildOutput {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [int]$MaxAttempts = 5
+    )
+
+    # A virus scanner or a build server that has not finished releasing its
+    # handles can hold a freshly written file open for a moment. The lock
+    # clears itself, so retry briefly rather than failing the whole run; the
+    # final attempt rethrows so a genuine lock still surfaces.
+    for ($attempt = 1; ; $attempt++) {
+        try {
+            Remove-Item $Path -Recurse -Force -ErrorAction Stop
+            return
+        }
+        catch {
+            if ($attempt -ge $MaxAttempts) { throw }
+            Start-Sleep -Milliseconds (200 * $attempt)
+        }
+    }
+}
+
 function Invoke-Clean {
     [CmdletBinding(SupportsShouldProcess)]
     param([Parameter(Mandatory)][psobject]$Context)
 
     Write-Header 'Clean'
+
+    # MSBuild keeps worker nodes alive between builds (node reuse) and they
+    # hold handles inside the bin/ and obj/ trees this function deletes, so a
+    # clean that races them fails with "Access to the path is denied".
+    # Shutting the servers down first releases those handles.
+    if ($PSCmdlet.ShouldProcess('MSBuild worker nodes', 'Shut down build servers')) {
+        if (Get-Command 'dotnet' -CommandType Application -ErrorAction SilentlyContinue) {
+            dotnet build-server shutdown *> $null
+        }
+    }
 
     $targets = @()
 
@@ -1676,7 +1712,7 @@ function Invoke-Clean {
     foreach ($entry in $targets) {
         if (Test-Path $entry.Path) {
             if ($PSCmdlet.ShouldProcess($entry.Path, "Delete $($entry.Label)")) {
-                Remove-Item $entry.Path -Recurse -Force
+                Remove-BuildOutput -Path $entry.Path
                 Write-Status "Deleted $($entry.Label)" 'OK'
             }
         }
