@@ -144,7 +144,7 @@ internal static class McpServerHostBuilderExtensions
         // Reads the configured override roots, so it must start after the
         // startup loader has loaded the config.
         builder.Services.TryAddSingleton(sp => new InstructionsOverridesStalenessInspector(
-            ResolveResources(sp).SubDirectory("Instructions"),
+            ResolveInstructions(sp),
             sp.GetRequiredService<ILogger<InstructionsOverridesStalenessInspector>>()));
         builder.Services.TryAddSingleton(sp => new InstructionsOverridesService(
             sp.GetRequiredService<IWorkspaceContextAccessor>(),
@@ -160,11 +160,11 @@ internal static class McpServerHostBuilderExtensions
         // shared listing projection. Lazily resolved singletons behind the
         // Instructions.* handler.
         builder.Services.TryAddSingleton(sp => new InstructionsBodyProjector(
-            ResolveResources(sp).SubDirectory("Instructions"),
+            ResolveInstructions(sp),
             sp.GetRequiredService<IInstructionsOverridesAccessor>(),
             sp.GetRequiredService<IConfigSnapshotAccessor>()));
         builder.Services.TryAddSingleton(sp => new InstructionsFileReader(
-            ResolveResources(sp).SubDirectory("Instructions"),
+            ResolveInstructions(sp),
             sp.GetRequiredService<IInstructionsOverridesAccessor>()));
         builder.Services.TryAddSingleton(sp => new InstructionsFullTextSearchService(
             sp.GetRequiredService<IInstructionsManifestAccessor>(),
@@ -199,7 +199,7 @@ internal static class McpServerHostBuilderExtensions
             var options = sp.GetRequiredService<IOptions<EngineOptions>>().Value;
             return new WorkerProcessService(
                 () => WorkerProcessInfoResolver.Resolve(
-                    WorkersManifestLoader.Load(ResolveResources(options)),
+                    WorkersManifestLoader.Load(EngineResourcesDirectory.ForResources(options)),
                     Path.Combine(AppContext.BaseDirectory, "Workers"),
                     options.InstanceId.ToString("D"),
                     options.WorkspacePath),
@@ -270,8 +270,10 @@ internal static class McpServerHostBuilderExtensions
     }
 
     private static EngineResourcesDirectory ResolveResources(IServiceProvider services)
-        => ResolveResources(services.GetRequiredService<IOptions<EngineOptions>>().Value);
+        => EngineResourcesDirectory.ForResources(
+            services.GetRequiredService<IOptions<EngineOptions>>().Value);
 
-    private static EngineResourcesDirectory ResolveResources(EngineOptions options)
-        => new(Path.Combine(AppContext.BaseDirectory, "Resources"), options.ResourcesRootOverride);
+    private static EngineResourcesDirectory ResolveInstructions(IServiceProvider services)
+        => EngineResourcesDirectory.ForInstructions(
+            services.GetRequiredService<IOptions<EngineOptions>>().Value);
 }

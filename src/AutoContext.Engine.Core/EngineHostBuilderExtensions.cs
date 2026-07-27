@@ -377,7 +377,7 @@ public static class EngineHostBuilderExtensions
 
             return new WorkerProcessService(
                 () => WorkerProcessInfoResolver.Resolve(
-                    WorkersManifestLoader.Load(ResolveResources(options)),
+                    WorkersManifestLoader.Load(EngineResourcesDirectory.ForResources(options)),
                     Path.Combine(AppContext.BaseDirectory, "Workers"),
                     options.InstanceId.ToString("D"),
                     options.WorkspacePath),
@@ -438,7 +438,7 @@ public static class EngineHostBuilderExtensions
         // through the InstructionsOverridesStalenessInspector and warns on
         // stale overrides.
         builder.Services.TryAddSingleton(sp => new InstructionsOverridesStalenessInspector(
-            ResolveResources(sp).SubDirectory("Instructions"),
+            ResolveInstructions(sp),
             sp.GetRequiredService<ILogger<InstructionsOverridesStalenessInspector>>()));
         builder.Services.TryAddSingleton(sp => new InstructionsOverridesService(
             sp.GetRequiredService<IWorkspaceContextAccessor>(),
@@ -452,16 +452,16 @@ public static class EngineHostBuilderExtensions
 
         // Instructions body projection + raw file reads + full-text search.
         // All read the bundled corpus body files shipped beside the engine
-        // binary under Resources/Instructions and resolve override bodies
+        // binary under Instructions/ and resolve override bodies
         // through the accessor above. Lazily resolved singletons backing the
         // Instructions.Get / GetAll / GetAlwaysAttached / GetRaw /
         // SearchContent handlers.
         builder.Services.TryAddSingleton(sp => new InstructionsBodyProjector(
-            ResolveResources(sp).SubDirectory("Instructions"),
+            ResolveInstructions(sp),
             sp.GetRequiredService<IInstructionsOverridesAccessor>(),
             sp.GetRequiredService<IConfigSnapshotAccessor>()));
         builder.Services.TryAddSingleton(sp => new InstructionsFileReader(
-            ResolveResources(sp).SubDirectory("Instructions"),
+            ResolveInstructions(sp),
             sp.GetRequiredService<IInstructionsOverridesAccessor>()));
         builder.Services.TryAddSingleton(sp => new InstructionsFullTextSearchService(
             sp.GetRequiredService<IInstructionsManifestAccessor>(),
@@ -638,8 +638,10 @@ public static class EngineHostBuilderExtensions
         => McpServerHostBuilderExtensions.AddMcpServer(builder, configure);
 
     private static EngineResourcesDirectory ResolveResources(IServiceProvider services)
-        => ResolveResources(services.GetRequiredService<IOptions<EngineOptions>>().Value);
+        => EngineResourcesDirectory.ForResources(
+            services.GetRequiredService<IOptions<EngineOptions>>().Value);
 
-    private static EngineResourcesDirectory ResolveResources(EngineOptions options)
-        => new(Path.Combine(AppContext.BaseDirectory, "Resources"), options.ResourcesRootOverride);
+    private static EngineResourcesDirectory ResolveInstructions(IServiceProvider services)
+        => EngineResourcesDirectory.ForInstructions(
+            services.GetRequiredService<IOptions<EngineOptions>>().Value);
 }

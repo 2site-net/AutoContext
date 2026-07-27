@@ -10,8 +10,10 @@ namespace AutoContext.Engine.Core.Infrastructure;
 /// <c>Resources</c> tree into the override location.
 /// </summary>
 /// <remarks>
-/// The base root is the engine's real <c>Resources</c> directory; the
-/// override root is <see cref="EngineOptions.ResourcesRootOverride"/> when
+/// The base root is whichever side-car directory the caller asked for —
+/// <c>Resources/</c> for the manifests, <c>Instructions/</c> for the curated
+/// corpus; the override root is
+/// <see cref="EngineOptions.ResourcesRootOverride"/> when
 /// set. A plain directory string implicitly widens to an
 /// <see cref="EngineResourcesDirectory"/> with no override, so callers
 /// that never override — every production loader test among them — keep
@@ -19,6 +21,9 @@ namespace AutoContext.Engine.Core.Infrastructure;
 /// </remarks>
 internal sealed class EngineResourcesDirectory
 {
+    private const string InstructionsDirectoryName = "Instructions";
+    private const string ResourcesDirectoryName = "Resources";
+
     private readonly string _baseDirectory;
     private readonly string? _overrideDirectory;
 
@@ -68,6 +73,44 @@ internal sealed class EngineResourcesDirectory
         => _overrideDirectory;
 
     /// <summary>
+    /// The curated instruction corpus — <c>Instructions/</c> at the bundle
+    /// root beside <c>Resources/</c> and <c>Workers/</c>, because the corpus
+    /// is authored content rather than a generated manifest. The override
+    /// root mirrors the same bundle shape, so it narrows by the same segment.
+    /// </summary>
+    /// <param name="options">The engine options carrying the optional
+    /// override root. Must not be <see langword="null"/>.</param>
+    /// <returns>The corpus overlay.</returns>
+    /// <exception cref="ArgumentNullException">
+    /// <paramref name="options"/> is <see langword="null"/>.</exception>
+    public static EngineResourcesDirectory ForInstructions(EngineOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        return new EngineResourcesDirectory(AppContext.BaseDirectory, options.ResourcesRootOverride)
+            .SubDirectory(InstructionsDirectoryName);
+    }
+
+    /// <summary>
+    /// The generated and hand-authored manifest side-cars — <c>Resources/</c>
+    /// beside the engine binary, shadowed per-file by
+    /// <see cref="EngineOptions.ResourcesRootOverride"/> when it is set.
+    /// </summary>
+    /// <param name="options">The engine options carrying the optional
+    /// override root. Must not be <see langword="null"/>.</param>
+    /// <returns>The manifest side-car overlay.</returns>
+    /// <exception cref="ArgumentNullException">
+    /// <paramref name="options"/> is <see langword="null"/>.</exception>
+    public static EngineResourcesDirectory ForResources(EngineOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        return new EngineResourcesDirectory(
+            Path.Combine(AppContext.BaseDirectory, ResourcesDirectoryName),
+            options.ResourcesRootOverride);
+    }
+
+    /// <summary>
     /// Named alternative to the implicit string conversion: an overlay
     /// rooted at <paramref name="baseDirectory"/> with no override.
     /// </summary>
@@ -115,7 +158,8 @@ internal sealed class EngineResourcesDirectory
     /// <summary>
     /// Returns the same overlay narrowed to the
     /// <paramref name="name"/> subdirectory of both roots, so a consumer
-    /// rooted at a subtree (for example <c>Resources/Instructions</c>)
+    /// rooted at a subtree (for example the curated corpus under
+    /// <c>Instructions</c>)
     /// keeps the override fall-through for its own files.
     /// </summary>
     /// <param name="name">Subdirectory name. Must not be

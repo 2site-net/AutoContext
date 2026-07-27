@@ -90,14 +90,16 @@
 
   <!-- Ship the curated instruction corpus bodies beside the engine binary so
        InstructionsBodyProjector and InstructionsFullTextSearchService can read
-       the bundled body text from AppContext.BaseDirectory/Resources/Instructions
+       the bundled body text from AppContext.BaseDirectory/Instructions
        at runtime for the Instructions.Get/GetAll/GetRaw/SearchContent handlers.
+       The corpus is authored content, not a generated manifest, so it sits at
+       the bundle root beside Resources/ and Workers/ rather than inside them.
        The Remove first drops the duplicate the SDK's default None glob would add,
-       then the Link redirects each flat corpus file under the Resources subtree. -->
+       then the Link flattens each corpus file into that one directory. -->
   <ItemGroup>
     <None Remove="Instructions\*.instructions.md" />
     <None Include="Instructions\*.instructions.md"
-          Link="Resources\Instructions\%(Filename)%(Extension)"
+          Link="Instructions\%(Filename)%(Extension)"
           CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

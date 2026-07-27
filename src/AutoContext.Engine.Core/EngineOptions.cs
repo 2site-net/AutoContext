@@ -142,13 +142,15 @@ public sealed class EngineOptions : IWorkspaceEngineInfo
     public int? ParentProcessId { get; set; }
 
     /// <summary>
-    /// Override for the engine resources root — the directory holding
-    /// the build-time side-cars shipped beside the engine binary
+    /// Override for the engine side-car root — the directory whose files
+    /// shadow the ones shipped beside the engine binary
     /// (<c>workers.json</c>, <c>mcp-tools-registry.json</c>,
-    /// <c>instructions-manifest.json</c>, the <c>Instructions/</c> body
-    /// corpus, and their siblings). When <see langword="null"/> the
-    /// engine resolves the root the usual way
-    /// (<c>AppContext.BaseDirectory/Resources</c>); tests and embedders
+    /// <c>instructions-manifest.json</c>, and their siblings, plus the
+    /// <c>Instructions/</c> body corpus under an <c>Instructions</c>
+    /// subdirectory). When <see langword="null"/> the engine resolves each
+    /// root the usual way — manifests from
+    /// <c>AppContext.BaseDirectory/Resources</c> and the corpus from
+    /// <c>AppContext.BaseDirectory/Instructions</c>; tests and embedders
     /// that need to point the engine at a temporary side-car tree — for
     /// example to substitute a registry whose tools dispatch to a
     /// stand-in worker — set this to an absolute path. Surfaced on the

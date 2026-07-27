@@ -44,8 +44,9 @@
 
   <!-- Stage the engine's side-car tree into this project's output so an
        in-process engine composed by InProcessEngineTestHarness resolves every
-       resource from AppContext.BaseDirectory/Resources exactly as the shipped
-       binary does. Mirrors the staging in AutoContext.Engine.csproj: the
+       resource from AppContext.BaseDirectory exactly as the shipped binary
+       does — manifests under Resources/, the curated corpus at the bundle root.
+       Mirrors the staging in AutoContext.Engine.csproj: the
        generated manifest and worker roster may not exist at evaluation time, so
        each is included by literal path rather than by glob. -->
   <ItemGroup>
@@ -64,7 +65,7 @@
     <Content Include="..\..\src\AutoContext.Engine\Resources\workers.json"
              Link="Resources\workers.json" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\..\src\AutoContext.Engine\Instructions\*.instructions.md"
-             Link="Resources\Instructions\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+             Link="Instructions\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
