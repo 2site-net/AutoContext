@@ -1,9 +1,9 @@
 namespace AutoContext.Workers.Manifest.Generator.Tests.Support;
 
 /// <summary>
-/// Builds a throwaway directory tree of synthetic <c>AutoContext.Worker.*</c>
-/// project folders, each carrying a <c>.autocontext-worker.json</c> descriptor,
-/// for the scanner and generator tests, and deletes it on dispose.
+/// Builds a throwaway directory tree of synthetic project folders — worker
+/// ones carrying a <c>.autocontext-worker.json</c> descriptor — for the
+/// scanner and generator tests, and deletes it on dispose.
 /// </summary>
 internal sealed class WorkerSourceTree : IDisposable
 {

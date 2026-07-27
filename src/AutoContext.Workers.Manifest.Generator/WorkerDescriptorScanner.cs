@@ -4,13 +4,18 @@ using System.Text.Json;
 
 /// <summary>
 /// Aggregates the worker manifest by reading the per-worker
-/// <c>.autocontext-worker.json</c> descriptor in each <c>AutoContext.Worker.*</c>
-/// project directory. The generator is a dumb aggregator: it copies each
+/// <c>.autocontext-worker.json</c> descriptor found in each project directory.
+/// Carrying that descriptor is what makes a project a worker — the
+/// <c>AutoContext.Worker.*</c> name is only a convention, so a worker that
+/// names itself otherwise is still discovered. A directory that does follow
+/// the convention but carries no descriptor is treated as a forgotten
+/// descriptor and fails the build rather than silently vanishing from the
+/// manifest. The generator is a dumb aggregator: it copies each
 /// descriptor's <c>id</c>, <c>type</c>, optional <c>label</c>, and <c>command</c>
 /// verbatim — it does not expand the <c>${root}</c> placeholder, derive any
-/// launch behaviour, or probe the project. A worker directory without a
-/// descriptor, an unparsable or incomplete descriptor, an unknown <c>type</c>, or
-/// two workers declaring the same id all fail the build.
+/// launch behaviour, or probe the project. An unparsable or incomplete
+/// descriptor, an unknown <c>type</c>, or two workers declaring the same id all
+/// fail the build.
 /// </summary>
 internal sealed class WorkerDescriptorScanner : IWorkerDescriptorScanner
 {
@@ -34,14 +39,30 @@ internal sealed class WorkerDescriptorScanner : IWorkerDescriptorScanner
 
         var byId = new Dictionary<string, JsonWorkerEntry>(StringComparer.Ordinal);
 
-        foreach (var directory in Directory.EnumerateDirectories(root, $"{WorkerProjectPrefix}*"))
+        foreach (var directory in Directory.EnumerateDirectories(root))
         {
+            var name = Path.GetFileName(directory);
+
+            if (!File.Exists(Path.Combine(directory, DescriptorFileName)))
+            {
+                // No descriptor means "not a worker" — except for a project that
+                // follows the naming convention, where it means the descriptor
+                // was forgotten and the worker would silently disappear.
+                if (name.StartsWith(WorkerProjectPrefix, StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException(
+                        $"[workers.json] worker '{name}' is missing its '{DescriptorFileName}' descriptor.");
+                }
+
+                continue;
+            }
+
             var entry = ReadDescriptor(directory);
 
             if (!byId.TryAdd(entry.Id, entry))
             {
                 throw new InvalidOperationException(
-                    $"[workers.json] duplicate worker id '{entry.Id}' declared by '{Path.GetFileName(directory)}'.");
+                    $"[workers.json] duplicate worker id '{entry.Id}' declared by '{name}'.");
             }
         }
 
@@ -56,12 +77,6 @@ internal sealed class WorkerDescriptorScanner : IWorkerDescriptorScanner
     {
         var name = Path.GetFileName(directory);
         var descriptorPath = Path.Combine(directory, DescriptorFileName);
-
-        if (!File.Exists(descriptorPath))
-        {
-            throw new InvalidOperationException(
-                $"[workers.json] worker '{name}' is missing its '{DescriptorFileName}' descriptor.");
-        }
 
         JsonWorkerEntry? entry;
 

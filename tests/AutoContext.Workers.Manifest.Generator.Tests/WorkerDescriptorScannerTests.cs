@@ -121,6 +121,40 @@ public sealed class WorkerDescriptorScannerTests
         }
 
         [Fact]
+        public void Should_discover_a_worker_that_does_not_follow_the_naming_convention()
+        {
+            // Arrange
+            using var tree = new WorkerSourceTree()
+                .AddWorker(
+                    "Contoso.CustomWorker",
+                    WorkersManifestFakeData.Descriptor("custom", "executable", "${root}/Contoso.CustomWorker"));
+
+            // Act
+            var manifest = _sut.Scan(tree.Root);
+
+            // Assert
+            var worker = Assert.Single(manifest.Workers);
+            Assert.Equal("custom", worker.Id);
+        }
+
+        [Fact]
+        public void Should_ignore_a_directory_carrying_no_descriptor()
+        {
+            // Arrange
+            using var tree = new WorkerSourceTree()
+                .AddWorker(
+                    "AutoContext.Worker.DotNet",
+                    WorkersManifestFakeData.Descriptor("dotnet", "executable", "${root}/AutoContext.Worker.DotNet"))
+                .AddWorkerWithoutDescriptor("AutoContext.Engine");
+
+            // Act
+            var manifest = _sut.Scan(tree.Root);
+
+            // Assert
+            Assert.Equal(["dotnet"], manifest.Workers.Select(static w => w.Id));
+        }
+
+        [Fact]
         public void Should_throw_on_duplicate_id()
         {
             // Arrange
