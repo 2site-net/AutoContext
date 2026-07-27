@@ -1,6 +1,7 @@
 namespace AutoContext.Client.Core.Tests.Engine.Rpc;
 
 using AutoContext.Client.Core.Engine.Rpc;
+using AutoContext.Client.Core.Tests.Support.Engine;
 using AutoContext.Client.Core.Tests.Support.Engine.Rpc;
 using AutoContext.Client.Core.Tests.Support.Shared;
 using AutoContext.Engine.Protocol.Messages.Instructions;
@@ -11,6 +12,60 @@ public sealed class InstructionsRpcClientTests
     [Fact]
     public void Should_throw_when_constructed_with_null_connection()
         => Assert.Throws<ArgumentNullException>(() => new InstructionsRpcClient(connection: null!));
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task Should_project_the_bundled_corpus_from_an_in_process_engine()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var engine = await InProcessEngineTestHarness.StartAsync(cancellationToken);
+        await using var client = await engine.ConnectAsync(cancellationToken);
+
+        // Act
+        var listed = await client.Instructions.ListAsync(
+            includeSections: true, applyToWorkspaceFilter: false, applyToHint: null, cancellationToken);
+        var categories = await client.Instructions.CategoriesAsync(cancellationToken);
+        var all = await client.Instructions.GetAllAsync(cancellationToken);
+        var alwaysAttached = await client.Instructions.GetAlwaysAttachedAsync(cancellationToken);
+        var byMetadata = await client.Instructions.SearchByMetadataAsync(
+            predicate: null, includeSections: null, cancellationToken);
+
+        // Assert
+        Assert.Multiple(
+            () => Assert.Contains(listed.Files, row => row.Key == "code-review"),
+            () => Assert.NotEmpty(categories.Categories),
+            () => Assert.NotEmpty(all.Files),
+            () => Assert.NotEmpty(alwaysAttached.Files),
+            () => Assert.IsType<JsonInstructionsSearchByMetadataOkResult>(byMetadata));
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task Should_read_and_search_a_bundled_file_on_an_in_process_engine()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var engine = await InProcessEngineTestHarness.StartAsync(cancellationToken);
+        await using var client = await engine.ConnectAsync(cancellationToken);
+
+        // Act
+        var got = await client.Instructions.GetAsync("code-review", sections: null, cancellationToken);
+        var raw = await client.Instructions.GetRawAsync(
+            "code-review", InstructionsRawSource.Active, cancellationToken);
+        var hits = await client.Instructions.SearchContentAsync(
+            "review", limit: null, includeDisabled: null, cancellationToken);
+        var missing = await client.Instructions.GetAsync("no-such-file", sections: null, cancellationToken);
+
+        // Assert
+        var ok = Assert.IsType<JsonInstructionsGetOkResult>(got);
+        var rawOk = Assert.IsType<JsonInstructionsGetRawOkResult>(raw);
+        Assert.Multiple(
+            () => Assert.False(string.IsNullOrEmpty(ok.Content)),
+            () => Assert.False(string.IsNullOrEmpty(rawOk.Content)),
+            () => Assert.NotEmpty(hits.Hits),
+            () => Assert.IsType<JsonInstructionsGetNotFoundResult>(missing));
+    }
 
     [Fact]
     public async Task Should_send_the_list_method()

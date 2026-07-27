@@ -1,6 +1,7 @@
 namespace AutoContext.Client.Core.Tests.Engine.Subscriptions;
 
 using AutoContext.Client.Core.Engine.Subscriptions;
+using AutoContext.Client.Core.Tests.Support.Engine;
 using AutoContext.Client.Core.Tests.Support.Engine.Subscriptions;
 using AutoContext.Client.Core.Tests.Support.Shared;
 using AutoContext.Engine.Protocol.Messages.Lifecycle;
@@ -11,7 +12,27 @@ public sealed class EngineLifecycleSubscriptionTests
     [Fact]
     public void Should_throw_when_constructed_with_null_connector()
         => Assert.Throws<ArgumentNullException>(() => new EngineLifecycleSubscription(connector: null!));
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task Should_replay_the_started_event_from_an_in_process_engine()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var engine = await InProcessEngineTestHarness.StartAsync(cancellationToken);
+        await using var client = await engine.ConnectAsync(cancellationToken);
 
+        // Act
+        JsonLifecycleEvent? seed = null;
+        await foreach (var lifecycleEvent in client.LifecycleEvents().SubscribeAsync(cancellationToken))
+        {
+            seed = lifecycleEvent;
+            break;
+        }
+
+        // Assert
+        Assert.NotNull(seed);
+        Assert.Equal(engine.InstanceId, seed.InstanceId);
+    }
     [Fact]
     public async Task Should_yield_each_pushed_lifecycle_event()
     {

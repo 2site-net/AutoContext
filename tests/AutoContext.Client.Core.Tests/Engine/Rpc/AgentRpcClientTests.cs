@@ -3,6 +3,7 @@ namespace AutoContext.Client.Core.Tests.Engine.Rpc;
 using System.Text.Json;
 
 using AutoContext.Client.Core.Engine.Rpc;
+using AutoContext.Client.Core.Tests.Support.Engine;
 using AutoContext.Client.Core.Tests.Support.Engine.Rpc;
 using AutoContext.Engine.Protocol.Messages.Agent;
 
@@ -11,6 +12,28 @@ public sealed class AgentRpcClientTests
     [Fact]
     public void Should_throw_when_constructed_with_null_connection()
         => Assert.Throws<ArgumentNullException>(() => new AgentRpcClient(connection: null!));
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task Should_carry_the_tool_used_payload_through_an_in_process_engine()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var engine = await InProcessEngineTestHarness.StartAsync(cancellationToken);
+        await using var client = await engine.ConnectAsync(cancellationToken);
+
+        // Act
+        var observed = await LiveTailTestReader.ReadFirstAgentEventAsync(
+            client,
+            (agent, token) => agent.ToolUsedAsync("session-1", "analyze_csharp_code", "ok", token),
+            cancellationToken);
+
+        // Assert
+        Assert.Multiple(
+            () => Assert.Equal("session-1", observed.SessionId),
+            () => Assert.Equal("analyze_csharp_code", observed.ToolName),
+            () => Assert.Equal("ok", observed.Outcome));
+    }
 
     [Fact]
     public async Task Should_send_a_turn_ended_notification_with_the_session()

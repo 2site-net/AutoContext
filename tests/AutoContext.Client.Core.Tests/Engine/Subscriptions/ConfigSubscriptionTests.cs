@@ -1,6 +1,7 @@
 namespace AutoContext.Client.Core.Tests.Engine.Subscriptions;
 
 using AutoContext.Client.Core.Engine.Subscriptions;
+using AutoContext.Client.Core.Tests.Support.Engine;
 using AutoContext.Client.Core.Tests.Support.Engine.Subscriptions;
 using AutoContext.Client.Core.Tests.Support.Shared;
 using AutoContext.Engine.Protocol.Messages.Config;
@@ -11,7 +12,26 @@ public sealed class ConfigSubscriptionTests
     [Fact]
     public void Should_throw_when_constructed_with_null_connector()
         => Assert.Throws<ArgumentNullException>(() => new ConfigSubscription(connector: null!));
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task Should_seed_the_current_snapshot_from_an_in_process_engine()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var engine = await InProcessEngineTestHarness.StartAsync(cancellationToken);
+        await using var client = await engine.ConnectAsync(cancellationToken);
 
+        // Act
+        JsonConfigSnapshot? seed = null;
+        await foreach (var snapshot in client.ConfigChanges().SubscribeAsync(cancellationToken))
+        {
+            seed = snapshot;
+            break;
+        }
+
+        // Assert
+        Assert.NotNull(seed);
+    }
     [Fact]
     public async Task Should_yield_the_snapshot()
     {

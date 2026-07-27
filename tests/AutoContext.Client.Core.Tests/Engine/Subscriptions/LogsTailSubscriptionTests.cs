@@ -1,8 +1,10 @@
 namespace AutoContext.Client.Core.Tests.Engine.Subscriptions;
 
 using AutoContext.Client.Core.Engine.Subscriptions;
+using AutoContext.Client.Core.Tests.Support.Engine;
 using AutoContext.Client.Core.Tests.Support.Engine.Subscriptions;
 using AutoContext.Client.Core.Tests.Support.Shared;
+using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.Messages.Logs;
 using AutoContext.Engine.Protocol.Serialization;
 
@@ -11,6 +13,25 @@ public sealed class LogsTailSubscriptionTests
     [Fact]
     public void Should_throw_when_constructed_with_null_connector()
         => Assert.Throws<ArgumentNullException>(() => new LogsTailSubscription(connector: null!));
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task Should_tail_a_record_from_an_in_process_engine()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var engine = await InProcessEngineTestHarness.StartAsync(cancellationToken);
+        await using var client = await engine.ConnectAsync(cancellationToken);
+
+        // Act
+        var record = await LiveTailTestReader.ReadFirstLogRecordAsync(
+            engine, client, cancellationToken);
+
+        // Assert
+        Assert.Multiple(
+            () => Assert.False(string.IsNullOrEmpty(record.Category)),
+            () => Assert.False(string.IsNullOrEmpty(record.Level)));
+    }
 
     [Fact]
     public async Task Should_yield_each_record()

@@ -2967,7 +2967,7 @@ extension's MCP server definition repointing (Phase 14).
 |---|---|---|
 | 1 | `feat(client-core): scaffold dialer, handshake, and find-or-spawn` | DONE |
 | 2 | `feat(client-core): add typed rpc clients and subscription consumers` | DONE |
-| 3 | `test(client-core): round-trip every rpc against an in-process engine` | TODO |
+| 3 | `test(client-core): round-trip every rpc against an in-process engine` | DONE |
 | 4 | `feat(nodejs-core): add rpc-exchange and events-subscription pipe clients` | TODO |
 | 5 | `feat(nodejs-core): add EngineDaemonManager with find-or-spawn and typed rpc` | TODO |
 | 6 | `test(nodejs-core): round-trip every rpc against a spawned engine binary` | TODO |

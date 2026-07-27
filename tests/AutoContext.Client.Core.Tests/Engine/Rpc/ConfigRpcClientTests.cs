@@ -1,6 +1,7 @@
 namespace AutoContext.Client.Core.Tests.Engine.Rpc;
 
 using AutoContext.Client.Core.Engine.Rpc;
+using AutoContext.Client.Core.Tests.Support.Engine;
 using AutoContext.Client.Core.Tests.Support.Engine.Rpc;
 using AutoContext.Client.Core.Tests.Support.Shared;
 using AutoContext.Engine.Protocol.Messages.Config;
@@ -11,6 +12,25 @@ public sealed class ConfigRpcClientTests
     [Fact]
     public void Should_throw_when_constructed_with_null_connection()
         => Assert.Throws<ArgumentNullException>(() => new ConfigRpcClient(connection: null!));
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task Should_persist_a_file_toggle_through_an_in_process_engine()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var engine = await InProcessEngineTestHarness.StartAsync(cancellationToken);
+        await using var client = await engine.ConnectAsync(cancellationToken);
+
+        // Act
+        var toggled = await client.Config.ToggleFileAsync("code-review", cancellationToken);
+        var reread = await client.Config.GetAsync(cancellationToken);
+
+        // Assert
+        Assert.Multiple(
+            () => Assert.Contains(toggled.Instructions, file => file.Name == "code-review" && file.Disabled == true),
+            () => Assert.Contains(reread.Instructions, file => file.Name == "code-review" && file.Disabled == true));
+    }
 
     [Fact]
     public async Task Should_return_the_snapshot_on_get()

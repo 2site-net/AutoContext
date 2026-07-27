@@ -1,6 +1,7 @@
 namespace AutoContext.Client.Core.Tests.Engine.Subscriptions;
 
 using AutoContext.Client.Core.Engine.Subscriptions;
+using AutoContext.Client.Core.Tests.Support.Engine;
 using AutoContext.Client.Core.Tests.Support.Engine.Subscriptions;
 using AutoContext.Client.Core.Tests.Support.Shared;
 using AutoContext.Engine.Protocol.Messages.Instructions;
@@ -11,7 +12,27 @@ public sealed class InstructionsSubscriptionTests
     [Fact]
     public void Should_throw_when_constructed_with_null_connector()
         => Assert.Throws<ArgumentNullException>(() => new InstructionsSubscription(connector: null!));
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task Should_seed_the_current_corpus_from_an_in_process_engine()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var engine = await InProcessEngineTestHarness.StartAsync(cancellationToken);
+        await using var client = await engine.ConnectAsync(cancellationToken);
 
+        // Act
+        IReadOnlyList<JsonInstructionsListRow>? seed = null;
+        await foreach (var rows in client.InstructionsChanges().SubscribeAsync(cancellationToken))
+        {
+            seed = rows;
+            break;
+        }
+
+        // Assert
+        Assert.NotNull(seed);
+        Assert.Contains(seed, row => row.Key == "code-review");
+    }
     [Fact]
     public async Task Should_yield_the_snapshot_files()
     {

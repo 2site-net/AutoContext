@@ -1,6 +1,7 @@
 namespace AutoContext.Client.Core.Tests.Engine.Rpc;
 
 using AutoContext.Client.Core.Engine.Rpc;
+using AutoContext.Client.Core.Tests.Support.Engine;
 using AutoContext.Client.Core.Tests.Support.Engine.Rpc;
 using AutoContext.Client.Core.Tests.Support.Shared;
 using AutoContext.Engine.Protocol.Messages.Logs;
@@ -11,6 +12,26 @@ public sealed class LogsRpcClientTests
     [Fact]
     public void Should_throw_when_constructed_with_null_connection()
         => Assert.Throws<ArgumentNullException>(() => new LogsRpcClient(connection: null!));
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task Should_read_engine_records_and_reject_an_unknown_worker_on_an_in_process_engine()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var engine = await InProcessEngineTestHarness.StartAsync(cancellationToken);
+        await using var client = await engine.ConnectAsync(cancellationToken);
+
+        // Act
+        var engineLogs = await client.Logs.GetEngineAsync(lastN: null, since: null, cancellationToken);
+        var workerLogs = await client.Logs.GetWorkerAsync(
+            "never-spawned", lastN: null, since: null, cancellationToken);
+
+        // Assert
+        Assert.Multiple(
+            () => Assert.NotEmpty(engineLogs.Records),
+            () => Assert.IsType<JsonLogsGetWorkerNotFoundResult>(workerLogs));
+    }
 
     [Fact]
     public async Task Should_marshal_the_bounds_on_get_engine()

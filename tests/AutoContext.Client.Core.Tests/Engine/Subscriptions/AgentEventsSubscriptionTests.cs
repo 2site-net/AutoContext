@@ -3,6 +3,7 @@ namespace AutoContext.Client.Core.Tests.Engine.Subscriptions;
 using System.Text.Json;
 
 using AutoContext.Client.Core.Engine.Subscriptions;
+using AutoContext.Client.Core.Tests.Support.Engine;
 using AutoContext.Client.Core.Tests.Support.Engine.Subscriptions;
 using AutoContext.Engine.Protocol.Messages.Agent;
 using AutoContext.Engine.Protocol.Serialization;
@@ -12,6 +13,27 @@ public sealed class AgentEventsSubscriptionTests
     [Fact]
     public void Should_throw_when_constructed_with_null_connector()
         => Assert.Throws<ArgumentNullException>(() => new AgentEventsSubscription(connector: null!));
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task Should_observe_a_notification_from_an_in_process_engine()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var engine = await InProcessEngineTestHarness.StartAsync(cancellationToken);
+        await using var client = await engine.ConnectAsync(cancellationToken);
+
+        // Act
+        var observed = await LiveTailTestReader.ReadFirstAgentEventAsync(
+            client,
+            (agent, token) => agent.TurnEndedAsync("session-1", token),
+            cancellationToken);
+
+        // Assert
+        Assert.Multiple(
+            () => Assert.Equal("session-1", observed.SessionId),
+            () => Assert.False(string.IsNullOrEmpty(observed.Kind)));
+    }
 
     [Fact]
     public async Task Should_yield_each_event()

@@ -22,6 +22,49 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\AutoContext.Client.Core\AutoContext.Client.Core.csproj" />
+    <ProjectReference Include="..\..\src\AutoContext.Engine.Core\AutoContext.Engine.Core.csproj" />
+    <ProjectReference Include="..\AutoContext.Engine.Tests.Support\AutoContext.Engine.Tests.Support.csproj" />
+    <!-- Build-time-only: sequences the engine's build ahead of this project so the
+         generated Resources side-cars (instructions-manifest.json, workers.json)
+         exist when the copy items below are gathered.
+         ReferenceOutputAssembly=false keeps the binary off the test reference set. -->
+    <ProjectReference Include="..\..\src\AutoContext.Engine\AutoContext.Engine.csproj"
+                      ReferenceOutputAssembly="false"
+                      Private="false"
+                      SkipGetTargetFrameworkProperties="true"
+                      UndefineProperties="TargetFramework" />
+    <!-- Build-time-only: the stand-in worker the in-process engine spawns for the
+         McpTools.Invoke dispatch round-trip. -->
+    <ProjectReference Include="..\AutoContext.Worker.Test.Driver\AutoContext.Worker.Test.Driver.csproj"
+                      ReferenceOutputAssembly="false"
+                      Private="false"
+                      SkipGetTargetFrameworkProperties="true"
+                      UndefineProperties="TargetFramework" />
+  </ItemGroup>
+
+  <!-- Stage the engine's side-car tree into this project's output so an
+       in-process engine composed by InProcessEngineTestHarness resolves every
+       resource from AppContext.BaseDirectory/Resources exactly as the shipped
+       binary does. Mirrors the staging in AutoContext.Engine.csproj: the
+       generated manifest and worker roster may not exist at evaluation time, so
+       each is included by literal path rather than by glob. -->
+  <ItemGroup>
+    <Content Include="..\..\src\AutoContext.Engine\Resources\instructions-catalog.json"
+             Link="Resources\instructions-catalog.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\src\AutoContext.Engine\Resources\instructions-manifest.json"
+             Link="Resources\instructions-manifest.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\src\AutoContext.Engine\Resources\mcp-tools-registry.json"
+             Link="Resources\mcp-tools-registry.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\src\AutoContext.Engine\Resources\mcp-tools-registry.schema.json"
+             Link="Resources\mcp-tools-registry.schema.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\src\AutoContext.Engine\Resources\mcp-tools-catalog.json"
+             Link="Resources\mcp-tools-catalog.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\src\AutoContext.Engine\Resources\mcp-tools-catalog.schema.json"
+             Link="Resources\mcp-tools-catalog.schema.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\src\AutoContext.Engine\Resources\workers.json"
+             Link="Resources\workers.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\src\AutoContext.Engine\Instructions\*.instructions.md"
+             Link="Resources\Instructions\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
