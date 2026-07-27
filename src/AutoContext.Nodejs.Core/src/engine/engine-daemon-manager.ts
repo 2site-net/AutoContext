@@ -84,6 +84,9 @@ export type EngineDaemonManagerOptions = EngineBinaryLocation & {
     /** Whole seconds forwarded on `--idle-timeout` when spawning. */
     readonly idleTimeoutSeconds?: number;
 
+    /** Absolute path forwarded on `--cache-root` when spawning. */
+    readonly cacheRoot?: string;
+
     /** When true the manager dials only and never spawns an engine. */
     readonly spawnDisabled?: boolean;
 
@@ -135,6 +138,7 @@ export class EngineDaemonManager {
             engineBinaryPath: resolveEngineBinaryPath(options),
             instanceLabel: options.instanceLabel,
             idleTimeoutSeconds: options.idleTimeoutSeconds,
+            cacheRoot: options.cacheRoot,
             spawnDisabled: options.spawnDisabled,
             budget: options.budget,
         });

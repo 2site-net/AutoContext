@@ -39,6 +39,9 @@ export interface EngineConnectorOptions {
     /** Whole seconds forwarded on `--idle-timeout` when spawning. */
     readonly idleTimeoutSeconds?: number;
 
+    /** Absolute path forwarded on `--cache-root` when spawning. */
+    readonly cacheRoot?: string;
+
     /** When true the connector dials only and never spawns. */
     readonly spawnDisabled?: boolean;
 
@@ -162,6 +165,7 @@ export class EngineConnector {
             instanceId: this.options.instanceId,
             instanceLabel: this.options.instanceLabel,
             idleTimeoutSeconds: this.options.idleTimeoutSeconds,
+            cacheRoot: this.options.cacheRoot,
             engineBinaryPath: this.options.engineBinaryPath,
         });
 

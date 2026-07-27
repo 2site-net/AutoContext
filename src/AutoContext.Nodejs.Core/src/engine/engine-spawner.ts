@@ -17,6 +17,9 @@ export interface EngineSpawnRequest {
     /** Whole seconds forwarded on `--idle-timeout`; omitted when unset. */
     readonly idleTimeoutSeconds?: number;
 
+    /** Absolute path forwarded on `--cache-root`; omitted when unset. */
+    readonly cacheRoot?: string;
+
     /** Absolute path of the engine binary to start. */
     readonly engineBinaryPath: string;
 }
@@ -39,6 +42,10 @@ export function buildEngineArgv(request: EngineSpawnRequest): string[] {
 
     if (request.idleTimeoutSeconds !== undefined) {
         argv.push('--idle-timeout', Math.trunc(request.idleTimeoutSeconds).toString(10));
+    }
+
+    if (request.cacheRoot !== undefined && request.cacheRoot.length > 0) {
+        argv.push('--cache-root', request.cacheRoot);
     }
 
     return argv;
