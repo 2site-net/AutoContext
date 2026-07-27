@@ -24,6 +24,14 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\AutoContext.Engine.Core\AutoContext.Engine.Core.csproj" />
     <ProjectReference Include="..\AutoContext.Engine.Tests.Support\AutoContext.Engine.Tests.Support.csproj" />
+    <!-- Build-time-only: the smoke tests in this project spawn the engine
+         binary, so its build must be sequenced ahead of theirs.
+         ReferenceOutputAssembly=false keeps the binary off the reference set. -->
+    <ProjectReference Include="..\..\src\AutoContext.Engine\AutoContext.Engine.csproj"
+                      ReferenceOutputAssembly="false"
+                      Private="false"
+                      SkipGetTargetFrameworkProperties="true"
+                      UndefineProperties="TargetFramework" />
   </ItemGroup>
 
   <!-- Link the real bundled MCP-tools side-cars (registry schema plus the catalog

@@ -1,4 +1,4 @@
-namespace AutoContext.Engine.Tests.Integration;
+namespace AutoContext.Engine.Core.Tests.Logging;
 
 using System.Text.Json;
 using System.Text.Json.Nodes;

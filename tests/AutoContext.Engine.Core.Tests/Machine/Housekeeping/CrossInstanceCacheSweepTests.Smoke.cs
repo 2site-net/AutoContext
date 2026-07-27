@@ -1,4 +1,4 @@
-namespace AutoContext.Engine.Tests.Integration;
+namespace AutoContext.Engine.Core.Tests.Machine.Housekeeping;
 
 using System.Globalization;
 using System.IO;

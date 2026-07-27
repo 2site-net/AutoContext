@@ -1,4 +1,4 @@
-namespace AutoContext.Engine.Tests.Integration;
+namespace AutoContext.Engine.Tests;
 
 using System.Globalization;
 using System.Text.Json;

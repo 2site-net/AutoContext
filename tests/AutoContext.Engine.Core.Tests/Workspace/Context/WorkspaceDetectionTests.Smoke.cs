@@ -1,4 +1,4 @@
-namespace AutoContext.Engine.Tests.Integration;
+namespace AutoContext.Engine.Core.Tests.Workspace.Context;
 
 using System.Text.Json;
 

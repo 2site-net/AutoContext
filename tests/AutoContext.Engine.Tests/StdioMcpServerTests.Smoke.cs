@@ -1,4 +1,4 @@
-namespace AutoContext.Engine.Tests.Integration;
+namespace AutoContext.Engine.Tests;
 
 using System.Diagnostics;
 using System.Text.Json;
