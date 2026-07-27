@@ -121,6 +121,9 @@ function Initialize-BuildContext {
         SolutionFile       = $solutionFile
         DotnetProjects     = $dotnetProjects
         RidToTarget        = $ridToTarget
+        EngineProjectPath  = (Join-Path $RepoRoot 'src' 'AutoContext.Engine' 'AutoContext.Engine.csproj')
+        EngineStagingRoot  = (Join-Path $RepoRoot 'out' 'engine')
+        EngineBundleDir    = (Join-Path $extensionDir 'engine')
     }
 }
 
@@ -823,6 +826,235 @@ function Build-DotNetPackage {
     }
 }
 
+function Get-DotNetReleaseOutputDir {
+    <#
+    .SYNOPSIS
+        Resolves a project's bin/Release/<tfm> directory, reading the target
+        framework from the csproj so the path never hard-codes a moniker.
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param([Parameter(Mandatory)][string]$ProjectPath)
+
+    $projectName = [System.IO.Path]::GetFileNameWithoutExtension($ProjectPath)
+    [xml]$csproj = Get-Content $ProjectPath
+    $tfm = $csproj.SelectSingleNode('//TargetFramework')?.InnerText
+    if (-not $tfm) { throw "Cannot determine TargetFramework for $projectName." }
+
+    $binDir = Join-Path (Split-Path $ProjectPath -Parent) 'bin' 'Release' $tfm
+    if (-not (Test-Path $binDir)) {
+        throw ".NET Release output not found for $projectName ($binDir) — run Compile first."
+    }
+
+    return $binDir
+}
+
+function Get-EngineWorkerStagingPlan {
+    <#
+    .SYNOPSIS
+        Resolves what to stage into each Workers/<id>/ directory, taking the
+        roster from the engine's own generated workers.json so the staged
+        layout and the engine's ${root} lookup cannot disagree.
+    .DESCRIPTION
+        workers.json is the runtime contract — it names every worker the
+        engine will launch, but carries no build inputs. The per-worker
+        .autocontext-worker.json descriptor is where a worker id is tied to
+        the project that produces it, so the roster is joined against those
+        descriptors by id. A row with no descriptor, or a descriptor the
+        roster never claims, is a packaging defect and throws rather than
+        silently shipping a bundle the engine cannot launch from.
+    #>
+    [CmdletBinding()]
+    [OutputType([psobject[]])]
+    param(
+        [Parameter(Mandatory)][psobject]$Context,
+        [Parameter(Mandatory)][string]$ManifestPath
+    )
+
+    if (-not (Test-Path $ManifestPath)) {
+        throw "Worker manifest not found at $ManifestPath — the engine build generates it."
+    }
+
+    $roster = @((Get-Content $ManifestPath -Raw | ConvertFrom-Json).workers)
+    if ($roster.Count -eq 0) { throw "Worker manifest $ManifestPath declares no workers." }
+
+    # Index the descriptors by the id they declare. Carrying a descriptor is
+    # what makes a project a worker — the same rule the manifest generator
+    # applies — so a worker that does not follow the AutoContext.Worker.*
+    # naming convention is still staged. Any divergence between the two
+    # surfaces as an unmatched id below.
+    $byId = @{}
+    foreach ($directory in Get-ChildItem (Join-Path $Context.RepoRoot 'src') -Directory) {
+        $descriptorPath = Join-Path $directory.FullName '.autocontext-worker.json'
+        if (-not (Test-Path $descriptorPath)) { continue }
+
+        $id = (Get-Content $descriptorPath -Raw | ConvertFrom-Json).id
+        if (-not $id) { continue }
+
+        $projectPath = Join-Path $directory.FullName "$($directory.Name).csproj"
+
+        $byId[$id] = [pscustomobject]@{
+            Id          = $id
+            Name        = $directory.Name
+            ProjectPath = if (Test-Path $projectPath) { $projectPath } else { $null }
+        }
+    }
+
+    $plan = foreach ($worker in $roster) {
+        if (-not $byId.ContainsKey($worker.id)) {
+            throw "Worker '$($worker.id)' is in $ManifestPath but no project under src/ declares that id."
+        }
+
+        $byId[$worker.id]
+    }
+
+    $unclaimed = @($byId.Keys | Where-Object { $_ -notin @($roster | ForEach-Object { $_.id }) })
+    if ($unclaimed.Count -gt 0) {
+        throw "Project(s) declaring worker id(s) '$($unclaimed -join ", ")' are absent from $ManifestPath — regenerate the engine build."
+    }
+
+    return @($plan)
+}
+
+function Build-EngineBundle {
+    <#
+    .SYNOPSIS
+        Publishes the engine and every worker into the per-RID staging tree
+        out/engine/<rid>/, the shape per-platform packaging copies into a
+        shipped artefact's engine/ directory.
+    #>
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory)][psobject]$Context,
+        [Parameter(Mandatory)][string]$Rid
+    )
+
+    Write-Section "Package engine ($Rid)"
+
+    $stagingDir = Join-Path $Context.EngineStagingRoot $Rid
+
+    if ($PSCmdlet.ShouldProcess("engine + workers → $Rid", 'dotnet publish')) {
+        Assert-ExternalCommand 'dotnet'
+
+        if (Test-Path $stagingDir) { Remove-BuildOutput -Path $stagingDir }
+
+        $publishArgs = @(
+            'publish'
+            '-c', 'Release'
+            '-r', $Rid
+            '--self-contained'
+            '-p:PublishSingleFile=true'
+        )
+
+        dotnet @publishArgs $Context.EngineProjectPath -o $stagingDir
+        if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed for the engine ($Rid)." }
+        Write-Status "autocontext-engine packaged ($Rid)" 'OK'
+
+        # Each worker lands under Workers/<id>/ — the directory the engine's
+        # workers.json ${root} placeholder expands to — so per-worker
+        # self-contained runtimes never collide with each other or with the
+        # engine's own runtime files at the bundle root.
+        $workers = Get-EngineWorkerStagingPlan -Context $Context `
+            -ManifestPath (Join-Path $stagingDir 'Resources' 'workers.json')
+
+        foreach ($worker in $workers) {
+            $workerDir = Join-Path $stagingDir 'Workers' $worker.Id
+
+            if ($worker.ProjectPath) {
+                dotnet @publishArgs $worker.ProjectPath -o $workerDir
+                if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed for worker '$($worker.Id)' ($Rid)." }
+            }
+            else {
+                # Node workers run on the host's Node runtime, so their output
+                # is RID-independent and is staged from the tree the Node
+                # packaging step already produced.
+                $bundledDir = Join-Path $Context.ServersDir $worker.Name
+                if (-not (Test-Path $bundledDir)) {
+                    throw "Node worker '$($worker.Id)' is not staged at $bundledDir — package the Node servers first."
+                }
+
+                New-Item $workerDir -ItemType Directory -Force | Out-Null
+                Copy-Item (Join-Path $bundledDir '*') $workerDir -Recurse -Force
+            }
+
+            Write-Status "worker '$($worker.Id)' packaged ($Rid)" 'OK'
+        }
+    }
+}
+
+function Copy-EngineBundleToExtension {
+    <#
+    .SYNOPSIS
+        Copies one RID's staged engine tree into the extension's engine/
+        directory — the shipped shape, which carries no <rid>/ segment.
+    #>
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory)][psobject]$Context,
+        [Parameter(Mandatory)][string]$Rid
+    )
+
+    Write-Section "Copy engine to extension ($Rid)"
+
+    $stagingDir = Join-Path $Context.EngineStagingRoot $Rid
+
+    if ($PSCmdlet.ShouldProcess($Context.EngineBundleDir, "Copy engine ($Rid)")) {
+        if (-not (Test-Path $stagingDir)) {
+            throw "Engine staging for $Rid not found ($stagingDir)."
+        }
+
+        if (Test-Path $Context.EngineBundleDir) { Remove-BuildOutput -Path $Context.EngineBundleDir }
+        New-Item $Context.EngineBundleDir -ItemType Directory -Force | Out-Null
+        Copy-Item (Join-Path $stagingDir '*') $Context.EngineBundleDir -Recurse -Force
+
+        Write-Status "engine/ populated ($Rid)" 'OK'
+    }
+}
+
+function Copy-EngineToExtension {
+    <#
+    .SYNOPSIS
+        Local-dev counterpart of Build-EngineBundle: lays out engine/ from
+        framework-dependent build output so a debug host resolves an engine
+        without a self-contained per-RID publish.
+    #>
+    [CmdletBinding(SupportsShouldProcess)]
+    param([Parameter(Mandatory)][psobject]$Context)
+
+    Write-Section 'Copy engine (local)'
+
+    if ($PSCmdlet.ShouldProcess($Context.EngineBundleDir, 'Copy engine build output')) {
+        if (Test-Path $Context.EngineBundleDir) { Remove-BuildOutput -Path $Context.EngineBundleDir }
+        New-Item $Context.EngineBundleDir -ItemType Directory -Force | Out-Null
+
+        $engineOutput = Get-DotNetReleaseOutputDir -ProjectPath $Context.EngineProjectPath
+        Copy-Item (Join-Path $engineOutput '*') $Context.EngineBundleDir -Recurse -Force
+        Write-Status 'autocontext-engine copied (local)' 'OK'
+
+        $workers = Get-EngineWorkerStagingPlan -Context $Context `
+            -ManifestPath (Join-Path $Context.EngineBundleDir 'Resources' 'workers.json')
+
+        foreach ($worker in $workers) {
+            $sourceDir = if ($worker.ProjectPath) {
+                Get-DotNetReleaseOutputDir -ProjectPath $worker.ProjectPath
+            }
+            else {
+                Join-Path $Context.ServersDir $worker.Name
+            }
+
+            if (-not (Test-Path $sourceDir)) {
+                throw "Worker '$($worker.Id)' output not found ($sourceDir) — run Compile first."
+            }
+
+            $workerDir = Join-Path $Context.EngineBundleDir 'Workers' $worker.Id
+            New-Item $workerDir -ItemType Directory -Force | Out-Null
+            Copy-Item (Join-Path $sourceDir '*') $workerDir -Recurse -Force
+
+            Write-Status "worker '$($worker.Id)' copied (local)" 'OK'
+        }
+    }
+}
+
 function Copy-DotNetToServersFolder {
     [CmdletBinding(SupportsShouldProcess)]
     param([Parameter(Mandatory)][psobject]$Context)
@@ -832,15 +1064,7 @@ function Copy-DotNetToServersFolder {
 
     foreach ($projectPath in $Context.ServerProjectPaths) {
         $serverName = [System.IO.Path]::GetFileNameWithoutExtension($projectPath)
-        $projectDir = Split-Path $projectPath -Parent
-        [xml]$csproj = Get-Content $projectPath
-        $tfm = $csproj.SelectSingleNode('//TargetFramework')?.InnerText
-        if (-not $tfm) { throw "Cannot determine TargetFramework for $serverName." }
-
-        $binDir = Join-Path $projectDir 'bin' 'Release' $tfm
-        if (-not (Test-Path $binDir)) {
-            throw ".NET Release output not found for $serverName ($binDir) — run Compile first."
-        }
+        $binDir = Get-DotNetReleaseOutputDir -ProjectPath $projectPath
 
         $serverDir = Join-Path $Context.ServersDir $serverName
         if ($PSCmdlet.ShouldProcess($serverDir, "Copy $serverName build output")) {
@@ -959,10 +1183,11 @@ function Build-NodeJsBundle {
             $bundleFile = Join-Path $targetDir 'index.bundle.js'
             $serverSourceDir = Join-Path $Context.RepoRoot 'src' $serverName
 
-            # Run npx from the source directory where esbuild is a devDependency
+            # --yes so a machine without esbuild already cached installs it
+            # instead of blocking the build on npx's confirmation prompt.
             Push-Location $serverSourceDir
             try {
-                npx esbuild $entryPoint --bundle --platform=node --format=esm --external:typescript --outfile=$bundleFile
+                npx --yes esbuild $entryPoint --bundle --platform=node --format=esm --external:typescript --outfile=$bundleFile
                 if ($LASTEXITCODE -ne 0) { throw "esbuild bundle failed for $serverName." }
             }
             finally {
@@ -1011,7 +1236,7 @@ function Build-ExtensionBundle {
 
         Push-Location $Context.ExtensionDir
         try {
-            npx esbuild $entryPoint --bundle --platform=node --format=esm --external:vscode --outfile=$bundleFile
+            npx --yes esbuild $entryPoint --bundle --platform=node --format=esm --external:vscode --outfile=$bundleFile
             if ($LASTEXITCODE -ne 0) { throw 'esbuild bundle failed for extension.' }
         }
         finally {
@@ -1031,6 +1256,12 @@ function Build-ExtensionBundle {
         Get-ChildItem $distDir -Recurse -Directory |
             Sort-Object -Property { $_.FullName.Length } -Descending |
             Remove-Item -Force -ErrorAction SilentlyContinue
+
+        # Bundling destroyed outputs tsc still believes it produced. Leaving the
+        # incremental caches behind would make the next `tsc -b` skip the
+        # rebuild and never restore them, so drop them with their outputs.
+        Get-ChildItem $Context.ExtensionDir -Filter '*.tsbuildinfo' -File -ErrorAction SilentlyContinue |
+            Remove-Item -Force
 
         Write-Status 'Extension bundled' 'OK'
     }
@@ -1083,8 +1314,11 @@ function Publish-VscePackage {
 
     Write-Section 'Publish to Marketplace'
 
-    $vsixFiles = Get-ChildItem (Join-Path $Context.PublishDir '*.vsix') -ErrorAction SilentlyContinue
-    if (-not $vsixFiles -or $vsixFiles.Count -eq 0) {
+    # Wrapped so a single match stays an array: under StrictMode a scalar
+    # FileInfo has no Count, which would fault exactly the one-platform
+    # publish this branch exists to serve.
+    $vsixFiles = @(Get-ChildItem (Join-Path $Context.PublishDir '*.vsix') -ErrorAction SilentlyContinue)
+    if ($vsixFiles.Count -eq 0) {
         if ($WhatIfPreference) {
             Write-Status 'No VSIX files (skipped in WhatIf)' 'INFO'
             return
@@ -1131,8 +1365,11 @@ function Publish-OvsxPackage {
 
     Write-Section 'Publish to Open VSX'
 
-    $vsixFiles = Get-ChildItem (Join-Path $Context.PublishDir '*.vsix') -ErrorAction SilentlyContinue
-    if (-not $vsixFiles -or $vsixFiles.Count -eq 0) {
+    # Wrapped so a single match stays an array: under StrictMode a scalar
+    # FileInfo has no Count, which would fault exactly the one-platform
+    # publish this branch exists to serve.
+    $vsixFiles = @(Get-ChildItem (Join-Path $Context.PublishDir '*.vsix') -ErrorAction SilentlyContinue)
+    if ($vsixFiles.Count -eq 0) {
         if ($WhatIfPreference) {
             Write-Status 'No VSIX files (skipped in WhatIf)' 'INFO'
             return
@@ -1276,6 +1513,7 @@ function Invoke-Package {
     if ($Local) {
         # Local dev: copy framework-dependent build output (no publish, no VSIX)
         Copy-DotNetToServersFolder -Context $Context
+        Copy-EngineToExtension -Context $Context
     }
     elseif ($Scope -eq 'All') {
         Build-NodeJsBundle -Context $Context
@@ -1283,12 +1521,17 @@ function Invoke-Package {
 
         # Explicit "Package All" — build all six platforms
         foreach ($rid in $Context.RidToTarget.Keys) {
+            Build-EngineBundle -Context $Context -Rid $rid
+            Copy-EngineBundleToExtension -Context $Context -Rid $rid
             Build-DotNetPackage -Context $Context -Rid $rid
             Build-VscePackage -Context $Context -Rid $rid
         }
 
-        # Clean up staging directory — each VSIX already contains its server binary
+        # Drop the per-artefact staging each VSIX already carries a copy of.
+        # out/engine/<rid>/ deliberately survives: it is the per-RID build
+        # output the shipped bundles are cut from, and Clean owns it.
         if (Test-Path $Context.ServersDir) { Remove-Item $Context.ServersDir -Recurse -Force }
+        if (Test-Path $Context.EngineBundleDir) { Remove-Item $Context.EngineBundleDir -Recurse -Force }
     }
     else {
         Build-NodeJsBundle -Context $Context
@@ -1296,6 +1539,8 @@ function Invoke-Package {
 
         # Single platform: explicit -RuntimeIdentifier or auto-detect
         $rid = Resolve-RuntimeIdentifier -RuntimeIdentifier $RuntimeIdentifier
+        Build-EngineBundle -Context $Context -Rid $rid
+        Copy-EngineBundleToExtension -Context $Context -Rid $rid
         Build-DotNetPackage -Context $Context -Rid $rid
         Build-VscePackage -Context $Context -Rid $rid
     }
@@ -1414,6 +1659,8 @@ function Invoke-Publish {
             Write-Status "Found existing $vsixName — skipping build for $rid" 'INFO'
         }
         else {
+            Build-EngineBundle -Context $Context -Rid $rid
+            Copy-EngineBundleToExtension -Context $Context -Rid $rid
             Build-DotNetPackage -Context $Context -Rid $rid
             Build-VscePackage -Context $Context -Rid $rid
         }
@@ -1695,6 +1942,8 @@ function Invoke-Clean {
         }
     }
     $targets += @{ Path = $Context.ServersDir;                          Label = 'Servers (servers/)' }
+    $targets += @{ Path = $Context.EngineBundleDir;                     Label = 'Engine bundle (engine/)' }
+    $targets += @{ Path = $Context.EngineStagingRoot;                   Label = 'Engine staging (out/engine/)' }
     $targets += @{ Path = $Context.PublishDir;                         Label = 'VSIX packages (publish/)' }
     $targets += @{ Path = (Join-Path $Context.ExtensionDir 'LICENSE');       Label = 'Extension LICENSE copy' }
 

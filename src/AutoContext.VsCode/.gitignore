@@ -1,4 +1,5 @@
 servers/
+engine/
 dist/
 dist-tests/
 *.tsbuildinfo

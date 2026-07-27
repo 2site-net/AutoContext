@@ -387,7 +387,7 @@ $testCases = @(
         Name         = 'scripts/clean.ps1'
         Script       = 'scripts/clean.ps1'
         Arguments    = '-WhatIf'
-        ExpectOutput = @('Delete TypeScript output|TypeScript output.*not found', 'Delete Servers|Servers.*not found', 'Delete VSIX packages|VSIX packages.*not found')
+        ExpectOutput = @('Delete TypeScript output|TypeScript output.*not found', 'Delete Servers|Servers.*not found', 'Delete Engine bundle|Engine bundle.*not found', 'Delete Engine staging|Engine staging.*not found', 'Delete VSIX packages|VSIX packages.*not found')
     }
     @{
         Name         = 'scripts/prepare.ps1'
@@ -399,7 +399,7 @@ $testCases = @(
         Name         = 'scripts/package.ps1 (auto-detect RID)'
         Script       = 'scripts/package.ps1'
         Arguments    = '-WhatIf'
-        ExpectOutput = @('Compile TypeScript', 'dotnet build', 'dotnet publish', 'vsce package')
+        ExpectOutput = @('Compile TypeScript', 'dotnet build', 'dotnet publish', 'Package engine', 'Copy engine to extension', 'vsce package')
     }
     @{
         Name         = 'scripts/package.ps1 All (6 platforms)'
@@ -411,8 +411,8 @@ $testCases = @(
         Name         = 'scripts/package.ps1 -Local'
         Script       = 'scripts/package.ps1'
         Arguments    = '-Local -WhatIf'
-        ExpectOutput = @('Compile TypeScript', 'dotnet build', 'Copy .NET servers \(local\)')
-        RejectOutput = @('dotnet publish', 'vsce package')
+        ExpectOutput = @('Compile TypeScript', 'dotnet build', 'Copy .NET servers \(local\)', 'Copy engine \(local\)')
+        RejectOutput = @('dotnet publish', 'vsce package', 'Package engine')
     }
     @{
         Name         = 'scripts/package.ps1 -Local + RuntimeIdentifier (mutually exclusive)'
@@ -432,7 +432,7 @@ $testCases = @(
         Name         = 'scripts/publish.ps1 (auto-detect RID)'
         Script       = 'scripts/publish.ps1'
         Arguments    = '-WhatIf'
-        ExpectOutput = @('dotnet publish', 'vsce package', 'Publish to Marketplace', 'Publish to Open VSX')
+        ExpectOutput = @('dotnet publish', 'Package engine', 'Copy engine to extension', 'vsce package', 'Publish to Marketplace', 'Publish to Open VSX')
     }
     @{
         Name         = 'scripts/publish.ps1 All + RuntimeIdentifier (mutually exclusive)'
