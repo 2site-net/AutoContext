@@ -130,7 +130,7 @@ public static class EngineHostBuilderExtensions
 
         // Rotation + retention support for the file sink. The
         // thresholds factory pins itself to the resolved
-        // EngineOptions.Logging verbosity at first resolve; the
+        // EngineOptions.LogRotation size at first resolve; the
         // singletons composed below are read-only after startup.
         // RetentionPolicy is the sole reader of
         // EngineOptions.Retention — both the rotated-log cleaner
@@ -139,8 +139,8 @@ public static class EngineHostBuilderExtensions
         builder.Services.TryAddSingleton<RetentionPolicy>();
         builder.Services.TryAddSingleton(sp =>
         {
-            var verbosity = sp.GetRequiredService<IOptions<EngineOptions>>().Value.Logging;
-            return LogRotationThresholds.ForVerbosity(verbosity);
+            var rotationSize = sp.GetRequiredService<IOptions<EngineOptions>>().Value.LogRotation;
+            return LogRotationThresholds.ForRotationSize(rotationSize);
         });
         builder.Services.TryAddSingleton<RotatedLogCleaner>();
 

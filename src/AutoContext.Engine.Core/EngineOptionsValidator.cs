@@ -81,11 +81,11 @@ internal sealed class EngineOptionsValidator : IValidateOptions<EngineOptions>
                 $"{nameof(EngineOptions.ShutdownDrainTimeout)} must be non-negative; got {options.ShutdownDrainTimeout}.");
         }
 
-        if (!Enum.IsDefined(options.Logging))
+        if (!Enum.IsDefined(options.LogRotation))
         {
             (failures ??= []).Add(
-                $"{nameof(EngineOptions.Logging)} '{options.Logging}' is not a defined "
-                + $"{nameof(LogVerbosity)} value.");
+                $"{nameof(EngineOptions.LogRotation)} '{options.LogRotation}' is not a defined "
+                + $"{nameof(LogRotationSize)} value.");
         }
 
         if (!Enum.IsDefined(options.McpServerMode))

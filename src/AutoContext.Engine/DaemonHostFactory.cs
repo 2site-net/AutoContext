@@ -74,7 +74,7 @@ internal static class DaemonHostFactory
                 target.IdleTimeout = options.IdleTimeout;
                 target.InstanceId = options.InstanceId;
                 target.InstanceLabel = options.InstanceLabel;
-                target.Logging = options.Logging;
+                target.LogRotation = options.LogRotation;
                 target.McpServerMode = options.McpServerMode;
                 target.ParentProcessId = options.ParentProcessId;
                 target.ResourcesRootOverride = options.ResourcesRootOverride;

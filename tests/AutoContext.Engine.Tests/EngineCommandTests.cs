@@ -83,7 +83,7 @@ public sealed class EngineCommandTests
             "--idle-timeout", "0",
             "--parent-pid", "1234",
             "--retention", "12h",
-            "--logging", "debug",
+            "--log-rotation", "large",
         };
 
         // Act
@@ -98,7 +98,7 @@ public sealed class EngineCommandTests
             () => Assert.Equal(TimeSpan.Zero, options.IdleTimeout),
             () => Assert.Equal(1234, options.ParentProcessId),
             () => Assert.Equal(TimeSpan.FromHours(12), options.Retention),
-            () => Assert.Equal(LogVerbosity.Debug, options.Logging));
+            () => Assert.Equal(LogRotationSize.Large, options.LogRotation));
     }
 
     [Fact]
@@ -422,9 +422,9 @@ public sealed class EngineCommandTests
     }
 
     [Theory]
-    [InlineData("normal", LogVerbosity.Normal)]
-    [InlineData("debug", LogVerbosity.Debug)]
-    public void Should_parse_logging_verbosity(string value, LogVerbosity expected)
+    [InlineData("small", LogRotationSize.Small)]
+    [InlineData("large", LogRotationSize.Large)]
+    public void Should_parse_log_rotation_size(string value, LogRotationSize expected)
     {
         // Arrange
         var command = new EngineCommand();
@@ -432,7 +432,7 @@ public sealed class EngineCommandTests
         {
             "--workspace", EngineCommandArgsFakeData.GetWorkspacePathArgValue(),
             "--instance-id", EngineCommandArgsFakeData.GetInstanceIdArgValue(),
-            "--logging", value,
+            "--log-rotation", value,
         };
 
         // Act
@@ -443,7 +443,7 @@ public sealed class EngineCommandTests
         Assert.Multiple(
             () => Assert.Empty(parseResult.Errors),
             () => Assert.True(built, error),
-            () => Assert.Equal(expected, options.Logging));
+            () => Assert.Equal(expected, options.LogRotation));
     }
 
     [Fact]
@@ -455,7 +455,7 @@ public sealed class EngineCommandTests
         {
             "--workspace", EngineCommandArgsFakeData.GetWorkspacePathArgValue(),
             "--instance-id", EngineCommandArgsFakeData.GetInstanceIdArgValue(),
-            "--logging", "verbose",
+            "--log-rotation", "verbose",
         };
 
         // Act
@@ -513,7 +513,7 @@ public sealed class EngineCommandTests
     [InlineData("--idle-timeout", "0")]
     [InlineData("--parent-pid", "1234")]
     [InlineData("--retention", "1d")]
-    [InlineData("--logging", "debug")]
+    [InlineData("--log-rotation", "large")]
     public void Should_reject_daemon_only_switches_in_mcp_server_role(
         string switchName,
         string value)

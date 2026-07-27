@@ -118,10 +118,10 @@ public sealed class EngineOptions : IWorkspaceEngineInfo
     public string InstanceLabel { get; set; } = string.Empty;
 
     /// <summary>
-    /// Log-rotation verbosity per the <c>--logging</c> switch.
-    /// Defaults to <see cref="LogVerbosity.Normal"/>.
+    /// Log-rotation size per the <c>--log-rotation</c> switch.
+    /// Defaults to <see cref="LogRotationSize.Small"/>.
     /// </summary>
-    public LogVerbosity Logging { get; set; } = LogVerbosity.Normal;
+    public LogRotationSize LogRotation { get; set; } = LogRotationSize.Small;
 
     /// <summary>
     /// MCP-server capability mode. Defaults to

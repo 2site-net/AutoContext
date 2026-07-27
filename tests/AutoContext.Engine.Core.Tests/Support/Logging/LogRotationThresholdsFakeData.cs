@@ -5,5 +5,5 @@ using AutoContext.Engine.Core.Logging;
 internal static class LogRotationThresholdsFakeData
 {
     public static LogRotationThresholds Normal { get; } =
-        LogRotationThresholds.ForVerbosity(LogVerbosity.Normal);
+        LogRotationThresholds.ForRotationSize(LogRotationSize.Small);
 }

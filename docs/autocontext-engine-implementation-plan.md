@@ -441,8 +441,8 @@ src/
       EngineLoggerProvider.cs                  # ILoggerProvider caching one EngineLogger per category
       LogChannel.cs                            # single-channel ingest; TryWrite / ReadAllAsync / Complete (DropOldest on overflow)
       LogFileSinkService.cs                    # hosted service — drain loop + dispatcher; owns the per-target file appenders (engine.log / worker-<id>.log); also fans drained records out through a shared Infrastructure/Events/Broadcaster<JsonLogRecord> (pure live tail)
-      LogRotationThresholds.cs                 # per-verbosity line-count + byte-size rotation thresholds (replaces the old LogRotator)
-      LogVerbosity.cs                          # rotation-selector enum (Normal / Debug / Verbose)
+      LogRotationThresholds.cs                 # per-rotation-size line-count + byte-size rotation thresholds (replaces the old LogRotator)
+      LogRotationSize.cs                       # rotation-selector enum (Small / Large)
       RotatedLogCleaner.cs                     # deletes rotated log files past retention inside a live subtree (uses Logging/RetentionPolicy)
       RetentionPolicy.cs                       # single reader of `--retention` — resolves the retention window (per-entry, unregistered-fallback, foreign); shared with Machine/Housekeeping/
       LogFileReader.cs                         # forward-pass NDJSON reader over the engine's per-instance log files with since / lastN filtering (backs Logs.GetEngine + Logs.GetWorker)
@@ -737,7 +737,7 @@ codebase's vertical-feature folder axis.
 > - `AddAutoContextEngine.cs` → `EngineHostBuilderExtensions.cs` (the
 >   `AddAutoContextEngine` extension method name is unchanged);
 >   `ArgvParser` / `Role` / `StartupBanner` → `EngineCommand`;
->   `LogRotator` → `LogRotationThresholds` (+ `LogVerbosity`);
+>   `LogRotator` → `LogRotationThresholds` (+ `LogRotationSize`);
 >   `FileExtensionsIndex` → `FlagExtensionIndex` (+ `FlagContributionIndex`).
 > - **Project rename:** `AutoContext.Framework.Workers` →
 >   `AutoContext.Workers.Core` (worker-side runtime). Renamed so no
@@ -1117,7 +1117,7 @@ features compose over, so it must land before row 9.
 
 **Goal**: every record the engine emits via `ILogger<T>` lands in
 `engine.log` under the per-instance subtree, fans out on the `logs`
-pipe and `Logs.TailEngine` RPC subscribers, rotates per `--logging`,
+pipe and `Logs.TailEngine` RPC subscribers, rotates per `--log-rotation`,
 and rotated files are cleaned per `--retention`.
 
 **Design anchors**: `§ Log categories`,
@@ -1147,7 +1147,7 @@ and rotated files are cleaned per `--retention`.
   "drain-and-dispatch" so the broadcaster sits next to the file
   sink as a sibling inner sink rather than as a second consumer
   of `LogChannel` (the channel stays single-reader).
-- Rotation per `--logging` thresholds (1k lines / 5 MB normal; 5k /
+- Rotation per `--log-rotation` thresholds (1k lines / 5 MB small; 5k /
   25 MB debug); rotated-file naming `engine-<iso8601>.log`.
 - `RotatedLogCleaner` deletes rotated files older than the
   `--retention` window during the next rotation. (Per-tenant
@@ -2916,7 +2916,7 @@ and is killed on stdio EOF. Per-request disk read of
   subscription broadcasters, registry-file writer, `engine.log`
   sink, watchdogs, or `FileSystemWatcher`.
 - Argv parser rejects `--instance-id`, `--instance-label`,
-  `--idle-timeout`, `--parent-pid`, `--retention`, `--logging` in
+  `--idle-timeout`, `--parent-pid`, `--retention`, `--log-rotation` in
   the MCP-only role with a stderr error and non-zero exit.
 - The same handler code from Phase 6 (`Instructions.*`) and Phase 7
   (`McpTools.*`) is registered as `instructions_*` and the existing

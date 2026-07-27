@@ -6,10 +6,10 @@ using AutoContext.Engine.Core.Logging;
 public sealed class LogRotationThresholdsTests
 {
     [Fact]
-    public void ForVerbosity_should_map_normal_to_design_doc_thresholds()
+    public void ForRotationSize_should_map_small_to_design_doc_thresholds()
     {
         // Act
-        var thresholds = LogRotationThresholds.ForVerbosity(LogVerbosity.Normal);
+        var thresholds = LogRotationThresholds.ForRotationSize(LogRotationSize.Small);
 
         // Assert
         Assert.Multiple(
@@ -18,10 +18,10 @@ public sealed class LogRotationThresholdsTests
     }
 
     [Fact]
-    public void ForVerbosity_should_map_debug_to_design_doc_thresholds()
+    public void ForRotationSize_should_map_large_to_design_doc_thresholds()
     {
         // Act
-        var thresholds = LogRotationThresholds.ForVerbosity(LogVerbosity.Debug);
+        var thresholds = LogRotationThresholds.ForRotationSize(LogRotationSize.Large);
 
         // Assert
         Assert.Multiple(
@@ -30,16 +30,16 @@ public sealed class LogRotationThresholdsTests
     }
 
     [Fact]
-    public void ForVerbosity_should_fall_back_to_normal_for_unknown_enum_values()
+    public void ForRotationSize_should_fall_back_to_small_for_unknown_enum_values()
     {
         // Act — forward-compatibility guard: undefined enum
-        // values resolve to the same thresholds as Normal.
-        var unknown = (LogVerbosity)int.MaxValue;
-        var thresholds = LogRotationThresholds.ForVerbosity(unknown);
+        // values resolve to the same thresholds as Small.
+        var unknown = (LogRotationSize)int.MaxValue;
+        var thresholds = LogRotationThresholds.ForRotationSize(unknown);
 
         // Assert
         Assert.Equal(
-            LogRotationThresholds.ForVerbosity(LogVerbosity.Normal),
+            LogRotationThresholds.ForRotationSize(LogRotationSize.Small),
             thresholds);
     }
 }
