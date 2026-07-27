@@ -617,12 +617,18 @@ roles read as ordinary file I/O.
   MCP host (VS Code's MCP manager, Claude Desktop, Claude Code)
   owns its lifecycle entirely — relaunch on crash is the host's
   job, not the engine's. Argv accepted in this role:
-  `--workspace`, `--mcp-server`, `--version`. Every other engine
+  `--workspace`, `--mcp-server`, `--log-level`, `--version`. Every other engine
   switch (`--instance-id`, `--instance-label`, `--idle-timeout`,
-  `--parent-pid`, `--retention`, `--log-level`, `--log-rotation`) is **rejected at
+  `--parent-pid`, `--retention`, `--log-rotation`) is **rejected at
   argv parse time** — they describe daemon pipe-and-registry
   concerns this role does not have (the ephemeral worker-pipe
   scope is internal, not the launcher-minted `--instance-id`).
+  `--log-level` is accepted because operational logs go to stderr
+  only and the role would otherwise be undiagnosable: it defaults
+  to `warning` and raising it never touches stdout, which stays
+  protocol-only. A fault that escapes the host writes a
+  `crash.log` tombstone under the ephemeral instance's cache
+  subtree — the role's only on-disk artefact, and only on a crash.
 
 The two roles can coexist on the same workspace without
 coordination: a VS Code window runs the daemon role (state
@@ -1399,9 +1405,9 @@ and any stray write corrupts it).
 The table below is the **daemon role** surface (no `--mcp-server`).
 In the **MCP-server-only role** (`--mcp-server with-stdio`) the
 argv parser accepts a **strict subset** — `--workspace`,
-`--mcp-server`, `--version` — and **rejects every other switch in
+`--mcp-server`, `--log-level`, `--version` — and **rejects every other switch in
 the table** (`--instance-id`, `--instance-label`, `--idle-timeout`,
-`--parent-pid`, `--retention`, `--log-level`, `--log-rotation`) with a non-zero exit
+`--parent-pid`, `--retention`, `--log-rotation`) with a non-zero exit
 and a stderr error naming the rejected switch and the active role.
 The rejected switches describe pipe-and-registry concerns the
 MCP-server role does not have; silently ignoring them would let a

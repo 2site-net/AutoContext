@@ -38,22 +38,16 @@ public sealed class EngineOptions : IWorkspaceEngineInfo
 {
     /// <summary>
     /// Maximum length of <see cref="InstanceLabel"/>, in characters.
-    /// Matches the printable-ASCII length cap in
-    /// <c>design § Engine options &gt; --instance-label</c>.
     /// </summary>
     public const int InstanceLabelMaxLength = 200;
 
     /// <summary>
     /// Default idle-timeout per the <c>--idle-timeout</c> switch.
-    /// 300 seconds matches the daemon-role default in
-    /// <c>design § Engine options</c>.
     /// </summary>
     public static readonly TimeSpan DefaultIdleTimeout = TimeSpan.FromSeconds(300);
 
     /// <summary>
     /// Default retention window per the <c>--retention</c> switch.
-    /// One day matches the daemon-role default in
-    /// <c>design § Engine options</c>.
     /// </summary>
     public static readonly TimeSpan DefaultRetention = TimeSpan.FromDays(1);
 
@@ -123,8 +117,6 @@ public sealed class EngineOptions : IWorkspaceEngineInfo
     /// Minimum level a record must carry to be emitted, per the
     /// <c>--log-level</c> switch. <see langword="null"/> — the default
     /// — leaves the host's own logging configuration in force.
-    /// Ignored by the <c>--mcp-server</c> role, which pins its level to
-    /// keep the stdio transport clean.
     /// </summary>
     public LogLevel? LogLevel { get; set; }
 

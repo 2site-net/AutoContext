@@ -94,8 +94,8 @@ internal sealed class EngineCommand : RootCommand
         LogLevel = new Option<string?>("--log-level")
         {
             Description = "Minimum level a record must carry to be emitted: "
-                + "trace, debug, information (default), warning, error, critical or none. "
-                + "Daemon role only.",
+                + "trace, debug, information, warning, error, critical or none. "
+                + "Omitted leaves the role's own logging configuration in force.",
         };
         LogLevel.AcceptOnlyFromAmong(LogLevelValues);
 
@@ -214,6 +214,13 @@ internal sealed class EngineCommand : RootCommand
             options.ResourcesRootOverride = resourcesRootValue;
         }
 
+        var logLevelRaw = parseResult.GetValue(LogLevel);
+        if (logLevelRaw is not null)
+        {
+            options.LogLevel = Enum.Parse<Microsoft.Extensions.Logging.LogLevel>(
+                logLevelRaw, ignoreCase: true);
+        }
+
         if (isMcpRole)
         {
             options.McpServerMode = EngineMcpServerMode.WithStdio;
@@ -246,13 +253,6 @@ internal sealed class EngineCommand : RootCommand
         if (retentionRaw is not null)
         {
             options.Retention = ParseRetention(retentionRaw);
-        }
-
-        var logLevelRaw = parseResult.GetValue(LogLevel);
-        if (logLevelRaw is not null)
-        {
-            options.LogLevel = Enum.Parse<Microsoft.Extensions.Logging.LogLevel>(
-                logLevelRaw, ignoreCase: true);
         }
 
         var logRotationRaw = parseResult.GetValue(LogRotation);
@@ -422,12 +422,6 @@ internal sealed class EngineCommand : RootCommand
         if (parseResult.GetValue(Retention) is not null)
         {
             switchName = "--retention";
-            return true;
-        }
-
-        if (parseResult.GetValue(LogLevel) is not null)
-        {
-            switchName = "--log-level";
             return true;
         }
 

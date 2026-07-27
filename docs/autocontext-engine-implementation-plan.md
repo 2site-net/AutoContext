@@ -2916,7 +2916,7 @@ and is killed on stdio EOF. Per-request disk read of
   subscription broadcasters, registry-file writer, `engine.log`
   sink, watchdogs, or `FileSystemWatcher`.
 - Argv parser rejects `--instance-id`, `--instance-label`,
-  `--idle-timeout`, `--parent-pid`, `--retention`, `--log-level`, `--log-rotation` in
+  `--idle-timeout`, `--parent-pid`, `--retention`, `--log-rotation` in
   the MCP-only role with a stderr error and non-zero exit.
 - The same handler code from Phase 6 (`Instructions.*`) and Phase 7
   (`McpTools.*`) is registered as `instructions_*` and the existing

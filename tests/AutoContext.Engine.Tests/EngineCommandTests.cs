@@ -585,7 +585,6 @@ public sealed class EngineCommandTests
     [InlineData("--idle-timeout", "0")]
     [InlineData("--parent-pid", "1234")]
     [InlineData("--retention", "1d")]
-    [InlineData("--log-level", "debug")]
     [InlineData("--log-rotation", "large")]
     public void Should_reject_daemon_only_switches_in_mcp_server_role(
         string switchName,
@@ -611,6 +610,29 @@ public sealed class EngineCommandTests
             () => Assert.NotNull(error),
             () => Assert.Contains(switchName, error!, StringComparison.Ordinal),
             () => Assert.Contains("--mcp-server with-stdio", error!, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Should_accept_the_log_level_in_mcp_server_role()
+    {
+        // Arrange
+        var command = new EngineCommand();
+        var args = new[]
+        {
+            "--workspace", EngineCommandArgsFakeData.GetWorkspacePathArgValue(),
+            "--mcp-server", "with-stdio",
+            "--log-level", "debug",
+        };
+
+        // Act
+        var parseResult = command.Parse(args);
+        var built = command.TryBuildOptions(parseResult, out var options, out var error);
+
+        // Assert
+        Assert.Multiple(
+            () => Assert.Empty(parseResult.Errors),
+            () => Assert.True(built, error),
+            () => Assert.Equal(LogLevel.Debug, options.LogLevel));
     }
 
     [Fact]
