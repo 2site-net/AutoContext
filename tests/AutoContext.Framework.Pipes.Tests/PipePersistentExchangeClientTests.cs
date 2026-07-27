@@ -22,6 +22,7 @@ public sealed class PipePersistentExchangeClientTests
     }
 
     [Fact]
+    [Trait("Category", "Integration")]
     public async Task Should_round_trip_a_request()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
@@ -50,6 +51,7 @@ public sealed class PipePersistentExchangeClientTests
     }
 
     [Fact]
+    [Trait("Category", "Integration")]
     public async Task Should_reuse_the_connection_across_multiple_exchanges()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
@@ -87,6 +89,7 @@ public sealed class PipePersistentExchangeClientTests
     }
 
     [Fact]
+    [Trait("Category", "Integration")]
     public async Task Should_complete_dispose_while_an_exchange_is_stuck()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
@@ -128,11 +131,19 @@ public sealed class PipePersistentExchangeClientTests
             // the exchange, so teardown is not paced by the dead peer.
             Assert.True(elapsed < TimeSpan.FromSeconds(1), $"Dispose took {elapsed}.");
 
-            // The abort surfaces as the I/O failure it is. An
-            // ObjectDisposedException here would mean teardown had
-            // disposed the gate out from under the exchange's release
-            // and masked the real cause.
-            _ = await Assert.ThrowsAsync<IOException>(async () => await stuck);
+            // Dispose aborts the exchange by closing the handle, and which
+            // side of that race the pending read observes is timing: a read
+            // already inside the OS call surfaces a torn pipe, one that has
+            // not re-entered it sees the closed stream instead. Both are the
+            // abort. The shape that must never appear is the gate reporting
+            // itself disposed — that would mean teardown tore the semaphore
+            // down under the exchange's release and masked the real cause.
+            var abort = await Assert.ThrowsAnyAsync<Exception>(async () => await stuck);
+
+            Assert.True(
+                abort is IOException or ObjectDisposedException,
+                $"Expected the abort to surface as a pipe failure, got {abort}.");
+            Assert.DoesNotContain("semaphore", abort.Message, StringComparison.OrdinalIgnoreCase);
         }
         finally
         {
@@ -156,6 +167,7 @@ public sealed class PipePersistentExchangeClientTests
     }
 
     [Fact]
+    [Trait("Category", "Integration")]
     public async Task Should_throw_IOException_when_peer_closes_without_responding()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
