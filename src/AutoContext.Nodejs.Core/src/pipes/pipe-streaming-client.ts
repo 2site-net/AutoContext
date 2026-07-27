@@ -1,6 +1,6 @@
 import type { Socket } from 'node:net';
 
-import type { LoggerFacade } from '../logging/logger-facade.js';
+import type { LoggerFacade } from '#types/logger-facade.js';
 import { PipeTransport } from './pipe-transport.js';
 
 /**

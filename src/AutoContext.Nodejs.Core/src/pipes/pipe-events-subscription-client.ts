@@ -1,8 +1,14 @@
 import type { Socket } from 'node:net';
 
-import type { LoggerFacade } from '../logging/logger-facade.js';
+import type { LoggerFacade } from '#types/logger-facade.js';
 import { LengthPrefixedFrameCodec } from './length-prefixed-frame-codec.js';
 import { PipeTransport } from './pipe-transport.js';
+
+/**
+ * Writes one request frame on the freshly-connected pipe and resolves
+ * with the frame the peer answers with.
+ */
+export type PipeFrameExchange = (request: Buffer | Uint8Array) => Promise<Buffer>;
 
 /**
  * Construction options for {@link PipeEventsSubscriptionClient}.
@@ -16,6 +22,13 @@ export interface PipeEventsSubscriptionClientOptions {
 
     /** Sink for connect and teardown diagnostics. */
     readonly logger: LoggerFacade;
+
+    /**
+     * Runs once on the fresh connection, before any subscribe frame is
+     * written, for peers that gate a subscription behind a
+     * request/response handshake. Rejecting aborts the subscription.
+     */
+    readonly handshake?: (exchange: PipeFrameExchange) => Promise<void>;
 
     /** Milliseconds to wait for the connect. Defaults to 2000. */
     readonly connectTimeoutMs?: number;
@@ -39,6 +52,7 @@ export class PipeEventsSubscriptionClient {
     private static readonly DEFAULT_CONNECT_TIMEOUT_MS = 2000;
 
     private readonly connectTimeoutMs: number;
+    private readonly handshake: ((exchange: PipeFrameExchange) => Promise<void>) | undefined;
     private readonly logger: LoggerFacade;
     private readonly pipeName: string;
     private readonly transport: PipeTransport;
@@ -55,6 +69,7 @@ export class PipeEventsSubscriptionClient {
         this.transport = options.transport;
         this.pipeName = options.pipeName;
         this.logger = options.logger;
+        this.handshake = options.handshake;
         this.connectTimeoutMs = options.connectTimeoutMs
             ?? PipeEventsSubscriptionClient.DEFAULT_CONNECT_TIMEOUT_MS;
     }
@@ -76,6 +91,20 @@ export class PipeEventsSubscriptionClient {
         }
 
         const codec = await this.connect(signal);
+
+        if (this.handshake !== undefined) {
+            await this.handshake(async (request) => {
+                await codec.write(Buffer.from(request), signal);
+
+                const response = await codec.read(signal);
+                if (response === null) {
+                    throw new Error(
+                        `Peer closed '${this.pipeName}' during the subscription handshake.`);
+                }
+
+                return response;
+            });
+        }
 
         for (const frame of subscribeFrames) {
             await codec.write(Buffer.from(frame), signal);

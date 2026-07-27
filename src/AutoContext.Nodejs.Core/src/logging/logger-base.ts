@@ -1,7 +1,7 @@
 import type { LogCategory } from './log-category.js';
 import { LogLevel } from './log-level.js';
-import type { LoggerFacade } from './logger-facade.js';
-import type { Logger } from './logger.js';
+import type { LoggerFacade } from '#types/logger-facade.js';
+import type { Logger } from '#types/logger.js';
 
 /**
  * Abstract base that unifies {@link Logger} and {@link LoggerFacade}.

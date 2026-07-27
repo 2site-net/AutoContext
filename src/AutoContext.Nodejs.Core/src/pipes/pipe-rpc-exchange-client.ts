@@ -1,6 +1,6 @@
 import type { Socket } from 'node:net';
 
-import type { LoggerFacade } from '../logging/logger-facade.js';
+import type { LoggerFacade } from '#types/logger-facade.js';
 import { LengthPrefixedFrameCodec } from './length-prefixed-frame-codec.js';
 import { PipeTransport } from './pipe-transport.js';
 
@@ -79,6 +79,40 @@ export class PipeRpcExchangeClient {
     }
 
     /**
+     * Establishes the connection without exchanging a frame, so a
+     * caller can tell a failed connect apart from a failure of the
+     * conversation it was about to start.
+     *
+     * @throws When the client is disposed, has already faulted, the
+     * connect times out, or the signal aborts.
+     */
+    connect(signal?: AbortSignal): Promise<void> {
+        const attempt = this.gate.then(
+            () => this.connectCore(signal),
+            () => this.connectCore(signal));
+
+        this.gate = attempt.catch(() => undefined);
+        return attempt;
+    }
+
+    /**
+     * Writes {@link request} as one frame without reading a response,
+     * for peers that answer some requests and not others. Queues behind
+     * in-flight exchanges so it never interleaves with their frames.
+     *
+     * @throws When the client is disposed, has already faulted, or the
+     * signal aborts.
+     */
+    send(request: Buffer | Uint8Array, signal?: AbortSignal): Promise<void> {
+        const attempt = this.gate.then(
+            () => this.sendCore(request, signal),
+            () => this.sendCore(request, signal));
+
+        this.gate = attempt.catch(() => undefined);
+        return attempt;
+    }
+
+    /**
      * Closes the held connection, releasing any in-flight exchange.
      * Safe to call multiple times.
      */
@@ -113,6 +147,37 @@ export class PipeRpcExchangeClient {
             }
 
             return response;
+        }
+        catch (err) {
+            this.faulted = err instanceof Error ? err : new Error(String(err));
+            await this.closeConnection();
+            throw err;
+        }
+    }
+
+    private async connectCore(signal?: AbortSignal): Promise<void> {
+        if (this.disposed) {
+            throw new Error(`Exchange client for '${this.pipeName}' is disposed.`);
+        }
+        if (this.faulted !== undefined) {
+            throw this.faulted;
+        }
+
+        await this.ensureConnected(signal);
+    }
+
+    private async sendCore(request: Buffer | Uint8Array, signal?: AbortSignal): Promise<void> {
+        if (this.disposed) {
+            throw new Error(`Exchange client for '${this.pipeName}' is disposed.`);
+        }
+        if (this.faulted !== undefined) {
+            throw this.faulted;
+        }
+
+        const codec = await this.ensureConnected(signal);
+
+        try {
+            await codec.write(Buffer.from(request), signal);
         }
         catch (err) {
             this.faulted = err instanceof Error ? err : new Error(String(err));

@@ -1,7 +1,7 @@
 import { connect, type NetConnectOpts, type Socket } from 'node:net';
 import { platform } from 'node:os';
 
-import type { LoggerFacade } from '../logging/logger-facade.js';
+import type { LoggerFacade } from '#types/logger-facade.js';
 
 /**
  * Layer 1 transport primitive for AutoContext named-pipe communication

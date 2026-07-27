@@ -1,4 +1,4 @@
-import type { LogCategory } from './log-category.js';
+import type { LogCategory } from '../logging/log-category.js';
 import type { LoggerFacade } from './logger-facade.js';
 import type { Logger } from './logger.js';
 

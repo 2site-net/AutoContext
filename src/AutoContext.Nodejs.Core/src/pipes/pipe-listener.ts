@@ -3,7 +3,7 @@ import { unlinkSync } from 'node:fs';
 import { connect } from 'node:net';
 import { platform } from 'node:os';
 
-import type { LoggerFacade } from '../logging/logger-facade.js';
+import type { LoggerFacade } from '#types/logger-facade.js';
 
 /**
  * Layer-3 server-side pipe primitive (unbound state). Holds the
@@ -183,6 +183,15 @@ export class BoundPipeListener {
         const onConnection = (socket: Socket): void => {
             this.sockets.add(socket);
             socket.once('close', () => this.sockets.delete(socket));
+
+            // A peer that disconnects mid-write fails the write and
+            // then emits; the listener owns the socket, so it absorbs
+            // the emit rather than letting it reach the process.
+            socket.on('error', (err: Error) => {
+                this.logger.debug(
+                    `Connection on '${this.pipeName}' faulted: ${err.message}`);
+            });
+
             const task = this.invokeHandler(socket, handler, linkedSignal);
             this.inFlight.add(task);
             void task.finally(() => this.inFlight.delete(task));

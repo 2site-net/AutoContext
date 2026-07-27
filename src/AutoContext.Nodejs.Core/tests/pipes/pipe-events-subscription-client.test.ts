@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createFakeLogger } from '../support/logging/fake-logger.js';
+import { createFakeLogger } from '#support/logging/fake-logger.js';
 import { createTestPipeName, waitFor } from 'autocontext-nodejs-tests-support';
 import { LengthPrefixedFrameCodec } from '#src/pipes/length-prefixed-frame-codec.js';
 import { PipeEventsSubscriptionClient } from '#src/pipes/pipe-events-subscription-client.js';
