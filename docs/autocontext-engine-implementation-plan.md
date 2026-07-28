@@ -3096,7 +3096,7 @@ consuming the client (Phase 15); CLI verb implementations
 
 ## Phase 13 — Distribution and packaging
 
-**Status**: In Progress.
+**Status**: Completed on branch `dev/autocontext-engine`.
 
 **Goal**: `scripts/package.ps1` emits per-RID engine staging under
 `artifacts/engine/<rid>/...`; per-platform packaging (VSIX, plugin

@@ -7,6 +7,7 @@ publish/**
 instructions/.workspaces/**
 dist-tests/**
 *.tsbuildinfo
+*.log
 .gitignore
 tsconfig.json
 tsconfig.src.json

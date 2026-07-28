@@ -875,6 +875,7 @@ function Build-DotNetPackage {
             '-r', $Rid
             '--self-contained'
             '-p:PublishSingleFile=true'
+            '-p:ContinuousIntegrationBuild=true'
         )
 
         foreach ($projectPath in $Context.ServerProjectPaths) {
@@ -998,6 +999,7 @@ function Build-EngineBundle {
             '-r', $Rid
             '--self-contained'
             '-p:PublishSingleFile=true'
+            '-p:ContinuousIntegrationBuild=true'
         )
 
         dotnet @publishArgs $Context.EngineProjectPath -o $stagingDir
