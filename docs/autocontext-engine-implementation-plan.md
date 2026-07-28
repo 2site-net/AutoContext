@@ -3096,7 +3096,7 @@ consuming the client (Phase 15); CLI verb implementations
 
 ## Phase 13 — Distribution and packaging
 
-**Status**: Not started.
+**Status**: In Progress.
 
 **Goal**: `scripts/package.ps1` emits per-RID engine staging under
 `out/engine/<rid>/...`; per-platform packaging (VSIX, plugin
@@ -3131,13 +3131,13 @@ the per-platform packaging note (`vsce package --target <target>`).
   every side-car (manifest fixture for each).
 - Per-platform VSIX contains the right RID's binaries and no others
   (size + spot-check assertions).
-- Plugin release for each platform mirrors the same layout.
 - Corpus byte-equality across RIDs in one build (manifest fixture).
-- GitHub-release tarball smoke (build, extract, run `--version`).
 
 **Out of scope**: marketplace publishing (separate operational
 step); existing extension still ships its TS-side instruction
-artefacts until Phase 14.
+artefacts until Phase 14. Plugin-release and GitHub-release tarball
+layout coverage moves with the artefacts themselves — neither is
+produced by this repository yet, so neither can be verified here.
 
 ## Phase 14 — Extension migration
 

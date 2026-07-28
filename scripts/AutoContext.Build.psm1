@@ -130,6 +130,10 @@ function Initialize-BuildContext {
 # ── Output helpers ───────────────────────────────────────────────────────────
 
 function Write-Header {
+    <#
+    .SYNOPSIS
+        Prints a title centred inside a full-width rule.
+    #>
     param(
         [Parameter(Mandatory)][string]$Title,
         [ConsoleColor]$Color = 'Cyan'
@@ -147,11 +151,19 @@ function Write-Header {
 }
 
 function Write-Section {
+    <#
+    .SYNOPSIS
+        Prints a section heading introducing the step about to run.
+    #>
     param([Parameter(Mandatory)][string]$Title)
     Write-Host ("`n=== {0}" -f $Title) -ForegroundColor Cyan
 }
 
 function Write-Status {
+    <#
+    .SYNOPSIS
+        Prints an indented status line carrying an outcome icon and colour.
+    #>
     param(
         [Parameter(Mandatory)][string]$Message,
         [ValidateSet('OK', 'FAIL', 'INFO')][string]$Status
@@ -173,6 +185,12 @@ function Write-Status {
 }
 
 function Invoke-WithRetry {
+    <#
+    .SYNOPSIS
+        Runs a scriptblock, retrying only while its output matches the
+        caller's retryable predicate, and returns the final output and
+        exit code.
+    #>
     param(
         [Parameter(Mandatory)][scriptblock]$ScriptBlock,
         [scriptblock]$IsRetryable = { $false },
@@ -218,6 +236,10 @@ function Invoke-WithRetry {
 # ── Validation ───────────────────────────────────────────────────────────────
 
 function Assert-ExternalCommand {
+    <#
+    .SYNOPSIS
+        Throws when a required external command is not on PATH.
+    #>
     param([Parameter(Mandatory)][string]$Command)
 
     if (-not (Get-Command $Command -ErrorAction SilentlyContinue)) {
@@ -450,13 +472,6 @@ function Install-Npm {
     .SYNOPSIS
         Installs npm dependencies for a project, skipping the install when
         package-lock.json is unchanged since the last successful install.
-    .DESCRIPTION
-        Gates `npm install` / `npm ci` on a SHA-256 hash of package-lock.json
-        recorded under node_modules after a successful install. When the lock
-        file is unchanged and node_modules is present, the install is skipped —
-        eliminating the dominant cost of repeated inner-loop compiles. Assumes
-        the current working directory is $ProjectDir (callers Push-Location
-        into it before invoking npm).
     #>
     [CmdletBinding()]
     param(
@@ -494,6 +509,12 @@ function Install-Npm {
 }
 
 function Build-TypeScript {
+    <#
+    .SYNOPSIS
+        Compiles every TypeScript project — shared libraries first, then the
+        extension with its generated manifests and staged hook scripts, then
+        each node server.
+    #>
     [CmdletBinding(SupportsShouldProcess)]
     param([Parameter(Mandatory)][psobject]$Context)
 
@@ -595,6 +616,10 @@ function Build-TypeScript {
 }
 
 function Build-DotNet {
+    <#
+    .SYNOPSIS
+        Compiles the .NET solution in Release.
+    #>
     [CmdletBinding(SupportsShouldProcess)]
     param([Parameter(Mandatory)][psobject]$Context)
 
@@ -612,6 +637,10 @@ function Build-DotNet {
 }
 
 function Test-TypeScript {
+    <#
+    .SYNOPSIS
+        Runs the vitest suite for every discovered vitest config.
+    #>
     [CmdletBinding(SupportsShouldProcess)]
     param([Parameter(Mandatory)][psobject]$Context)
 
@@ -646,6 +675,11 @@ function Test-TypeScript {
 }
 
 function Test-DotNet {
+    <#
+    .SYNOPSIS
+        Runs the .NET unit tests against the existing build, excluding the
+        smoke category.
+    #>
     [CmdletBinding(SupportsShouldProcess)]
     param([Parameter(Mandatory)][psobject]$Context)
 
@@ -669,6 +703,11 @@ function Test-DotNet {
 }
 
 function Test-DotNetFormat {
+    <#
+    .SYNOPSIS
+        Verifies .NET formatting, failing on any deviation rather than
+        rewriting the file.
+    #>
     [CmdletBinding(SupportsShouldProcess)]
     param([Parameter(Mandatory)][psobject]$Context)
 
@@ -688,6 +727,11 @@ function Test-DotNetFormat {
 }
 
 function Test-DotNetSmoke {
+    <#
+    .SYNOPSIS
+        Runs the smoke-category tests of every project that contains a
+        *.Smoke.cs file, against the staged layout the caller prepared.
+    #>
     [CmdletBinding(SupportsShouldProcess)]
     param([Parameter(Mandatory)][psobject]$Context)
 
@@ -733,6 +777,11 @@ function Test-DotNetSmoke {
 }
 
 function Test-VsCodeSmoke {
+    <#
+    .SYNOPSIS
+        Compiles the extension smoke tests and runs them inside a real VS
+        Code instance, against the staged layout the caller prepared.
+    #>
     [CmdletBinding(SupportsShouldProcess)]
     param([Parameter(Mandatory)][psobject]$Context)
 
@@ -775,6 +824,11 @@ function Test-VsCodeSmoke {
 }
 
 function Copy-AssetsToExtensionFolder {
+    <#
+    .SYNOPSIS
+        Copies the licence, legal, and server-manifest files the VSIX ships
+        into the extension directory.
+    #>
     [CmdletBinding(SupportsShouldProcess)]
     param([Parameter(Mandatory)][psobject]$Context)
 
@@ -796,6 +850,11 @@ function Copy-AssetsToExtensionFolder {
 }
 
 function Build-DotNetPackage {
+    <#
+    .SYNOPSIS
+        Publishes every .NET server self-contained for one runtime into
+        servers/<name>/.
+    #>
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory)][psobject]$Context,
@@ -855,14 +914,6 @@ function Get-EngineWorkerStagingPlan {
         Resolves what to stage into each Workers/<id>/ directory, taking the
         roster from the engine's own generated workers.json so the staged
         layout and the engine's ${root} lookup cannot disagree.
-    .DESCRIPTION
-        workers.json is the runtime contract — it names every worker the
-        engine will launch, but carries no build inputs. The per-worker
-        .autocontext-worker.json descriptor is where a worker id is tied to
-        the project that produces it, so the roster is joined against those
-        descriptors by id. A row with no descriptor, or a descriptor the
-        roster never claims, is a packaging defect and throws rather than
-        silently shipping a bundle the engine cannot launch from.
     #>
     [CmdletBinding()]
     [OutputType([psobject[]])]
@@ -982,6 +1033,149 @@ function Build-EngineBundle {
     }
 }
 
+function Get-ExecutableRuntime {
+    <#
+    .SYNOPSIS
+        Reads an executable's own header to report the runtime it was
+        built for, as a '<os>-<arch>' string directly comparable with a
+        runtime identifier. Returns $null for a file that carries no
+        recognised executable header.
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param([Parameter(Mandatory)][string]$Path)
+
+    $stream = [System.IO.File]::OpenRead($Path)
+    try {
+        $reader = [System.IO.BinaryReader]::new($stream)
+        if ($stream.Length -lt 64) { return $null }
+
+        $magic = $reader.ReadUInt32()
+
+        # ELF: 0x7F 'E' 'L' 'F', with e_machine 18 bytes in.
+        if ($magic -eq 0x464C457F) {
+            $stream.Position = 0x12
+            switch ($reader.ReadUInt16()) {
+                0x3E { return 'linux-x64' }
+                0xB7 { return 'linux-arm64' }
+                default { return $null }
+            }
+        }
+
+        # Mach-O 64-bit, with cpu_type immediately after the magic. The
+        # magic needs the unsigned suffix: it overflows Int32, which a
+        # bare literal would silently become and never match.
+        if ($magic -eq 0xFEEDFACFu) {
+            switch ($reader.ReadUInt32()) {
+                0x01000007 { return 'osx-x64' }
+                0x0100000C { return 'osx-arm64' }
+                default { return $null }
+            }
+        }
+
+        # PE: 'MZ', with the COFF header located via e_lfanew at 0x3C.
+        if (($magic -band 0xFFFF) -eq 0x5A4D) {
+            $stream.Position = 0x3C
+            $stream.Position = $reader.ReadUInt32()
+            if ($reader.ReadUInt32() -ne 0x00004550) { return $null }
+
+            switch ($reader.ReadUInt16()) {
+                0x8664 { return 'win-x64' }
+                0xAA64 { return 'win-arm64' }
+                default { return $null }
+            }
+        }
+
+        return $null
+    }
+    finally {
+        $stream.Dispose()
+    }
+}
+
+function Assert-EngineBundleRuntime {
+    <#
+    .SYNOPSIS
+        Fails when a staged engine bundle carries a binary built for a
+        runtime other than the one being packaged.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$BundleDir,
+        [Parameter(Mandatory)][string]$Rid
+    )
+
+    $executableName = if ($Rid.StartsWith('win-')) { 'autocontext-engine.exe' } else { 'autocontext-engine' }
+    $enginePath = Join-Path $BundleDir $executableName
+    if (-not (Test-Path $enginePath)) {
+        throw "Engine bundle for $Rid carries no '$executableName' ($BundleDir)."
+    }
+
+    # Only apphost-shaped files are probed: '.exe' on Windows and
+    # extensionless elsewhere. Anything else in a worker directory is a
+    # script or data file with no runtime of its own.
+    $workersDir = Join-Path $BundleDir 'Workers'
+    $candidates = @($enginePath)
+    if (Test-Path $workersDir) {
+        $candidates += @(
+            Get-ChildItem $workersDir -Recurse -File |
+                Where-Object { if ($Rid.StartsWith('win-')) { $_.Extension -eq '.exe' } else { $_.Extension -eq '' } } |
+                Select-Object -ExpandProperty FullName
+        )
+    }
+
+    foreach ($candidate in $candidates) {
+        $actual = Get-ExecutableRuntime -Path $candidate
+        if ($null -eq $actual) { continue }
+
+        if ($actual -ne $Rid) {
+            throw "'$candidate' targets $actual but the bundle is being packaged for $Rid."
+        }
+    }
+
+    Write-Status "bundle verified as $Rid" 'OK'
+}
+
+function Assert-EngineCorpusIdenticalAcrossRuntimes {
+    <#
+    .SYNOPSIS
+        Fails when the instructions corpus staged for one runtime differs
+        from the corpus staged for another in the same build.
+    #>
+    [CmdletBinding(SupportsShouldProcess)]
+    param([Parameter(Mandatory)][psobject]$Context)
+
+    Write-Section 'Verify corpus'
+
+    if ($PSCmdlet.ShouldProcess('staged instructions corpus', 'Compare across runtimes')) {
+        $digests = [ordered]@{}
+
+        foreach ($rid in $Context.RidToTarget.Keys) {
+            $corpusDir = Join-Path $Context.EngineStagingRoot $rid 'Instructions'
+            if (-not (Test-Path $corpusDir)) {
+                throw "Instructions corpus not staged for $rid ($corpusDir)."
+            }
+
+            $entries = Get-ChildItem $corpusDir -Recurse -File | Sort-Object FullName | ForEach-Object {
+                $relativePath = $_.FullName.Substring($corpusDir.Length + 1).Replace('\', '/')
+                '{0} {1}' -f $relativePath, (Get-FileHash $_.FullName -Algorithm SHA256).Hash
+            }
+
+            $digests[$rid] = [Convert]::ToHexString(
+                [System.Security.Cryptography.SHA256]::HashData(
+                    [System.Text.Encoding]::UTF8.GetBytes(($entries -join "`n"))))
+        }
+
+        $distinct = @($digests.Values | Sort-Object -Unique)
+        if ($distinct.Count -gt 1) {
+            $summary = ($digests.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value.Substring(0, 12))" }) -join ', '
+            throw "The instructions corpus differs across runtimes: $summary."
+        }
+
+        Write-Status "corpus identical across $($digests.Count) runtimes" 'OK'
+    }
+}
+
 function Copy-EngineBundleToExtension {
     <#
     .SYNOPSIS
@@ -1008,6 +1202,10 @@ function Copy-EngineBundleToExtension {
         Copy-Item (Join-Path $stagingDir '*') $Context.EngineBundleDir -Recurse -Force
 
         Write-Status "engine/ populated ($Rid)" 'OK'
+
+        # Verified after the copy so the check covers the tree that is
+        # actually packaged, not the staging it was cut from.
+        Assert-EngineBundleRuntime -BundleDir $Context.EngineBundleDir -Rid $Rid
     }
 }
 
@@ -1056,6 +1254,11 @@ function Copy-EngineToExtension {
 }
 
 function Copy-DotNetToServersFolder {
+    <#
+    .SYNOPSIS
+        Local-dev counterpart of Build-DotNetPackage: lays out servers/<name>/
+        from framework-dependent build output instead of a per-RID publish.
+    #>
     [CmdletBinding(SupportsShouldProcess)]
     param([Parameter(Mandatory)][psobject]$Context)
 
@@ -1077,6 +1280,12 @@ function Copy-DotNetToServersFolder {
 }
 
 function Copy-NodeJsToServersFolder {
+    <#
+    .SYNOPSIS
+        Stages each node server's compiled output and production dependencies
+        into servers/<name>/, replacing npm's workspace links with real copies
+        so the tree is self-contained.
+    #>
     [CmdletBinding(SupportsShouldProcess)]
     param([Parameter(Mandatory)][psobject]$Context)
 
@@ -1162,6 +1371,11 @@ function Copy-NodeJsToServersFolder {
 }
 
 function Build-NodeJsBundle {
+    <#
+    .SYNOPSIS
+        Bundles each staged node server into a single ESM entry point and
+        removes everything the bundle inlined.
+    #>
     [CmdletBinding(SupportsShouldProcess)]
     param([Parameter(Mandatory)][psobject]$Context)
 
@@ -1221,6 +1435,11 @@ function Build-NodeJsBundle {
 }
 
 function Build-ExtensionBundle {
+    <#
+    .SYNOPSIS
+        Bundles the compiled extension into a single ESM entry point and
+        removes the outputs and incremental caches it inlined.
+    #>
     [CmdletBinding(SupportsShouldProcess)]
     param([Parameter(Mandatory)][psobject]$Context)
 
@@ -1268,6 +1487,11 @@ function Build-ExtensionBundle {
 }
 
 function Build-VscePackage {
+    <#
+    .SYNOPSIS
+        Packages the staged extension into a VSIX for one platform target and
+        moves it into publish/.
+    #>
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory)][psobject]$Context,
@@ -1309,6 +1533,11 @@ function Build-VscePackage {
 }
 
 function Publish-VscePackage {
+    <#
+    .SYNOPSIS
+        Publishes every built VSIX to the Visual Studio Marketplace, skipping
+        versions already published.
+    #>
     [CmdletBinding(SupportsShouldProcess)]
     param([Parameter(Mandatory)][psobject]$Context)
 
@@ -1360,6 +1589,11 @@ function Publish-VscePackage {
 }
 
 function Publish-OvsxPackage {
+    <#
+    .SYNOPSIS
+        Publishes every built VSIX to Open VSX, skipping versions already
+        published.
+    #>
     [CmdletBinding(SupportsShouldProcess)]
     param([Parameter(Mandatory)][psobject]$Context)
 
@@ -1411,6 +1645,11 @@ function Publish-OvsxPackage {
 }
 
 function Resolve-RuntimeIdentifier {
+    <#
+    .SYNOPSIS
+        Returns the supplied runtime identifier, falling back to the one the
+        host .NET installation reports.
+    #>
     [CmdletBinding()]
     [OutputType([string])]
     param([string]$RuntimeIdentifier)
@@ -1430,6 +1669,11 @@ function Resolve-RuntimeIdentifier {
 }
 
 function Update-ProjectVersion {
+    <#
+    .SYNOPSIS
+        Writes a new canonical version into version.json and stamps it across
+        every project file and generated version constant.
+    #>
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory)][psobject]$Context,
@@ -1456,6 +1700,11 @@ function Update-ProjectVersion {
 # ── Composite actions ────────────────────────────────────────────────────────
 
 function Invoke-Build {
+    <#
+    .SYNOPSIS
+        The gate: compiles the selected stack(s), verifies .NET formatting,
+        and runs the unit tests.
+    #>
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory)][psobject]$Context,
@@ -1481,6 +1730,11 @@ function Invoke-Build {
 }
 
 function Invoke-Prepare {
+    <#
+    .SYNOPSIS
+        Cleans, syncs versions, runs the full gate, and copies the shipped
+        assets — the staged tree every packaging path starts from.
+    #>
     [CmdletBinding(SupportsShouldProcess)]
     param([Parameter(Mandatory)][psobject]$Context)
 
@@ -1496,6 +1750,11 @@ function Invoke-Prepare {
 }
 
 function Invoke-Package {
+    <#
+    .SYNOPSIS
+        Produces the packaged layout: a framework-dependent local dev copy,
+        one platform's VSIX, or all six.
+    #>
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory)][psobject]$Context,
@@ -1527,6 +1786,10 @@ function Invoke-Package {
             Build-VscePackage -Context $Context -Rid $rid
         }
 
+        # Only an all-platform run has more than one staging tree to
+        # compare, so the corpus invariant is checked here.
+        Assert-EngineCorpusIdenticalAcrossRuntimes -Context $Context
+
         # Drop the per-artefact staging each VSIX already carries a copy of.
         # out/engine/<rid>/ deliberately survives: it is the per-RID build
         # output the shipped bundles are cut from, and Clean owns it.
@@ -1551,13 +1814,6 @@ function Invoke-TestStress {
     .SYNOPSIS
         Runs a test scriptblock repeatedly, surfacing intermittent
         failures as a rate instead of aborting on the first flake.
-    .DESCRIPTION
-        With a Times of 1 (the default) the block runs once and any
-        failure propagates unchanged. With a higher count each iteration
-        is wrapped so a throw is recorded and the run continues; after the
-        final iteration a summary lists which iterations failed, and the
-        function re-throws when the failure count is non-zero so the
-        caller's exit code still reflects failure.
     #>
     [CmdletBinding()]
     param(
@@ -1602,6 +1858,11 @@ function Invoke-TestStress {
 }
 
 function Invoke-SmokeTests {
+    <#
+    .SYNOPSIS
+        Stages the packaged layout once, then runs the selected smoke
+        suite(s) against it.
+    #>
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory)][psobject]$Context,
@@ -1625,6 +1886,11 @@ function Invoke-SmokeTests {
 }
 
 function Invoke-Publish {
+    <#
+    .SYNOPSIS
+        Builds any per-platform VSIX not already present, then publishes every
+        one to both marketplaces.
+    #>
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory)][psobject]$Context,
@@ -1780,6 +2046,12 @@ function Remove-ExistingTag {
 }
 
 function Invoke-Tag {
+    <#
+    .SYNOPSIS
+        Validates the version and working tree, runs the gate, bumps and
+        commits the version when it changed, and creates the annotated
+        release tag.
+    #>
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory)][psobject]$Context,
@@ -1867,6 +2139,11 @@ function Invoke-Tag {
 }
 
 function Remove-BuildOutput {
+    <#
+    .SYNOPSIS
+        Deletes a build output path, retrying briefly so a transient lock has
+        time to clear.
+    #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][string]$Path,
@@ -1890,6 +2167,12 @@ function Remove-BuildOutput {
 }
 
 function Invoke-Clean {
+    <#
+    .SYNOPSIS
+        Deletes every build output: TypeScript dist trees and incremental
+        caches, staged servers and engine, VSIX packages, generated
+        instructions, and each .NET project's bin/ and obj/.
+    #>
     [CmdletBinding(SupportsShouldProcess)]
     param([Parameter(Mandatory)][psobject]$Context)
 

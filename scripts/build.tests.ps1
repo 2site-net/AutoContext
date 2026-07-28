@@ -400,19 +400,20 @@ $testCases = @(
         Script       = 'scripts/package.ps1'
         Arguments    = '-WhatIf'
         ExpectOutput = @('Compile TypeScript', 'dotnet build', 'dotnet publish', 'Package engine', 'Copy engine to extension', 'vsce package')
+        RejectOutput = @('Verify corpus')
     }
     @{
         Name         = 'scripts/package.ps1 All (6 platforms)'
         Script       = 'scripts/package.ps1'
         Arguments    = 'All -WhatIf'
-        ExpectOutput = @('win-x64', 'win-arm64', 'linux-x64', 'linux-arm64', 'osx-x64', 'osx-arm64')
+        ExpectOutput = @('win-x64', 'win-arm64', 'linux-x64', 'linux-arm64', 'osx-x64', 'osx-arm64', 'Verify corpus')
     }
     @{
         Name         = 'scripts/package.ps1 -Local'
         Script       = 'scripts/package.ps1'
         Arguments    = '-Local -WhatIf'
         ExpectOutput = @('Compile TypeScript', 'dotnet build', 'Copy .NET servers \(local\)', 'Copy engine \(local\)')
-        RejectOutput = @('dotnet publish', 'vsce package', 'Package engine')
+        RejectOutput = @('dotnet publish', 'vsce package', 'Package engine', 'Verify corpus')
     }
     @{
         Name         = 'scripts/package.ps1 -Local + RuntimeIdentifier (mutually exclusive)'
