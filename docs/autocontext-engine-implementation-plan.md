@@ -761,7 +761,7 @@ Per the design's distributed-bundle picture: every shipped host
 artefact (VSIX per platform, plugin release per platform,
 GitHub-release tarball per RID) embeds the same `engine/` subtree.
 The per-RID segment that exists at build-staging time
-(`out/engine/<rid>/…`) is **absent** from the shipped product.
+(`artifacts/engine/<rid>/…`) is **absent** from the shipped product.
 
 ```
 <host bundle root>/
@@ -3099,7 +3099,7 @@ consuming the client (Phase 15); CLI verb implementations
 **Status**: In Progress.
 
 **Goal**: `scripts/package.ps1` emits per-RID engine staging under
-`out/engine/<rid>/...`; per-platform packaging (VSIX, plugin
+`artifacts/engine/<rid>/...`; per-platform packaging (VSIX, plugin
 release, GitHub-release tarball) selects the matching RID and
 copies the flat `engine/` subtree into the shipped artefact. The
 engine resolves its side-cars from `AppContext.BaseDirectory`
@@ -3253,15 +3253,15 @@ hosts).
 
 **Status**: Not started.
 
-**Goal**: the standalone MCP-server project is gone. Phase 11 left it
+**Goal**: the standalone MCP-server project is gone, and with it the
+whole `servers/` distribution path. Phase 11 left the project
 **untouched** as the legacy stdio server (no delegating shim), so this
 phase deletes it as-is once its last consumers have flipped to the
-engine binary. The MCP host servers manifest (`servers.json`) points at
-`autocontext-engine --mcp-server with-stdio`. Tests fold into
-`AutoContext.Engine.Core.Tests`.
+engine binary. `engine/` becomes the only binary payload a shipped
+artefact carries. Tests fold into `AutoContext.Engine.Core.Tests`.
 
 **Design anchors**: `§ What the engine absorbs from today's topology`,
-`§ Test-project layout`.
+`§ Test-project layout`, `§ Distributed bundle layout`.
 
 **Code touch**:
 - Delete `src/AutoContext.Mcp.Server/` and
@@ -3271,9 +3271,28 @@ engine binary. The MCP host servers manifest (`servers.json`) points at
 - Tests worth keeping move into `AutoContext.Engine.Core.Tests`
   (the schema-validation tests, the manifest-loader tests, the
   envelope-composition tests).
-- `servers.json` rewritten: the only entry is `autocontext-engine`
-  with the MCP-server-only role argv; worker entries are removed
-  (the engine spawns workers itself now).
+- **Rehome the Node worker build.** `Build-EngineBundle` and
+  `Copy-EngineToExtension` currently stage `Workers/web/` by copying
+  out of `servers/AutoContext.Worker.Web`, which the Node pipeline
+  produced first — so `servers/` is a live *input* to the engine
+  bundle, not merely duplicated output. The Node worker is
+  RID-independent, so it bundles once into a single staging directory
+  that every per-RID copy draws from. This lands **before** anything
+  under `servers/` is deleted.
+- **Retire `servers.json` and the `servers/` tree.** Once
+  `mcp-server` is gone, the manifest's remaining entries (`workspace`,
+  `dotnet`, `web`) are workers already declared by their own
+  `.autocontext-worker.json` descriptors and rostered in generated
+  `workers.json` — pure duplication of the descriptor-driven roster.
+  Removing it retires `Build-DotNetPackage`,
+  `Copy-DotNetToServersFolder`, `Copy-NodeJsToServersFolder`, the
+  `ServersDir` / `NodeServers` / `DotnetServers` /
+  `ServerProjectPaths` context fields, and the `resources/servers.json`
+  asset copy.
+- TS-side `servers-manifest-loader.ts`, `servers-manifest.ts`, and
+  `server-entry.ts` retire with the manifest; the extension resolves
+  the engine at the fixed bundled `engine/` path instead of looking up
+  a spawnable entry.
 - The engine-owned `mcp-tools-registry.json` was authored fresh
   under `AutoContext.Engine/Resources/` in Phase 7 (not moved — the
   old `mcp-workers-registry.json` stayed in `AutoContext.Mcp.Server/`
@@ -3288,6 +3307,9 @@ engine binary. The MCP host servers manifest (`servers.json`) points at
 - A spawned `autocontext-engine --mcp-server with-stdio` answers
   every `tools/list` and `tools/call` the old `Mcp.Server` answered
   (regression fixture set lifted from `AutoContext.Mcp.Server.Tests`).
+- The engine bundle smoke suite still resolves every side-car with
+  the Node worker staged from its new home.
+- A packaged VSIX carries `engine/` and no `servers/`.
 
 **Out of scope**: any further surface work; the engine has shipped.
 

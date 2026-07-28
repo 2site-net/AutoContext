@@ -94,12 +94,15 @@ function Initialize-BuildContext {
 
     # RID → vsce target mapping (ordered so platform iteration is deterministic)
     $ridToTarget = [ordered]@{
-        'win-x64'     = 'win32-x64'
-        'win-arm64'   = 'win32-arm64'
-        'linux-x64'   = 'linux-x64'
-        'linux-arm64' = 'linux-arm64'
-        'osx-x64'     = 'darwin-x64'
-        'osx-arm64'   = 'darwin-arm64'
+        'win-x64'          = 'win32-x64'
+        'win-arm64'        = 'win32-arm64'
+        'linux-x64'        = 'linux-x64'
+        'linux-arm64'      = 'linux-arm64'
+        'linux-arm'        = 'linux-armhf'
+        'linux-musl-x64'   = 'alpine-x64'
+        'linux-musl-arm64' = 'alpine-arm64'
+        'osx-x64'          = 'darwin-x64'
+        'osx-arm64'        = 'darwin-arm64'
     }
 
     return [pscustomobject]@{
@@ -122,7 +125,7 @@ function Initialize-BuildContext {
         DotnetProjects     = $dotnetProjects
         RidToTarget        = $ridToTarget
         EngineProjectPath  = (Join-Path $RepoRoot 'src' 'AutoContext.Engine' 'AutoContext.Engine.csproj')
-        EngineStagingRoot  = (Join-Path $RepoRoot 'out' 'engine')
+        EngineStagingRoot  = (Join-Path $RepoRoot 'artifacts' 'engine')
         EngineBundleDir    = (Join-Path $extensionDir 'engine')
     }
 }
@@ -971,8 +974,8 @@ function Build-EngineBundle {
     <#
     .SYNOPSIS
         Publishes the engine and every worker into the per-RID staging tree
-        out/engine/<rid>/, the shape per-platform packaging copies into a
-        shipped artefact's engine/ directory.
+        artifacts/engine/<rid>/, the shape per-platform packaging copies into
+        a shipped artefact's engine/ directory.
     #>
     [CmdletBinding(SupportsShouldProcess)]
     param(
@@ -1036,10 +1039,9 @@ function Build-EngineBundle {
 function Get-ExecutableRuntime {
     <#
     .SYNOPSIS
-        Reads an executable's own header to report the runtime it was
-        built for, as a '<os>-<arch>' string directly comparable with a
-        runtime identifier. Returns $null for a file that carries no
-        recognised executable header.
+        Reads an executable's own header to report the operating system and
+        architecture it was built for, as an '<os>-<arch>' string. Returns
+        $null for a file that carries no recognised executable header.
     #>
     [CmdletBinding()]
     [OutputType([string])]
@@ -1058,6 +1060,7 @@ function Get-ExecutableRuntime {
             switch ($reader.ReadUInt16()) {
                 0x3E { return 'linux-x64' }
                 0xB7 { return 'linux-arm64' }
+                0x28 { return 'linux-arm' }
                 default { return $null }
             }
         }
@@ -1111,6 +1114,11 @@ function Assert-EngineBundleRuntime {
         throw "Engine bundle for $Rid carries no '$executableName' ($BundleDir)."
     }
 
+    # An executable header records the operating system and architecture but
+    # not the C library, so a musl build is indistinguishable from a glibc
+    # one. Comparison drops the '-musl' infix and holds the rest exactly.
+    $expectedRuntime = $Rid -replace '-musl', ''
+
     # Only apphost-shaped files are probed: '.exe' on Windows and
     # extensionless elsewhere. Anything else in a worker directory is a
     # script or data file with no runtime of its own.
@@ -1128,7 +1136,7 @@ function Assert-EngineBundleRuntime {
         $actual = Get-ExecutableRuntime -Path $candidate
         if ($null -eq $actual) { continue }
 
-        if ($actual -ne $Rid) {
+        if ($actual -ne $expectedRuntime) {
             throw "'$candidate' targets $actual but the bundle is being packaged for $Rid."
         }
     }
@@ -1791,8 +1799,8 @@ function Invoke-Package {
         Assert-EngineCorpusIdenticalAcrossRuntimes -Context $Context
 
         # Drop the per-artefact staging each VSIX already carries a copy of.
-        # out/engine/<rid>/ deliberately survives: it is the per-RID build
-        # output the shipped bundles are cut from, and Clean owns it.
+        # artifacts/engine/<rid>/ deliberately survives: it is the per-RID
+        # build output the shipped bundles are cut from, and Clean owns it.
         if (Test-Path $Context.ServersDir) { Remove-Item $Context.ServersDir -Recurse -Force }
         if (Test-Path $Context.EngineBundleDir) { Remove-Item $Context.EngineBundleDir -Recurse -Force }
     }
@@ -2226,7 +2234,7 @@ function Invoke-Clean {
     }
     $targets += @{ Path = $Context.ServersDir;                          Label = 'Servers (servers/)' }
     $targets += @{ Path = $Context.EngineBundleDir;                     Label = 'Engine bundle (engine/)' }
-    $targets += @{ Path = $Context.EngineStagingRoot;                   Label = 'Engine staging (out/engine/)' }
+    $targets += @{ Path = $Context.EngineStagingRoot;                   Label = 'Engine staging (artifacts/engine/)' }
     $targets += @{ Path = $Context.PublishDir;                         Label = 'VSIX packages (publish/)' }
     $targets += @{ Path = (Join-Path $Context.ExtensionDir 'LICENSE');       Label = 'Extension LICENSE copy' }
 

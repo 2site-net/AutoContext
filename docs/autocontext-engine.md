@@ -213,9 +213,10 @@ engine/
 ```
 
 At build-output staging time the layout is
-`out/engine/<rid>/{autocontext-engine, runtime, Instructions/, Resources/, Workers/}`
+`artifacts/engine/<rid>/{autocontext-engine, runtime, Instructions/, Resources/, Workers/}`
 with one subtree per supported RID (`win-x64`, `win-arm64`,
-`linux-x64`, `linux-arm64`, `osx-x64`, `osx-arm64`); per-platform
+`linux-x64`, `linux-arm64`, `linux-arm`, `linux-musl-x64`,
+`linux-musl-arm64`, `osx-x64`, `osx-arm64`); per-platform
 packaging picks the matching `<rid>/` and copies its contents into
 `engine/` in the shipped artefact. Other host bundles that need an
 engine copy (any client distribution that wants to cold-spawn its
@@ -3374,7 +3375,7 @@ Decision:
   fallback path.
 - Per-platform shipped artefact (the **same** layout in every
   target). Build output stages per-RID under
-  `out/engine/<rid>/...`; per-platform packaging
+  `artifacts/engine/<rid>/...`; per-platform packaging
   (`vsce package --target <target>` for the VSIX, the equivalent
   per-platform plugin release, one GitHub-release tarball per RID)
   selects the matching `<rid>/` and copies its contents into

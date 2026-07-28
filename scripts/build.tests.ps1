@@ -403,10 +403,10 @@ $testCases = @(
         RejectOutput = @('Verify corpus')
     }
     @{
-        Name         = 'scripts/package.ps1 All (6 platforms)'
+        Name         = 'scripts/package.ps1 All (9 platforms)'
         Script       = 'scripts/package.ps1'
         Arguments    = 'All -WhatIf'
-        ExpectOutput = @('win-x64', 'win-arm64', 'linux-x64', 'linux-arm64', 'osx-x64', 'osx-arm64', 'Verify corpus')
+        ExpectOutput = @('win-x64', 'win-arm64', 'linux-x64', 'linux-arm64', 'linux-arm\b', 'linux-musl-x64', 'linux-musl-arm64', 'osx-x64', 'osx-arm64', 'Verify corpus')
     }
     @{
         Name         = 'scripts/package.ps1 -Local'
