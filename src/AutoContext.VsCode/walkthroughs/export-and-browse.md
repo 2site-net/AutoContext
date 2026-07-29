@@ -2,7 +2,7 @@
 
 ### Export to your repository
 
-Export instruction files into your workspace at `.github/instructions/`. This is useful for sharing coding guidelines across the team — teammates with VS Code and GitHub Copilot will pick them up automatically, even without AutoContext installed.
+Export instruction files into your workspace at `.github/instructions/`. This is useful for sharing coding guidelines across the team — teammates using VS Code will pick them up automatically, even without AutoContext installed.
 
 Open the Instructions Panel, click the export icon in the panel header to enter export mode, check the instructions you want to export, then confirm. If a file already exists at the target path, you can choose to **Overwrite** or **Skip**.
 
@@ -16,6 +16,6 @@ When a local override is older than the bundled version, it is flagged as **over
 
 ### Browse and disable individual instructions
 
-Click any instruction in the Instructions Panel to open it in a virtual document with a **Disable Instruction** / **Enable Instruction** CodeLens above each instruction. Click a CodeLens to toggle that instruction. Disabled instructions are dimmed and tagged `[DISABLED]`, and they are excluded from what Copilot receives.
+Click any instruction in the Instructions Panel to open it for reading. Each instruction has a **Disable Instruction** / **Enable Instruction** action above it — click to toggle. Disabled instructions are dimmed, tagged `[DISABLED]`, and left out of what your agent receives.
 
-When any instructions are disabled, a **Reset All Instructions** CodeLens appears at the top of the file to re-enable everything at once. The disable state is stored in `.autocontext.json` in your workspace root.
+When any instructions are disabled, a **Reset All Instructions** action appears at the top of the file to re-enable everything at once. Your choices are saved in `.autocontext.json` in your workspace root.

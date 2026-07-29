@@ -2,192 +2,170 @@
 
 # AutoContext
 
-AutoContext gives AI coding assistants the right context for your codebase. It provides built-in instructions, MCP tool checks, a dedicated tree view for managing them, and automatic context orchestration to deliver the right guidance and checks for the current task. Today AutoContext is integrated with GitHub Copilot, but its architecture is designed to support additional coding assistants and external context sources over time.
+AutoContext gives AI coding agents the right context for your codebase:
+curated coding guidelines that shape the agent's answers, and quality
+checks it can run to verify its own work. Both are filtered to the workspace,
+so a project only sees what applies to it.
 
-> **Work in Progress** — Instructions and tools are refined iteratively. Coverage, rules, and tool behavior will continue to evolve as we incorporate feedback and expand language and framework support.
+For installing and using the VS Code extension, see the
+[extension README](src/AutoContext.VsCode/README.md).
 
-Distributed as a VS Code extension — see [src/AutoContext.VsCode/README.md](src/AutoContext.VsCode/README.md) for installation and usage.
+> **Work in Progress** — Guidance and checks are refined iteratively.
+> Coverage and behaviour will continue to evolve.
 
-## Features
-
-AutoContext provides three complementary capabilities:
-
-- **Chat Instructions** — Curated Markdown guidelines covering .NET, TypeScript, Web frameworks, Git, scripting, and more (78 files). Instructions are workspace-aware — only the ones relevant to your project are injected into Copilot's context. Individual rules within any instruction file can be disabled without turning off the entire file.
-- **MCP Tool Checks** — Quality checks that Copilot can invoke in Agent mode to validate code style, naming conventions, async patterns, NuGet hygiene, commit messages, and more. Checkers read `.editorconfig` properties and enforce whichever direction the project specifies.
-- **Instruction Discovery Tools** — Four extension-native Language Model tools (`list_*`, `search_*_by_metadata`, `search_*_by_content`, `get_*`) that let Copilot pull additional rules on demand inside an agent loop, by path, topic, or metadata predicate.
-
-Tools and instructions are grouped into categories and managed from dedicated sidebar panels — individually toggled, auto-configured based on workspace detection, or exported to `.github/instructions/` for team sharing. Exported instructions are tracked for staleness and flagged when newer built-in versions are available. MCP servers are health-monitored via a named-pipe protocol, with live status indicators and inline Start / Show Output controls in the sidebar; workers spawn lazily on first use.
-
-## Build Prerequisites
+## Prerequisites
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download) or later
-- [Node.js](https://nodejs.org/) 18+ — required to build the VS Code extension
-
-## Repository Structure
-
-```text
-AutoContext.slnx                          # Solution file
-servers.json                              # Server manifest (id + name + runtime kind for the orchestrator and each worker)
-version.json                              # Canonical version (single source of truth)
-src/AutoContext.Mcp.Abstractions/         # IMcpTask contract shared between the orchestrator and every worker
-src/AutoContext.Framework/                # .NET framework primitives shared by the orchestrator and every .NET worker:
-                                          # named-pipe transport (Pipes/), structured logging (Logging/), the worker-side
-                                          # task dispatcher (Workers/), and the health-monitor client (Hosting/).
-src/AutoContext.Nodejs.Core/              # TypeScript counterpart of AutoContext.Framework. Provides the same
-                                          # named-pipe primitives (length-prefixed framing, listener, streaming/keep-alive
-                                          # clients) and a logger contract for the Node-based worker and the VS Code
-                                          # extension to build on.
-src/AutoContext.Worker.Shared/            # Shared hosting helpers used by the .NET workers (host builder, args parsing,
-                                          # service-address wiring).
-src/AutoContext.Mcp.Server/               # Single MCP/stdio orchestrator. Loads the embedded mcp-workers-registry.json,
-                                          # exposes every declared tool to the MCP client, and dispatches each call to the
-                                          # owning AutoContext.Worker.* over a named pipe.
-  Registry/                               #   Registry loader, schema validator, and McpWorkersCatalog
-  Workers/                                #   WorkerClient + Protocol/Transport (named-pipe RPC to the workers)
-  Tools/                                  #   McpSdkAdapter + invocation/results pipeline exposed to MCP clients
-  EditorConfig/                           #   In-process EditorConfig resolution shared by tools that need it
-  mcp-workers-registry.json               #   Embedded registry: every tool, its parameters, and its owning worker
-src/AutoContext.Worker.DotNet/            # .NET worker. Hosts C# and NuGet analyzers (Tasks/CSharp, Tasks/NuGet).
-src/AutoContext.Worker.Workspace/         # .NET worker. Hosts Git and EditorConfig tasks.
-src/AutoContext.Worker.Web/               # Node.js / TypeScript worker. Hosts the TypeScript analyzer; built on
-                                          # AutoContext.Nodejs.Core.
-src/AutoContext.VsCode/                   # VS Code extension. Spawns Mcp.Server + every worker, runs the LogServer
-                                          # and HealthMonitorServer pipes, and ships the instructions, sidebar panels,
-                                          # workspace detection, and per-instruction configuration UI.
-tests/                                    # All test projects (Framework, Worker.Shared, Worker.Workspace,
-                                          # Worker.DotNet, Mcp.Server, plus the Framework.Tests.Support helper library)
-```
+- [Node.js](https://nodejs.org/) 18+
 
 ## Architecture
 
-See [docs/architecture.md](docs/architecture.md) for the full architecture guide — layer pipeline, activation and runtime flows, precedence rules, MCP servers, and tool reference.
+All AutoContext state — configuration, guidance, workspace detection, tools,
+workers, and logs — is owned by a single process, the **engine**. Hosts do not
+read that state themselves; they connect to the engine and ask.
 
-## Running Outside VS Code
+See [docs/architecture.md](docs/architecture.md) for the boundaries between
+engine, clients, and workers, the lifecycle and state models, and the
+invariants the system is built on.
 
-The canonical way to use AutoContext is through the VS Code extension, which
-spawns `AutoContext.Mcp.Server` (the single MCP/stdio orchestrator) along with
-every `AutoContext.Worker.*` sidecar and wires them together over named pipes.
+## Repository structure
 
-If you need to use AutoContext from another MCP client, register only the
-orchestrator — it exposes every tool declared in the embedded
-`mcp-workers-registry.json` and dispatches each call to the owning worker:
-
-```jsonc
-{
-  "servers": {
-    "AutoContext": {
-      "type": "stdio",
-      "command": "dotnet",
-      "args": [
-        "run",
-        "--project",
-        "${workspaceFolder}/src/AutoContext.Mcp.Server/AutoContext.Mcp.Server.csproj"
-      ]
-    }
-  }
-}
+```text
+build.ps1            Build orchestrator — the compile + format + test gate
+scripts/             Focused wrappers: compile, test, format, package, publish, tag
+version.json         Canonical version (single source of truth)
+docs/                Architecture and design documents
+src/                 Source projects
+tests/               .NET test projects (TypeScript tests live beside their sources)
 ```
 
-> **Note:** The orchestrator expects every worker named in
-> `mcp-workers-registry.json` to already be listening on its named pipe before
-> a tool call is dispatched. The VS Code extension manages this
-> spawn/lifecycle for you (`worker-manager.ts`); standalone setups must
-> launch each `AutoContext.Worker.*` separately and keep them alive. The
-> Node.js worker (`AutoContext.Worker.Web`) requires a prior build:
-> `cd src/AutoContext.Worker.Web && npm install && npm run build`.
+| Project | Role |
+|---|---|
+| `AutoContext.Framework.Pipes` | Named-pipe transport primitives |
+| `AutoContext.Engine.Protocol` | Wire contract: message DTOs and address composition |
+| `AutoContext.Engine.Core` | The engine as a library |
+| `AutoContext.Engine` | Engine binary host (`autocontext-engine`) |
+| `AutoContext.Client.Core` | Engine-dialling client library |
+| `AutoContext.Workers.Core` | Worker-side runtime and task contract |
+| `AutoContext.Instructions.Parser` | Instruction-file parser |
+| `AutoContext.Instructions.Manifest.Generator` | Build-time generator (`instructions-manifest-gen`) |
+| `AutoContext.Workers.Manifest.Generator` | Build-time generator (`workers-manifest-gen`) |
+| `AutoContext.Nodejs.Core` | TypeScript substrate: pipes, logging, engine client |
+| `AutoContext.Worker.DotNet` | Worker — C# and NuGet analysis |
+| `AutoContext.Worker.Workspace` | Worker — Git and EditorConfig |
+| `AutoContext.Worker.Web` | Worker — TypeScript analysis (Node.js) |
+| `AutoContext.VsCode` | VS Code extension |
 
-## Testing
+A project is a worker when it carries an `.autocontext-worker.json`
+descriptor — that file, not the `AutoContext.Worker.*` name, is what the
+build discovers.
+
+## Building and testing
+
+`build.ps1` is the gate: it compiles both stacks, verifies .NET formatting,
+and runs the unit tests. A green run is the bar for "done".
 
 ```powershell
-./scripts/test.ps1           # compile + run all unit tests
-./scripts/test.ps1 TS        # compile + run TypeScript tests
-./scripts/test.ps1 DotNet    # compile + run .NET tests
+./build.ps1                  # everything — the gate
+./build.ps1 TS               # TypeScript only
+./build.ps1 DotNet           # .NET only
+./build.ps1 -Clean           # remove build artifacts
 ```
 
-### VS Code Extension — Smoke Tests
+While iterating, the wrappers in `scripts/` are faster because they skip the
+full gate:
 
-Smoke tests launch a real VS Code instance, load the extension, and verify activation and command registration:
+```powershell
+./scripts/compile.ps1 DotNet     # compile only
+./scripts/test.ps1 TS            # compile + test one stack
+./scripts/test.ps1 -NoCompile    # test an already-compiled tree
+./scripts/format.ps1             # .NET format check
+```
+
+Run `./build.ps1 -Help` for the full target and switch list. After changing
+anything under `scripts/` or `build.ps1`, run `./scripts/build.tests.ps1`.
+
+### Extension smoke tests
+
+Launch a real VS Code instance, load the extension, and verify activation:
 
 ```powershell
 ./scripts/test.ps1 -Smoke
 ```
 
-A VS Code installation is downloaded automatically on the first run and cached
-in `src/AutoContext.VsCode/.vscode-test/`.
+VS Code is downloaded on first run and cached under
+`src/AutoContext.VsCode/.vscode-test/`.
 
-## Building and Publishing the Extension
+## Packaging and publishing
 
-There are two distinct steps. **Packaging** builds a self-contained `.vsix`
-installer on your machine — nothing leaves your computer, so it's what you use
-to test an install locally or hand the file to someone directly.
-**Publishing** takes that same package and uploads it to the public
-marketplaces, making the release available to everyone.
-
-You don't need to package before publishing — `publish.ps1` builds the package
-itself as part of the run. Use `package.ps1` only when you want the `.vsix`
-locally without releasing it.
-
-Package the extension into a `.vsix` (one per target platform):
+**Packaging** builds a self-contained `.vsix` locally. **Publishing** uploads
+it to the marketplaces. You don't need to package first — `publish.ps1` builds
+its own package.
 
 ```powershell
-./scripts/package.ps1                          # current platform
-./scripts/package.ps1 All                      # all 6 platforms
+./scripts/package.ps1                            # current platform
+./scripts/package.ps1 All                        # all 9 platforms
 ./scripts/package.ps1 -RuntimeIdentifier win-x64
-./scripts/package.ps1 -Local                   # runnable F5 layout, no .vsix
+./scripts/package.ps1 -Local                     # runnable F5 layout, no .vsix
 ```
 
-Available targets: `win-x64`, `win-arm64`, `linux-x64`, `linux-arm64`, `osx-x64`, `osx-arm64`.
+Targets: `win-x64`, `win-arm64`, `linux-x64`, `linux-arm64`, `linux-arm`,
+`linux-musl-x64`, `linux-musl-arm64`, `osx-x64`, `osx-arm64`.
 
-`-Local` skips producing a `.vsix` and instead stages a framework-dependent
-server copy into the extension's layout, giving you a tree you can run directly
-with VS Code's F5 (Extension Development Host) for debugging.
-
-Publish to the VS Code Marketplace and [Open VSX](https://open-vsx.org/) registry:
+`-Local` stages a tree you can run directly with VS Code's F5 (Extension
+Development Host) instead of producing a `.vsix`.
 
 ```powershell
-./scripts/publish.ps1           # current platform
-./scripts/publish.ps1 All       # all 6 platforms
+./scripts/publish.ps1        # current platform
+./scripts/publish.ps1 All    # all 9 platforms
 ```
 
-Publishing requires two Personal Access Tokens set as environment variables:
+Publishing needs two access tokens as environment variables:
 
-| Variable   | Source                                                              |
-|------------|---------------------------------------------------------------------|
+| Variable | Source |
+|---|---|
 | `VSCE_PAT` | [Azure DevOps](https://dev.azure.com/_usersSettings/tokens) |
 | `OVSX_PAT` | [Open VSX](https://open-vsx.org/user-settings/tokens) |
 
 ## Releasing
 
-The `tag.ps1` wrapper bumps all version numbers, compiles, tests, commits, and creates an annotated git tag in one step:
+`tag.ps1` bumps every version number, compiles, tests, commits, and creates an
+annotated tag:
 
 ```powershell
-./scripts/tag.ps1 0.6.0           # bump to 0.6.0, compile, test, commit, tag
-./scripts/tag.ps1 0.6.0 -WhatIf   # dry-run — shows what would happen without changing anything
+./scripts/tag.ps1 0.6.0           # bump, verify, commit, tag
+./scripts/tag.ps1 0.6.0 -WhatIf   # dry run
 ```
 
-The action:
-
-1. Validates the version string (semver: `X.Y.Z` or `X.Y.Z-prerelease`).
-2. Rejects versions lower than the current version in `version.json`.
-3. Requires a clean working tree (no uncommitted changes).
-4. Compiles and tests the entire solution — the tag is only created if everything passes.
-5. Updates `version.json`, then stamps that version into all `package.json`, `package-lock.json`, and `.csproj` files and generates the `version.ts` constants for Node.js servers. Commits the result.
-6. Creates an annotated tag (`Release X.Y.Z`).
-
-If the requested version already matches the current version (e.g. after a failed push), the bump and commit are skipped and only the tag is created.
-
-After the script completes, push the tag to trigger CI:
+It validates the version, refuses to go backwards, requires a clean working
+tree, and only tags if the whole solution compiles and passes. Then push:
 
 ```powershell
 git push origin main --follow-tags
 ```
 
+## Using AutoContext from another MCP client
+
+The tools are served over MCP, so any MCP client can consume them. Run the
+engine in its MCP-server role and point the client at it:
+
+```text
+autocontext-engine --workspace <path> --mcp-server with-stdio
+```
+
+It speaks MCP over stdin/stdout, reads workspace state per request, and starts
+workers on demand — no separate setup.
+
 ## License
 
-AutoContext is licensed under the [AGPL-3.0](LICENSE). A separate [commercial license](COMMERCIAL.md) is available for organizations that want to use AutoContext under terms different from the AGPL-3.0.
+AutoContext is licensed under the [AGPL-3.0](LICENSE). A separate
+[commercial license](COMMERCIAL.md) is available for organizations that want
+to use AutoContext under terms different from the AGPL-3.0.
 
 Use of the AutoContext name and logo is subject to [TRADEMARKS.md](TRADEMARKS.md).
 
 ## Contributing
 
-Contributions require acceptance of the [Contributor License Agreement](CLA.md). See [CONTRIBUTING.md](CONTRIBUTING.md) for how to get started.
+Contributions require acceptance of the
+[Contributor License Agreement](CLA.md). See [CONTRIBUTING.md](CONTRIBUTING.md)
+for how to get started.

@@ -1,36 +1,25 @@
 ## MCP Tools
 
-AutoContext registers a single MCP (Model Context Protocol) server (`AutoContext.Mcp.Server`) that lets Copilot analyze source files, project manifests, and commit messages against the conventions the chat instructions describe, and resolve the effective `.editorconfig` properties for any path. In agent mode, Copilot calls these tools on the spot — typically before generating, after editing, or while reviewing — and gets back a structured report it can act on. Each call is dispatched to the worker process that owns the tool: .NET, Workspace, or Web.
+AutoContext gives your AI coding agent a set of checks it can run on your code. In agent mode it calls them on the spot — typically before writing code, after editing, or while reviewing — and gets back a report it can act on.
 
-### Tool organization
+The checks cover source files, project files, and commit messages, and can resolve the effective `.editorconfig` settings for any file.
 
-Tools are grouped by **platform**, **category**, and **tool**, and each platform is activated by workspace context:
+### How the checks are grouped
 
-| Platform | Categories | Activates when |
+| Group | Covers | Turned on when |
 |----------|------------|----------------|
-| **.NET** | C#, NuGet | `.csproj`, `.fsproj`, `.vbproj`, `.sln`, or `.slnx` detected |
-| **Workspace** | Git, EditorConfig | Always active (Git tools surface only when a `.git` folder is present) |
-| **Web** | TypeScript | `.ts` files detected |
+| **.NET** | C#, NuGet | A .NET project or solution is present |
+| **Workspace** | Git, EditorConfig | Always available (Git checks appear once the folder is a Git repository) |
+| **Web** | TypeScript | TypeScript files are present |
 
-If every tool owned by a worker is disabled, that worker is not spawned at all.
+### First-time setup
 
-### Enable the MCP server
+The first time AutoContext offers its checks, VS Code asks you to confirm that you trust them. Accept the prompt so your agent can use them in agent mode.
 
-When AutoContext detects your workspace, it registers its MCP server with VS Code. The first time the server is discovered, VS Code prompts you to confirm that you trust and want to start it. Accept the prompt so Copilot can invoke the server tools in agent mode.
+### Turning checks on and off
 
-### Server health monitoring
+Use the AutoContext sidebar to enable or disable individual checks. Checks are organised by group and category. Use the `…` menu on the panel header to show or hide items that don't apply to your project.
 
-The MCP server and each worker report their liveness via a health monitoring pipe. Server nodes in the MCP Tools panel show a live **running** or **stopped** status. Workers spawn lazily: a worker process is only started the first time a tool it owns is invoked (the workspace worker also starts during extension activation, since EditorConfig resolution depends on it). When every tool a worker owns is disabled, that worker process is never started and its server node stays **stopped**. Use the inline **Start** and **Show Output** actions on each server node to bring the MCP server up or open its log.
-
-### How it works
-
-When you disable a tool or one of its tasks, it is recorded in `.autocontext.json` at your workspace root. Two things happen next:
-
-1. **Sidebar reacts immediately** — the extension projects the state into VS Code context keys so tree icons and `when` clauses update right away.
-2. **MCP server reacts live** — the same change is pushed to the running `AutoContext.Mcp.Server` over a dedicated named pipe. The server filters disabled tools out of its `tools/list` response and skips disabled tasks at dispatch time, then emits an MCP `notifications/tools/list_changed` so VS Code's Quick Pick refreshes — **no server restart required**. As a fast path, when **every** tool is disabled, the extension hides the MCP server definition altogether and Copilot has nothing to call. Disabled means truly disabled: there is no EditorConfig-only fallback path.
-
-### Toggle tools
-
-Use the AutoContext sidebar to enable or disable individual tools and tasks. Tools are organized under platform, category, and tool headers — checking an MCP tool toggles all its tasks at once. Use the `…` menu on the panel header to show or hide items that are not detected in your workspace.
+Your choices take effect immediately — nothing needs restarting, and your agent stops offering anything you switch off. They are saved in `.autocontext.json` in your workspace, so you can commit them to share with your team.
 
 [Open Tools Panel](command:autocontext.mcp-tools-view.focus)

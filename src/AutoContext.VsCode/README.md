@@ -1,119 +1,188 @@
 # AutoContext
 
-AutoContext gives AI coding assistants the right context for your codebase. It provides built-in instructions, MCP tool checks, a dedicated tree view for managing them, and automatic context orchestration to deliver the right guidance and checks for the current task.
+AutoContext helps your AI coding agent follow your project's conventions. It
+ships curated coding guidelines that shape the agent's answers, and quality
+checks the agent can run to verify its own work — all managed from a
+dedicated sidebar.
 
-> **Work in Progress** — Instructions and tools are refined iteratively. Coverage, rules, and tool behavior will continue to evolve as we incorporate feedback and expand language and framework support.
+> **Work in Progress** — Guidance and checks are refined iteratively.
+> Coverage and behaviour will continue to evolve as we incorporate feedback
+> and expand language and framework support.
 
-## Features
+## What you get
 
-- **Chat Instructions** — Curated Markdown guidelines covering C#, F#, VB.NET, TypeScript, JavaScript, Python, Java, Go, Rust, Ruby, Swift, Kotlin, Dart, C, C++, Scala, SQL, PowerShell, Bash, Batch (CMD), CSS, GraphQL, Groovy, HTML, Lua, PHP, YAML, and more — plus .NET frameworks (ASP.NET Core, Blazor, EF Core, WPF, …), web frameworks (React, Angular, Vue, Svelte, Next.js, Node.js, …), and tools (Git, Docker). 78 curated files in total. Instructions are workspace-aware — only the ones relevant to your project are injected into Copilot's context.
-- **MCP Tool Checks** — Quality checks that Copilot can invoke in Agent mode. Categories include .NET (C# style, naming, async patterns, NuGet hygiene, …), Workspace (Git commit format and content, EditorConfig property resolution), and Web (TypeScript coding style). Each feature can be toggled individually.
-- **Instruction Discovery Tools** — Four extension-native [Language Model tools](https://code.visualstudio.com/api/extension-guides/tools) (`list_autocontext_instructions_files`, `search_autocontext_instructions_files_by_metadata`, `search_autocontext_instructions_files_by_content`, `get_autocontext_instructions_file`) let Copilot discover and fetch the curated rules that apply to a path or topic, beyond the always-attached files VS Code injects via `applyTo`. Honours per-file and per-rule disable toggles uniformly.
-- **EditorConfig-Driven Enforcement** — Checkers read `.editorconfig` properties and enforce whichever direction the project specifies rather than just skipping conflicting rules.
-- **Workspace Detection** — Scans for project files, dependencies, and directory markers to automatically determine which servers, tools, and instructions are relevant. File-system watchers maintain detection state incrementally — changes to source files or project manifests trigger targeted re-scans without a full workspace rescan.
-- **Auto Configuration** — One command scans the workspace and enables only the instructions and tools that match the detected technologies.
-- **Sidebar Panels** — A dedicated AutoContext activity bar with two tree views: **Instructions** (grouped by category) and **MCP Tools** (grouped by group and category). Each panel header shows the enabled/total count, and the `…` menu includes a filter to show or hide items not detected in the workspace.
-- **Server Health Monitoring** — MCP servers report their liveness via a named-pipe health protocol. Workers spawn lazily — only when a tool they own is invoked, or when the workspace worker is needed at activation. The MCP Tools panel shows a live running/stopped status indicator on each server node, with inline **Start** and **Show Output** actions.
-- **Per-Instruction Disable** — Click any instruction in the sidebar to open it in a virtual document, then use CodeLens actions to disable or re-enable individual rules without turning off the entire file.
-- **Export** — Enter export mode from the Instructions panel header, check the instructions you want to export, and confirm. Files are copied to `.github/instructions/` for team sharing. Exported instructions appear as **overridden** in the panel — the workspace-level file takes precedence. Delete the exported file to revert to the built-in version.
-- **Override Staleness Detection** — When a local override in `.github/instructions/` is older than the bundled version, it is flagged as `"overridden (outdated)"` in the tree view. Deleting an outdated override shows a version-comparison dialog and restores the latest built-in version. Use **Show Original** to compare or **Show Changelog** to review what changed.
-- **Upgrade Awareness** — A badge appears on the Instructions panel when the extension updates. Disabled instruction IDs are automatically cleared when an instruction's rule set changes (major or minor version bump), with a notification explaining which files were affected.
-- **Diagnostic Logging** — Tool invocation logs from `AutoContext.Mcp.Server` and every worker are streamed over a named-pipe LogServer the extension hosts, and surfaced in the **AutoContext** Output channel prefixed with the source process identity.
+- **Coding guidelines** — 79 curated files covering C#, F#, VB.NET,
+  TypeScript, JavaScript, Python, Java, Go, Rust, Ruby, Swift, Kotlin, Dart,
+  C, C++, Scala, SQL, PowerShell, Bash, CSS, HTML, and more — plus .NET
+  frameworks (ASP.NET Core, Blazor, EF Core, WPF, …), web frameworks (React,
+  Angular, Vue, Svelte, Next.js, Node.js, …), and tools (Git, Docker).
+- **Quality checks** — Ask your agent to review a file, your project's
+  dependencies, or a commit message, and it checks them against those same
+  conventions.
+- **Only what applies to you** — AutoContext looks at your project and uses
+  only the guidance and checks that match the technologies you actually use.
+- **Follows your `.editorconfig`** — Where your project already states a
+  preference, checks follow it rather than imposing their own.
+- **Rule-level control** — Switch off a single rule you disagree with without
+  losing the rest of the file.
+- **Shareable** — Export guidance into your repository so the whole team gets
+  it, with or without this extension installed.
 
-## MCP Tools
+## Requirements
 
-Once installed, the following MCP tools are available to GitHub Copilot in Agent mode. Ask Copilot to check your code or commits and it will invoke the relevant tool.
+VS Code 1.100 or later with
+[GitHub Copilot](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot).
 
-| Category | Tool | Purpose |
-|----------|------|---------|
-| .NET | `analyze_csharp_code` | Composite C# quality check (style, naming, async, structure, …) |
-| .NET | `analyze_nuget_references` | Package version and hygiene check |
-| Workspace | `analyze_git_commit_message` | Conventional Commits format and content check |
-| Workspace | `read_editorconfig` | Resolve effective `.editorconfig` properties for a file |
-| Web | `analyze_typescript_code` | Composite TypeScript quality check |
+Nothing else to install — AutoContext is fully self-contained.
 
-All tools are exposed through a single MCP server (`AutoContext.Mcp.Server`) that dispatches each call to the worker process that owns the tool — `.NET` to `AutoContext.Worker.DotNet`, `Workspace` to `AutoContext.Worker.Workspace`, and `Web` to `AutoContext.Worker.Web`. Tools within a category are further organized by sub-category (e.g., C#, NuGet under .NET) and can be toggled individually from the **MCP Tools** panel in the AutoContext sidebar, or via `.autocontext.json` in your workspace root. If all tools owned by a worker are disabled, that worker is not spawned at all.
+## Getting started
 
-## Instruction Discovery Tools
+Install from the
+[VS Code Marketplace](https://marketplace.visualstudio.com/) or
+[Open VSX](https://open-vsx.org/), or install a `.vsix` manually from the
+Extensions view (**Install from VSIX…**).
 
-In addition to the MCP tools above, the extension contributes four [Language Model tools](https://code.visualstudio.com/api/extension-guides/tools) that Copilot can call in agent mode to discover and read the curated AutoContext instruction catalogue:
+AutoContext configures itself for your project on first use. The first time it
+offers its checks, VS Code asks you to confirm you trust them; accept the
+prompt so your agent can use them.
 
-| Tool | Purpose |
-|------|---------|
-| `list_autocontext_instructions_files` | List instruction files; optionally filtered by `applyTo` (workspace path or glob) and `category`. |
-| `search_autocontext_instructions_files_by_metadata` | Predicate search across frontmatter and section index — e.g. *"which rules have a Security section?"* or *"which rules target *.cs files?"*. |
-| `search_autocontext_instructions_files_by_content` | Free-text body search — e.g. *"does AutoContext require ConfigureAwait?"*. Returns ranked hits with section-attributed excerpts. |
-| `get_autocontext_instructions_file` | Fetch the normalized markdown body of a file by exact name; optionally slice by section anchors chained from the search tools. |
-
-These tools complement (not replace) VS Code's built-in `chatInstructions` attachment. Files matched by `applyTo` are still injected automatically; the discovery tools let the model fetch additional rules on demand — useful when working across mixed-language workspaces or asking topical questions. Disabled instructions and disabled rules are honoured uniformly: a disabled file returns `{ disabled: true }`, and disabled rules are stripped from any returned body.
-
-## Sidebar Panels
-
-AutoContext adds a dedicated activity bar icon with two tree views:
-
-- **Instructions** — Grouped by category (General, Languages, .NET, Web, Tools). Click an instruction to open it in a virtual document with per-rule CodeLens. Enable or disable instructions from the inline actions. Enter export mode from the panel header to batch-export checked instructions to `.github/instructions/`.
-- **MCP Tools** — Grouped by platform (.NET, Web, Workspace), category (C#, NuGet, TypeScript, Git, EditorConfig), and tool. Check or uncheck an MCP tool to toggle all its features at once. Individual features can also be toggled. Server nodes show live health status (running/stopped) with inline **Start** and **Show Output** actions.
-
-Both panels show an **enabled / total** count in the header and offer a **Show Not Detected** / **Hide Not Detected** filter in the `…` overflow menu.
-
-## Per-Instruction Disable
-
-Individual rules within any instruction file can be disabled without turning off the entire instruction:
-
-1. Click an instruction in the **Instructions** sidebar panel.
-2. The file opens in a virtual document with a **Disable Instruction** / **Enable Instruction** CodeLens above each rule.
-3. Click a CodeLens to toggle. Disabled rules are dimmed, tagged `[DISABLED]`, and excluded from Copilot's context.
-4. A **Reset All Instructions** CodeLens appears at the top to re-enable everything at once.
-
-The disable state is stored in `.autocontext.json` in your workspace root — commit it for team-wide settings or add it to `.gitignore` for personal preferences.
-
-## Commands
-
-| Command | Description |
-|---------|-------------|
-| **AutoContext: Auto Configure** | Scan the workspace and enable relevant items. |
-| **AutoContext: Toggle Instruction** | Disable or re-enable a single instruction (invoked via CodeLens). |
-| **AutoContext: Reset Instructions** | Re-enable all disabled instructions for the current file (invoked via CodeLens). |
-| **AutoContext: Enable Instruction** | Enable an instruction from the sidebar panel. |
-| **AutoContext: Disable Instruction** | Disable an instruction from the sidebar panel. |
-| **AutoContext: Export Instructions** | Enter export mode — check instructions to export to `.github/instructions/`. |
-| **AutoContext: Delete Override** | Remove an exported instruction file from the workspace. |
-| **AutoContext: Show Original** | View the built-in version of an overridden instruction. |
-| **AutoContext: Show Changelog** | Open the version history for an instruction (when available). |
-| **AutoContext: Show What's New** | Open the extension release notes. |
-| **AutoContext: Show Not Detected** | Show items not detected in the workspace in the sidebar panels. |
-| **AutoContext: Hide Not Detected** | Hide items not detected in the workspace from the sidebar panels. |
-| **AutoContext: Start Server** | Start an MCP server from the sidebar panel. |
-| **AutoContext: Show Output** | Open the output channel for an MCP server. |
-
-## Prerequisites
-
-- VS Code 1.100 or later with [GitHub Copilot](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot).
-
-No .NET runtime is required — the extension ships self-contained executables.
-
-## Installation
-
-Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/) or [Open VSX](https://open-vsx.org/), or install a platform-specific `.vsix` manually from the Extensions view (**Install from VSIX…**) or from the command line:
-
-```sh
-code --install-extension AutoContext-win32-x64-0.9.0.vsix
-```
-
-Once installed, open Agent mode in Copilot Chat and the AutoContext tools will appear in the tools picker. Ask Copilot things like:
+Then open Chat in agent mode and try:
 
 - *"Check this file for code style issues."*
 - *"Validate my commit message against Conventional Commits."*
-- *"Check for async pattern violations in the current file."*
+- *"Review this file for async problems."*
 
-You can verify the servers are running via the Command Palette → **MCP: List Servers**.
+## The sidebar
+
+AutoContext adds an activity-bar icon with two panels. Each shows an
+**enabled / total** count in its header, and each has a **Show / Hide Not
+Detected** filter in the `…` menu.
+
+**Instructions** — the guidance your agent follows, grouped by category. Click
+any entry to read it. Use the inline actions to turn it on or off.
+
+**Tools** — the checks your agent can run, grouped by area (.NET, Workspace,
+Web) and category. Turn any of them on or off.
+
+Changes take effect immediately. Nothing needs restarting.
+
+## Turning off a single rule
+
+You rarely disagree with a whole file — usually it's one rule.
+
+1. Click an entry in the **Instructions** panel to open it.
+2. Each rule has a **Disable Instruction** / **Enable Instruction** action
+   above it.
+3. Click to toggle. Disabled rules are dimmed, tagged `[DISABLED]`, and
+   left out of what your agent sees.
+4. **Reset All Instructions** at the top re-enables everything.
+
+## Configuration — `.autocontext.json`
+
+Your choices are saved in a file called `.autocontext.json` in the root of
+your workspace. It records which guidance and which checks you've turned
+off, and which individual rules you've disabled.
+
+You don't have to edit it by hand — the sidebar writes it for you — but it's
+plain, readable JSON:
+
+```jsonc
+{
+  "instructions": {
+    "testing.instructions.md": {
+      "disabled": true                  // this guidance is off entirely
+    },
+    "lang-csharp.instructions.md": {
+      "disabledRules": ["INST0012"]     // file is on, this one rule isn't
+    }
+  },
+  "mcpTools": {
+    "analyze_nuget_references": {
+      "disabled": true                  // this check is off
+    }
+  }
+}
+```
+
+Anything not listed is on, so the file stays small — it records your
+exceptions, not your entire setup.
+
+**Commit it or ignore it.** Committing it gives your whole team the same
+setup. Adding it to `.gitignore` keeps your choices personal. Both are
+valid — pick whichever suits your team.
+
+If you edit the file directly, the sidebar updates to match.
+
+## Sharing guidance with your team
+
+Exporting copies guidance into `.github/instructions/` in your repository.
+Teammates using VS Code pick those files up automatically, even if they don't
+have AutoContext installed.
+
+From the **Instructions** panel header, click the export icon, check what you
+want to export, and confirm.
+
+An exported file becomes an **override**: it's yours now, and you can edit it
+freely. AutoContext shows it with a distinct icon and steps aside. Use **Show
+Original** to compare against the built-in version, or **Delete Override** to
+go back to it.
+
+When a built-in file gets updated and your copy falls behind, it's flagged as
+**overridden (outdated)** so you can decide what to do. **Show Changelog**
+tells you what changed.
+
+## What your agent can check
+
+| Area | Check | What it looks at |
+|---|---|---|
+| .NET | `analyze_csharp_code_style` | Coding style, member ordering, naming, async patterns, nullability |
+| .NET | `analyze_csharp_project_structure` | File-scoped namespaces, one type per file, file/type name match |
+| .NET | `analyze_csharp_testing_style` | Test class and method naming, assertion conventions |
+| .NET | `analyze_nuget_references` | Duplicate references, floating or wildcard versions |
+| Workspace | `analyze_git_commit_message` | Conventional Commits format and message content |
+| Workspace | `read_editorconfig_rules` | The effective `.editorconfig` settings for a file |
+| Web | `analyze_typescript_code_style` | TypeScript anti-patterns and style conventions |
+
+Your agent can also search the full guidance catalogue on demand — to find
+what applies to a particular file, or to answer a topical question. Anything
+you've switched off is never returned.
+
+## Commands
+
+Available from the Command Palette, prefixed with **AutoContext:**
+
+| Command | What it does |
+|---|---|
+| **Auto Configure** | Re-scan the workspace and enable what's relevant |
+| **Enable / Disable Instruction** | Turn a single piece of guidance on or off |
+| **Toggle Instruction** | Turn one rule on or off while reading a file |
+| **Reset Instructions** | Re-enable every rule in the current file |
+| **Export Instructions** | Start choosing guidance to export |
+| **Confirm / Cancel Export** | Finish or abandon an export |
+| **Show Original** | View the built-in version of something you've overridden |
+| **Delete Override** | Remove your copy and go back to the built-in version |
+| **Show Changelog** | See what changed in a piece of guidance |
+| **What's New** | Open the release notes |
+| **Show / Hide Not Detected** | Show or hide items that don't apply to your project |
+| **Start MCP Worker** | Start a check provider from the sidebar |
+| **Show Output** | Open the AutoContext output log |
+
+## If something looks wrong
+
+Open **View → Output** and choose **AutoContext** from the dropdown to see
+what's happening. **MCP: List Servers** in the Command Palette confirms the
+checks are registered.
 
 ## License
 
-AutoContext is licensed under the [AGPL-3.0](LICENSE). A separate [commercial license](COMMERCIAL.md) is available for organizations that want to use AutoContext under terms different from the AGPL-3.0.
+AutoContext is licensed under the [AGPL-3.0](LICENSE). A separate
+[commercial license](COMMERCIAL.md) is available for organizations that want
+to use AutoContext under terms different from the AGPL-3.0.
 
 Use of the AutoContext name and logo is subject to [TRADEMARKS.md](TRADEMARKS.md).
 
 ## Source
 
-[github.com/2site-net/AutoContext](https://github.com/2site-net/AutoContext) — see [CONTRIBUTING.md](https://github.com/2site-net/AutoContext/blob/main/CONTRIBUTING.md) for contribution guidelines.
+[github.com/2site-net/AutoContext](https://github.com/2site-net/AutoContext)
+— see [CONTRIBUTING.md](https://github.com/2site-net/AutoContext/blob/main/CONTRIBUTING.md)
+for contribution guidelines.

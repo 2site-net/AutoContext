@@ -1,6 +1,6 @@
 # Implementation Plan: `autocontext-engine`
 
-> **Companion to** [`future/autocontext-engine.md`](./future/autocontext-engine.md).
+> **Companion to** [`future/autocontext-engine.md`](./autocontext-engine.md).
 > That document is the design authority; this document is the rollout
 > sequence. When the two disagree, the design wins — open a delta in
 > the design first, then update this plan.
@@ -96,7 +96,7 @@
   full `.\scripts\prepare.ps1` is green.
 - **Re-read the design before every phase.** Before opening a phase
   branch, re-read the sections of
-  [`future/autocontext-engine.md`](./future/autocontext-engine.md)
+  [`future/autocontext-engine.md`](./autocontext-engine.md)
   that the phase cites (the `design §…` anchors in its header, plus
   any subsections they cross-reference). The design doc evolves
   between phases; an implementation that lines up with last week's
@@ -216,7 +216,7 @@ other reason still need a real second impl.
   `AutoContext.Engine.Protocol.Tests`,
   `AutoContext.Workers.Core.Tests`,
   `AutoContext.Engine.Core.Tests` (absorbs today's
-  `AutoContext.Mcp.Server.Tests` over the course of phases 7 and 16),
+  `AutoContext.Mcp.Server.Tests` over the course of phases 7 and 15),
   `AutoContext.Client.Core.Tests`, `AutoContext.Engine.Tests`,
   `AutoContext.Instructions.Parser.Tests` (frontmatter + `applyTo`
   parser fixtures, round-trip invariant, section-index and cross-file
@@ -230,15 +230,15 @@ other reason still need a real second impl.
 - **Smoke tests** route through `scripts/test.ps1 -Smoke` as they do
   today.
 
-## Target structure (end-state after Phase 16)
+## Target structure (end-state after Phase 15)
 
 This is the shape the codebase converges to once every phase has
 landed. Use it as a review anchor: each phase below moves the tree
 *toward* this picture; nothing in the rollout should produce
 intermediate shapes that aren't on a straight line to here. The
 source of truth for the architectural rationale is
-[`design § Project layout`](./future/autocontext-engine.md#project-layout)
-and [`design § Distributed bundle layout`](./future/autocontext-engine.md#distributed-bundle-layout);
+[`design § Project layout`](./autocontext-engine.md#project-layout)
+and [`design § Distributed bundle layout`](./autocontext-engine.md#distributed-bundle-layout);
 this section is the *contract* the implementation plan delivers.
 
 ### Scope
@@ -322,7 +322,7 @@ src/
     EndpointKind.cs                            # enum { Rpc, Events, Health, Logs } — the four logical channels per (workspace, launcher instance)
     Endpoint.cs                                # `readonly record struct` implementing IParsable<Endpoint> — builder + parser for rpc/events/health/logs × hash#instance
     WorkspaceHash.cs                           # 16-uppercase-hex SHA-256 prefix of the normalised workspace path — `readonly record struct` implementing `IParsable<WorkspaceHash>`; the `<workspaceHash>` segment of every Endpoint, on the shared leaf so the engine and every client derive it from one implementation (moved from Engine.Core in Phase 12)
-    ServiceAddressFormatter.cs                 # legacy `autocontext.<role>#<instance-id>` formatter — kept until every current-topology dialer flips to Endpoint (Phase 12); deleted in Phase 16
+    ServiceAddressFormatter.cs                 # legacy `autocontext.<role>#<instance-id>` formatter — kept until every current-topology dialer flips to Endpoint (Phase 12); deleted in Phase 15
     ProtocolVersion.cs                         # Engine.Hello version constant
     LogRecord.cs                               # canonical log-record envelope (timestamp, category, level, …)
     Envelopes/                                 # discriminated-envelope base shapes (P2)
@@ -660,6 +660,23 @@ src/
     # the engine sequences the generator via a ProjectReference (ReferenceOutputAssembly=false);
     # the target runs AfterTargets=ResolveProjectReferences BeforeTargets=CoreCompile.
 
+  AutoContext.Workers.Manifest.Generator/      # build-time console generator (net10.0, AssemblyName workers-manifest-gen) — not shipped with the engine
+    AutoContext.Workers.Manifest.Generator.csproj        # OutputType=Exe
+    WorkersManifestGenerator.targets           # imported by AutoContext.Engine.csproj; <Exec>s the generator during the binary's build
+    Program.cs                                 # generic-host entry point (build host → resolve runner → Run → exit code)
+    WorkersManifestGenerator.cs                # runner: scans src/, writes workers.json into the binary's Resources/
+    IWorkerDescriptorScanner.cs                # scanner contract
+    WorkerDescriptorScanner.cs                 # selects worker projects by the presence of .autocontext-worker.json and reads id/type/label/command verbatim; an AutoContext.Worker.* project without a descriptor fails the build, and duplicate ids are rejected
+    IWorkersManifestSerializer.cs              # serializer contract
+    WorkersManifestSerializer.cs               # deterministic, byte-stable JSON writer
+    JsonWorkersManifest.cs                     # manifest DTO
+    JsonWorkerEntry.cs                         # per-worker DTO
+    WorkersManifestJsonContext.cs              # source-generated System.Text.Json context
+    WorkersManifestJsonOptions.cs              # shared serializer options
+    WorkersManifestGeneratorServiceCollectionExtensions.cs  # DI registration
+    # sequenced exactly like the instructions generator: ProjectReference with
+    # ReferenceOutputAssembly=false, target AfterTargets=ResolveProjectReferences BeforeTargets=CoreCompile.
+
   AutoContext.Engine/                          # engine binary host
     AutoContext.Engine.csproj                  # publishes as autocontext-engine[.exe]
     Program.cs                                 # entry point — wires the System.CommandLine parser with a diagnostic prefix
@@ -671,12 +688,13 @@ src/
                                                # (not embedded resources)
     Resources/                                 # read-only side-cars — copied next to the binary
       instructions-catalog.json                #   hand-authored curatorial layer (tracked in source)
+      instructions-catalog.schema.json         #   JSON-schema for the catalog
       instructions-manifest.json               #   build-generated per-file facts (P3)
       mcp-tools-registry.json                  #   hand-authored: what each tool is for the model + dispatch (flat tools[])
       mcp-tools-registry.schema.json           #   JSON-schema for the registry
       mcp-tools-catalog.json                   #   hand-authored: when each tool activates + where it sits in the UI
       mcp-tools-catalog.schema.json            #   JSON-schema for the catalog
-      workers.json                             #   generated from AutoContext.Worker.* projects
+      workers.json                             #   generated from the per-worker .autocontext-worker.json descriptors
 
   tests/
     AutoContext.Framework.Pipes.Tests/         # transport primitives — listener, codec, keep-alive, exchange/streaming triad
@@ -687,6 +705,7 @@ src/
     AutoContext.Engine.Tests/                  # binary-host integration: argv parser, role split, ready-marker, end-to-end spawn
     AutoContext.Instructions.Parser.Tests/     # frontmatter + applyTo parser fixtures, round-trip invariant
     AutoContext.Instructions.Manifest.Generator.Tests/  # manifest builder + serializer assertions
+    AutoContext.Workers.Manifest.Generator.Tests/       # descriptor scanner + serializer assertions
     AutoContext.Framework.Tests.Support/       # shared test-support reused by engine + worker tests
 ```
 
@@ -1881,7 +1900,7 @@ moved to Phase 7 — the phase where the engine first *owns* the
 registry (`McpTools.List`/`Invoke`). There is no rename: today's
 `src/AutoContext.Mcp.Server/mcp-workers-registry.json` stays in
 place under its legacy name, serving the still-live MCP server until
-Phase 16 deletes that project wholesale. The engine authors its own
+Phase 15 deletes that project wholesale. The engine authors its own
 `Resources/mcp-tools-registry.json` (and schema, and the
 hand-authored `mcp-tools-catalog.json`) **fresh, correctly named**
 in Phase 7 — the same copy-into-the-engine pattern this phase uses
@@ -2289,7 +2308,7 @@ MCP-tool dispatch (Phase 7).
 **Status**: Completed on branch `features/mcp-tools-catalog-and-dispatch`.
 
 | # | Commit subject | State |
-|---|---|---| 
+|---|---|---|
 | 1 | `feat(protocol): add McpTools.* wire DTOs` | DONE (legacy task shape) |
 | 1b | `refactor(protocol): flatten McpTools/config MCP DTOs` | DONE |
 | 2 | `feat(engine): author mcp-tools-registry.json and its schema` | DONE |
@@ -2405,7 +2424,7 @@ manifests` (`workers.json`, `mcp-tools-registry.json`),
   **not** renamed or moved from today's
   `src/AutoContext.Mcp.Server/mcp-workers-registry.json`. That legacy
   file stays in place, untouched under its old name, serving the
-  still-live `AutoContext.Mcp.Server` until Phase 16 deletes the whole
+  still-live `AutoContext.Mcp.Server` until Phase 15 deletes the whole
   project (the same copy-into-the-engine pattern Phase 5 used for the
   instruction corpus — the old consumer keeps working under the old
   name; the engine's copy is born correctly named in the project that
@@ -2661,7 +2680,7 @@ mark-complete step.
 **Goal**: engine builds the *category → MCP tool* and *extension →
 instructions file* indices from already-owned state and answers
 `Discovery.RouteForPrompt` / `Discovery.RouteForTool`. The `.cjs`
-hooks (Phase 15) stop carrying their own scan logic.
+hooks (Phase 14) stop carrying their own scan logic.
 
 **Design anchors**: `§ RPC surface` (`Discovery.*`), `§ P7`, `§ P11`.
 
@@ -2738,7 +2757,7 @@ hooks (Phase 15) stop carrying their own scan logic.
 - Disabled-state changes are reflected on the next query without any
   index rebuild (the per-query config read).
 
-**Out of scope**: hook integration (Phase 15).
+**Out of scope**: hook integration (Phase 14).
 
 ## Phase 10 — Agent.* RPCs
 
@@ -2804,7 +2823,7 @@ shape), `§ P10` (cross-process fan-out).
   is never back-pressured.
 - Two clients subscribed concurrently see the same envelope sequence.
 
-**Out of scope**: hook script integration (Phase 15);
+**Out of scope**: hook script integration (Phase 14);
 `Diagnostics.Run` consumer.
 
 ## Phase 11 — MCP-server-only role
@@ -2867,7 +2886,7 @@ then registers the `search_instructions_by_metadata` stdio tool on top of it
 row 1 because it is additive to the adapter row 1 builds, and carries a
 small design delta promoting `SearchByMetadata` from future to present.
 Row 3 is the end-to-end smoke test (gated `Category=Smoke`,
-matching the phase-4 `Workspace.Detect` row and the phase-16 regression
+matching the phase-4 `Workspace.Detect` row and the phase-15 regression
 set): it spawns the real `autocontext-engine --mcp-server with-stdio`
 binary and drives `tools/list` / `tools/call` over actual stdio —
 proving the process-boundary behaviour no in-process test can, namely
@@ -2879,7 +2898,7 @@ what they build. Row 4 is the standard docs mark-complete step.
 
 There is deliberately **no** legacy-server cutover row here.
 `AutoContext.Mcp.Server` stays untouched as the legacy stdio server
-until Phase 16 retires it — it is **not** shrunk to a shim that
+until Phase 15 retires it — it is **not** shrunk to a shim that
 delegates to the engine's role. A delegating shim would forward into
 the same engine code row 1 builds, so it is not an independent
 regression signal, and row 3 already smoke-tests the engine's stdio
@@ -2887,7 +2906,7 @@ role end-to-end over a real process boundary. Leaving the legacy
 server as-is keeps its still-legacy consumers working unchanged — the
 extension's `servers.json`-driven provider and the packaging layout —
 until Phase 13 (packaging) and Phase 14 (extension) repoint them at
-the engine binary and Phase 16 deletes the project wholesale.
+the engine binary and Phase 15 deletes the project wholesale.
 
 **Goal**: `autocontext-engine --mcp-server with-stdio` runs the
 reduced stdio MCP server — the daemon's read capabilities plus
@@ -2930,7 +2949,7 @@ and is killed on stdio EOF. Per-request disk read of
   independent coverage. The legacy server keeps serving its
   `servers.json`-driven consumers unchanged until Phase 13
   (packaging) and Phase 14 (extension provider) repoint them at the
-  engine binary and Phase 16 deletes the project.
+  engine binary and Phase 15 deletes the project.
 
 **Tests**:
 - **In-process (row 1).** The adapter routes `tools/call` by name to the
@@ -2956,7 +2975,7 @@ and is killed on stdio EOF. Per-request disk read of
     parallel daemon is observed on the next stdio request.
   - Stdio EOF exits cleanly.
 
-**Out of scope**: deleting `AutoContext.Mcp.Server` (Phase 16);
+**Out of scope**: deleting `AutoContext.Mcp.Server` (Phase 15);
 extension's MCP server definition repointing (Phase 14).
 
 ## Phase 12 — `Client.Core` (CLI-as-library) and `EngineDaemonManager` (TS)
@@ -3038,7 +3057,7 @@ share the engine's wire contract.
   child, tear down on host shutdown) **and** exposes the engine's
   RPC surface as typed methods on top of that lifecycle. Consumers:
   the VS Code extension (Phase 14) and the agent-plugin `.cjs`
-  hook scripts (Phase 15).
+  hook scripts (Phase 14).
 
 **Design anchors**: `§ Composition contracts`, `§ Sharing principle`,
 `§ Lifecycle` (cold start, warm reuse), `§ P6`/`§ P9`/`§ P10`.
@@ -3090,9 +3109,9 @@ share the engine's wire contract.
 - Engine refusal on protocol-version mismatch surfaces as a typed
   error on both clients.
 
-**Out of scope**: extension consuming the client (Phase 14); hooks
-consuming the client (Phase 15); CLI verb implementations
-(`autocontext-cli.md`, separate plan).
+**Out of scope**: the extension and the hooks consuming the client
+(both Phase 14); CLI verb implementations (`autocontext-cli.md`,
+separate plan).
 
 ## Phase 13 — Distribution and packaging
 
@@ -3139,17 +3158,85 @@ artefacts until Phase 14. Plugin-release and GitHub-release tarball
 layout coverage moves with the artefacts themselves — neither is
 produced by this repository yet, so neither can be verified here.
 
-## Phase 14 — Extension migration
+## Phase 14 — Extension and hook migration
 
 **Status**: Not started.
 
-**Goal**: extension becomes a pure `EngineDaemonManager` consumer. The
-sideband pipe servers and the in-extension projection/config/corpus
-classes are deleted. Tree views, decoration providers, CodeLens, and
-LM tools dial the engine over the four pipes.
+| # | Commit subject | State |
+|---|---|---|
+| 1 | `test(nodejs-core): fail when the engine binary is absent` | TODO |
+| 2 | `feat(vscode): spawn and own the engine daemon` | TODO |
+| 3 | `refactor(vscode): serve config from the engine` | TODO |
+| 4 | `refactor(vscode): serve workspace detection from the engine` | TODO |
+| 5 | `refactor(vscode): serve instructions from the engine` | TODO |
+| 6 | `refactor(vscode): retire the sideband pipe servers` | TODO |
+| 7 | `refactor(vscode): let the engine spawn workers` | TODO |
+| 8 | `refactor(vscode): point the mcp server definition at the engine` | TODO |
+| 9 | `refactor(vscode): retire the servers manifest` | TODO |
+| 10 | `refactor(vscode): drop the chatInstructions contribution` | TODO |
+| 11 | `refactor(hooks): serve always-attached instructions from the engine` | TODO |
+| 12 | `refactor(hooks): route prompts and tools through the engine` | TODO |
+| 13 | `feat(hooks): materialise subagent files under the cache root` | TODO |
+| 14 | `refactor(vscode): delete the corpus and manifests, rename resources to assets` | TODO |
+| 15 | `test(vscode): migrate suites onto the engine client` | TODO |
+| 16 | `docs(plan): mark Phase 14 complete` | TODO |
+
+**Commit grouping.** Row 1 comes first and is not cosmetic: the Phase 12
+round-trip suite reads
+`const suite = engineBinaryPath === undefined ? describe.skip : describe`,
+so it **silently skips** when the .NET half has not been built. It passes
+today only because the engine was built locally. Every row below leans on
+that suite as its proof that the client works, so the skip becomes a hard
+failure before anything is migrated onto it.
+
+Row 2 stands the daemon up and disposes it on deactivate — nothing else can
+land first, because the extension has **no** reference to
+`EngineDaemonManager` today (verified: zero imports; it consumes
+`autocontext-nodejs-core` only for `LogCategory`, `ChannelLogger`,
+`LoggerBase`, and the pipe primitives). This phase is a first integration,
+not a swap of an existing seam.
+
+Rows 3–5 replace one owned domain each, in dependency order, so a bisect
+lands on a single subsystem. Rows 6–9 unwind the spawn/sideband topology:
+the pipe servers go first, then worker spawn, then the MCP definition, and
+only then the manifest that named them — reversing the order would leave a
+consumer without its lookup. Row 10 drops the contribution once
+`Instructions.*` serves every reader.
+
+Rows 11–13 migrate the agent-plugin hooks. They live in this phase rather
+than one of their own because they are the *second* reader of exactly the
+folders rows 3–10 stop reading: splitting them out would mean finishing the
+extension migration with the corpus still undeletable, waiting on a separate
+phase to close the last two callers. Row 14 is the payoff — with no reader
+left on either side, the corpus, the JSON manifests, and the `resources/`
+name all go in one commit. Row 15 migrates the suites in one pass because
+they cross-cut every preceding row.
+
+**Foundation check (measured 2026-07-28, `features/extension-migration`).**
+`EngineDaemonManager` already covers every RPC family this phase needs —
+`Config.*` (incl. `subscribeConfig`), `Instructions.*` (all nine, incl.
+`SearchByMetadata` and `subscribeInstructions`), `Workspace.*`,
+`McpTools.*`, `Discovery.*`, `Agent.*` (five notifications +
+`subscribeAgentEvents`), `Logs.*` (incl. both tails), and `Engine.*` with
+`subscribeLifecycle`. Find-or-spawn is real
+(`engine-connector` / `engine-spawner` / `engine-locator`), and the
+round-trip suite exercises it against a genuinely spawned binary. Nothing in
+the client blocks this phase.
+
+The 22 modules the deletion list below names all exist — no stale entries —
+and total roughly 2,900 of the extension's 7,700 source lines, against 64
+test files.
+
+**Goal**: extension becomes a pure `EngineDaemonManager` consumer, and the
+agent-plugin hooks with it. The sideband pipe servers and the in-extension
+projection/config/corpus classes are deleted. Tree views, decoration
+providers, CodeLens, LM tools, and every hook dial the engine over the four
+pipes. With the last reader closed, the extension's own corpus and JSON
+manifests are deleted and `resources/` becomes `assets/`.
 
 **Design anchors**: `§ Authority model: engine owns, clients cache`,
-`§ Projection ownership`, `§ Sharing principle`, `§ LM-tool surface`.
+`§ Projection ownership`, `§ Sharing principle`, `§ LM-tool surface`,
+`§ Topology — motivating clients` (agent plugin).
 
 **Code touch — deletions** (from `src/AutoContext.VsCode/src/`):
 - `autocontext-config-manager.ts`, `autocontext-config-projector.ts`,
@@ -3170,6 +3257,11 @@ LM tools dial the engine over the four pipes.
 - `workspace-context-detector.ts` — replaced by `Workspace.Detect`.
 - `worker-manager.ts` — engine spawns workers itself; the extension
   spawns the engine (and only the engine).
+- `servers-manifest-loader.ts`, `servers-manifest.ts`,
+  `server-entry.ts` — the extension no longer looks a spawnable entry
+  up by id; the engine sits at the fixed bundled `engine/` path.
+  `resource-manifest-loader.ts` retires with the last of its three
+  subclasses.
 - The four LM-tool handler implementations
   (`instructions-files-lm-tools-*`) collapse to thin shims that dial
   `Instructions.*` over `EngineDaemonManager`.
@@ -3187,44 +3279,25 @@ LM tools dial the engine over the four pipes.
   `autocontext-engine --mcp-server with-stdio`. Today's
   `--endpoint-suffix` side-channel from the extension's launcher to
   the MCP-host's spawn is replaced wholesale by `--instance-id`.
-- `agent-plugin-installer.ts` keeps installing the hook scripts, but
-  the hooks now dial the engine (Phase 15).
+- `agent-plugin-installer.ts` keeps installing the hook scripts, and
+  the hooks themselves migrate in this phase (rows 11–13).
 
-**Tests**:
-- Extension Vitest suites: every replaced module's test coverage
-  migrates onto `EngineDaemonManager` fakes / engine-in-process fixtures.
-  No coverage drops below the replaced module's bar.
-- `scripts/test.ps1 -Smoke` (the VS Code extension smoke test) runs
-  end-to-end: extension activates, spawns the engine, tree view
-  populates, an instruction toggle round-trips.
-- Cross-window scenario: two VS Code windows on the same workspace
-  spawn two engines; toggles in one window reach the other through
-  the cross-instance `.autocontext.json` path (Phase 3 contract).
-
-**Out of scope**: hook scripts (Phase 15); `Mcp.Server` deletion
-(Phase 16).
-
-## Phase 15 — Agent-plugin hook migration
-
-**Status**: Not started.
-
-**Goal**: the agent-plugin hooks (today's `.cjs` scripts under
-`src/AutoContext.VsCode/plugin/hooks/`) call `EngineDaemonManager` for
-everything. SessionStart, UserPromptSubmit, PreCompact, and the
-SubagentStart/Stop pair land in this phase; PreToolUse / PostToolUse
-/ Stop land too because they share the same client and the same RPC
-families.
-
-**Design anchors**: `§ Topology — motivating clients` (agent
-plugin), `§ RPC surface` (`Agent.*`, `Discovery.*`,
-`Instructions.GetAlwaysAttached`).
-
-**Code touch**:
+**Code touch — the agent-plugin hooks**:
 - Hook scripts move from "carries its own routing scan + corpus
   reader" to "calls `Instructions.GetAlwaysAttached`,
   `Discovery.RouteForPrompt`, `Discovery.RouteForTool`, and fires
   the `Agent.*` notifications". The TS `EngineDaemonManager` from
-  Phase 12 is the only seam.
+  Phase 12 is the only seam. SessionStart, UserPromptSubmit,
+  PreCompact, and the SubagentStart/Stop pair all land here;
+  PreToolUse / PostToolUse / Stop come with them because they share
+  the same client and the same RPC families.
+- **The hooks are the second reader of the extension's own folders.**
+  `src/AutoContext.VsCode/src/hooks/*.cts` resolve `instructions/` and
+  `resources/*.json` from the extension root and read them directly at
+  runtime — `autocontext-session-start` loads the always-attached
+  corpus files (2 sites), `autocontext-user-prompt-submit` reads
+  `mcp-tools.json` and `instructions-files.metadata.json` (4 sites).
+  Closing these is what makes row 14's deletion possible.
 - Sub-agent file materialisation under the per-instance cache root
   (`%LOCALAPPDATA%\autocontext\<workspaceHash>\<instanceId>\cache\subagents\<sessionId>\`,
   POSIX equivalent) lives in the SubagentStart hook; SubagentStop
@@ -3238,18 +3311,113 @@ plugin), `§ RPC surface` (`Agent.*`, `Discovery.*`,
   in-hook disk-read fallback; engine + plugin ship versioned
   together).
 
+**Shipped extension folder — target layout**. The VSIX `extension/`
+folder is the contract this phase delivers; Phase 15 removes the
+producers once nothing reads the old paths:
+
+| Today | After the engine migration |
+|---|---|
+| `servers/` (the whole .NET + Node server tree) | **deleted** — the engine owns worker spawn |
+| `instructions/` (79 `*.instructions.md`) | **deleted** — served from `engine/Instructions/` |
+| `resources/` (4 JSON manifests + 2 images) | renamed **`assets/`**, images only |
+| `engine/` | unchanged — the only binary payload |
+
+Constraints measured on `features/extension-migration` (2026-07-28).
+Each one gates a deletion that would otherwise look safe:
+
+- **`servers/` is load-bearing until this phase lands.**
+  `mcp-server-provider.ts` resolves the MCP binary at
+  `join(extensionPath, 'servers', <name>, <name>.exe)`;
+  `worker-manager.ts` (`buildSpecs`) spawns all three workers from the
+  same tree; `extension-composition.ts` loads `ServersManifestLoader`
+  and filters its entries against `mcp-tools.json`; and
+  `worker-control-server.ts` maps wire ids from the resulting
+  `ServerEntry[]`. Phase 15 cannot delete `servers/` or `servers.json`
+  until these four are repointed here.
+- **`contributes.chatInstructions` retires — the engine is the only
+  reader.** `package.json` contributes 79 entries (two ungated
+  always-attached files, 77 gated on
+  `autocontext.instructions.<name> && !autocontext.override.<name>`).
+  That contribution has **VS Code** open the `.md` itself, so the
+  corpus has a second reader that never passes through the engine.
+  Repointing the paths at `./engine/Instructions/` would work — the
+  basenames match the engine corpus exactly, 79 for 79 — but it would
+  preserve the divergence, so it is **not** the target. The gate is
+  boolean and whole-file, while `.autocontext.json` supports
+  `disabledRules` and `InstructionsBodyProjector` filters them out of
+  the served body: a user who disables one rule still receives it
+  through `chatInstructions` today. Always-attached injection belongs
+  to `Instructions.GetAlwaysAttached` via the SessionStart hook,
+  per-prompt routing to `Discovery.RouteForPrompt`, and browsing to
+  the LM tools — all engine-served, all honouring rule-level state.
+  Dropping the contribution is what makes `instructions/` deletable.
+- **The two corpora are not a clean duplicate.**
+  `src/AutoContext.VsCode/instructions/` and
+  `src/AutoContext.Engine/Instructions/` both hold 79 identically-named
+  files, but the first is CRLF and the second LF. After normalising line
+  endings 73 of 79 match; six differ in content and need reconciling
+  before the VsCode copy is deleted — `copilot`, `design-principles`,
+  `dotnet-coding-standards`, `dotnet-testing`, `testing`,
+  `web-testing`.
+- **`resources/` splits cleanly.** `instructions-files.json`,
+  `instructions-files.metadata.json`, `mcp-tools.json`, and the copied
+  `servers.json` are each superseded by an engine-side equivalent;
+  `logo.png` and `logo_vscode.svg` are the only genuine assets. The
+  rename touches `package.json`, which points its activity-bar icon at
+  `resources/logo_vscode.svg`.
+
+**Definition of done — no second reader survives.** The engine owns the
+corpus, the manifests, and worker identity, so after this phase nothing
+else reads them. Deleting `instructions/` and the `resources/*.json`
+manifests is the *consequence* of closing these readers, not the goal:
+a folder that still has a reader cannot be removed, and a reader that
+outlives its folder is a defect even when its output happens to be
+correct today. Every row below was counted on
+`features/extension-migration` (2026-07-28):
+
+| Reader today | Sites | Replacement |
+|---|---|---|
+| TS modules resolving `join(extensionPath, 'instructions' \| 'resources', …)` | 13 across 9 files | `Instructions.*` / `Config.*` RPCs |
+| `contributes.chatInstructions` — VS Code opens the `.md` itself | 79 entries | SessionStart hook, `Discovery.RouteForPrompt`, LM tools |
+| `ServersManifestLoader` → MCP binary + worker spawn paths | 4 modules | fixed bundled `engine/` path |
+| `.github/instructions/` override precedence in `instructions-file-content-projector.ts` | 1 | `Instructions.GetRaw` with `source: bundled \| override \| active` |
+
+The override row is the subtle one: the engine already resolves
+override-over-bundled in `InstructionsOverridesWatcher` +
+`InstructionsBodyProjector`, so today two implementations of the same
+precedence rule run side by side. They are not obliged to agree, and
+`disabledRules` already shows what divergence looks like in practice.
+
+The phase is done when a search of `src/AutoContext.VsCode/src/` for
+`join(extensionPath, 'instructions'` and `join(extensionPath,
+'resources'` returns nothing and `contributes.chatInstructions` is
+absent from `package.json`. The folders themselves survive the extension rows:
+the hooks are still reading them (6 sites), so the deletion and the
+`resources/` → `assets/` rename land in row 14 of this phase, once the
+last reader closes.
+
 **Tests**:
+- Extension Vitest suites: every replaced module's test coverage
+  migrates onto `EngineDaemonManager` fakes / engine-in-process fixtures.
+  No coverage drops below the replaced module's bar.
+- `scripts/test.ps1 -Smoke` (the VS Code extension smoke test) runs
+  end-to-end: extension activates, spawns the engine, tree view
+  populates, an instruction toggle round-trips.
+- Cross-window scenario: two VS Code windows on the same workspace
+  spawn two engines; toggles in one window reach the other through
+  the cross-instance `.autocontext.json` path (Phase 3 contract).
 - Per-hook fixture-based tests against a spawned engine.
 - Side-channel UUID inheritance: hook with env var reaches the
   launcher's engine; hook without spawns its own.
 - Sub-agent cache materialisation + cleanup.
 - `Engine.Hello` mismatch surfaces as a structured hook error.
+- A packaged VSIX carries no `instructions/` and no `resources/*.json`.
 
-**Out of scope**: any host-specific hook-host detection (the design
-says hooks are host-agnostic — Claude Code, VS Code Copilot, future
-hosts).
+**Out of scope**: `Mcp.Server` deletion and the `servers/` teardown
+(Phase 15); any host-specific hook-host detection (the design says
+hooks are host-agnostic — Claude Code, VS Code Copilot, future hosts).
 
-## Phase 16 — `AutoContext.Mcp.Server` retirement
+## Phase 15 — `AutoContext.Mcp.Server` retirement
 
 **Status**: Not started.
 
@@ -3288,7 +3456,10 @@ artefact carries. Tests fold into `AutoContext.Engine.Core.Tests`.
   `Copy-DotNetToServersFolder`, `Copy-NodeJsToServersFolder`, the
   `ServersDir` / `NodeServers` / `DotnetServers` /
   `ServerProjectPaths` context fields, and the `resources/servers.json`
-  asset copy.
+  asset copy. **Gated on Phase 14**: four extension modules still
+  resolve the MCP binary and every worker out of `servers/` (see that
+  phase's *Shipped extension folder* contract), so this deletion is
+  only safe once they dial the engine.
 - TS-side `servers-manifest-loader.ts`, `servers-manifest.ts`, and
   `server-entry.ts` retire with the manifest; the extension resolves
   the engine at the fixed bundled `engine/` path instead of looking up
@@ -3323,11 +3494,22 @@ artefact carries. Tests fold into `AutoContext.Engine.Core.Tests`.
 - **Phase 13 (distribution) cannot ship before Phase 11
   (MCP-server-only role).** The shipped binary needs to support both
   roles before any host bundle includes it.
-- **Phase 14 (extension) cannot ship before Phases 6, 7, 9, 12.**
-  The extension consumes every one of those surfaces.
-- **Phase 15 (hooks) cannot ship before Phase 12 (TS client).**
-- **Phase 16 (Mcp.Server retirement) is last** so the regression
+- **Phase 14 (extension and hooks) cannot ship before Phases 6, 7, 9,
+  12.** Both the extension and the hooks consume every one of those
+  surfaces, and both dial through the Phase 12 TS client.
+- **Phase 15 (Mcp.Server retirement) is last** so the regression
   surface stays observable until everything else has flipped.
+- **The shipped extension folder empties in 14 → 15 order, and not
+  before.** Measured on `features/extension-migration` (2026-07-28):
+  `servers/` is still how the extension resolves the MCP binary and
+  every worker, `instructions/` still backs 79
+  `contributes.chatInstructions` entries that VS Code reads from disk,
+  and both the hooks and the TS loaders still read `resources/*.json`.
+  Retiring any of those folders ahead of the phase that repoints its
+  readers leaves the extension with no MCP server, no workers, or no
+  instruction contributions. Phase 14 closes every reader — extension
+  and hooks alike — and deletes the folders in its final rows; Phase 15
+  then removes the producers.
 
 ### What every phase explicitly does *not* do
 
@@ -3393,7 +3575,7 @@ artefact carries. Tests fold into `AutoContext.Engine.Core.Tests`.
 
 ## Companion documents
 
-- [`future/autocontext-engine.md`](./future/autocontext-engine.md)
+- [`future/autocontext-engine.md`](./autocontext-engine.md)
   — design authority.
 - [`future/autocontext-cli.md`](./future/autocontext-cli.md) — CLI
   subcommands plan, separate from this rollout.

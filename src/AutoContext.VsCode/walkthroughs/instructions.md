@@ -10,7 +10,7 @@ AutoContext ships with curated instruction files organized into categories:
 | **Web** | Angular, React, Vue, Svelte, Next.js, Node.js, Jest, Vitest, Cypress, Playwright, and more |
 | **Tools** | Git commit format, Docker |
 
-When enabled, instructions are automatically attached to every Copilot Chat conversation — so Copilot follows your coding standards without being told each time. Each instruction only activates when the matching technology is detected in your workspace (e.g., `.csproj` for C#, `react` in `package.json` for React, `.git` for commit format).
+When enabled, guidance is attached to every chat conversation — so your agent follows your coding standards without being told each time. Each one only switches on when the matching technology is present in your project.
 
 ### Toggle instructions
 
@@ -22,13 +22,11 @@ Use the AutoContext sidebar to control which instruction sets are active. Instru
 
 If you have instruction files in `.github/instructions/` that match a built-in instruction by filename, those instructions appear as **overridden** in the panel with a distinct icon. Clicking an overridden item opens the workspace-level file for editing. Use the **Show Original** action to view the built-in version, or **Delete Override** to remove the workspace file and revert to the built-in version.
 
-### Discovery tools for Copilot
+### Your agent can look things up
 
-Beyond the always-attached files, the extension contributes four Language Model tools so Copilot can **pull** the right rules on demand from inside an agent loop:
+Beyond the guidance that's always attached, your agent can search the full
+catalogue on demand — to find the rules that apply to a particular file, or
+to answer a topical question like *"what does this project say about error
+handling?"*
 
-- `list_autocontext_instructions_files` — *"which curated rules apply to this path?"*
-- `search_autocontext_instructions_files_by_metadata` — *"which rules have a Security section?"*
-- `search_autocontext_instructions_files_by_content` — free-text body search across the listing
-- `get_autocontext_instructions_file` — fetch the full body of a file, or only specific sections
-
-These tools honour your toggles: disabled files are reported as such, and disabled rules are stripped from any returned body.
+This respects your choices: guidance you've switched off is never returned.

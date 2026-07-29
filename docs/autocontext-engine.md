@@ -135,7 +135,7 @@ Two motivating clients, two jobs:
     a tool. The hook calls `Discovery.RouteForTool(toolName)`
     (a `Discovery.*` extension keyed by tool identity rather than
     prompt text) and emits any tool-gated instruction file that
-    `applyTo` would target — e.g. invoking `analyze_csharp_code`
+    `applyTo` would target — e.g. invoking `analyze_csharp_code_style`
     surfaces the C# coding-standards instructions, invoking a
     git-commit-analysis tool surfaces the commit-message
     instructions. This catches turns the prompt-text router
@@ -197,7 +197,7 @@ The **shipped** shape of an engine bundle inside any host artefact
 (VSIX, plugin root, GitHub-released tarball). This is the runtime
 filesystem the engine resolves against via `AppContext.BaseDirectory`
 — not the source-tree layout under `src/`, and not the multi-RID
-build-output tree under `out/`. Each shipped artefact targets one
+build-output tree under `artifacts/engine/`. Each shipped artefact targets one
 platform (one VSIX per platform via `vsce package --target <target>`,
 one plugin release per platform, one GitHub-release tarball per RID),
 so the per-RID segment that exists in build staging is **absent**
@@ -348,6 +348,7 @@ See [Log categories](#log-categories).
 | `InstructionsManifestService` | merged catalog + manifest snapshot — startup ingestion + per-request projection |
 | `InstructionsBodyProjector` | raw → projected body (disabled-rule filter, `[INSTxxxx]` tags preserved as reference anchors, override resolution) |
 | `instructions-manifest-gen` (build-time tool, not a runtime service) | reads `instructions-catalog.json` + the corpus, emits `instructions-manifest.json` |
+| `workers-manifest-gen` (build-time tool, not a runtime service) | aggregates the per-worker `.autocontext-worker.json` descriptors under `src/`, emits `workers.json` |
 | `InstructionsFullTextSearchService` | in-memory full-text search over instruction bodies (replaces extension-side trigram index) |
 | `WorkspaceContextDetector` | workspace detection (absorbed from extension) |
 | `WorkerProcessService` | lazy `ensureRunning(workerId)` worker dispatcher (absorbed from MCP server) |
@@ -368,11 +369,12 @@ See [Composition contracts](#composition-contracts).
 | File | Role |
 |---|---|
 | `instructions-catalog.json` | **hand-authored** curatorial layer: category taxonomy (`name` + `description`) and per-file `label`, category membership, and `activationFlags`. Tracked source — not generated. |
+| `instructions-catalog.schema.json` | JSON-schema for the catalog (hand-edited) |
 | `instructions-manifest.json` | **build-generated** per-file facts: section maps, parsed `applyTo` extension sets, `version`, `description`, `contentHash`, `hasChangelog`. Carries no body text — full-text search indexes the projected bodies at runtime. |
 | `mcp-tools-catalog.json` | **hand-authored** activation + UI catalog. Answers two questions the registry deliberately does not: **when** each tool activates (category `activationFlags`, accumulated down the tree and ANDed) and **where** it appears in the UI (its category in the presentation tree). Carries no model-facing tool contract; joins the registry by tool `name` + `workerId`. Same curatorial concept as `instructions-catalog.json` (hand-authored layer over a separate facts file) but its own shape. Tracked source — not generated. |
 | `mcp-tools-registry.json` | **hand-authored** execution registry. Describes **what** each tool is for the model and how it dispatches: a flat `tools[]` list, each tool `{ name, workerId (FK to workers.json), description, parameters, editorconfig? }`. The `description` and `parameters` are the model-facing contract surfaced over MCP `tools/list`; `workerId` is the source-of-truth dispatch target. No activation or UI concerns, and no nested worker/task tree. |
 | `mcp-tools-registry.schema.json` | JSON-schema for the registry (hand-edited) |
-| `workers.json` | build-generated worker manifest (id + type + entrypoint per worker) |
+| `workers.json` | build-generated worker roster, aggregated from the per-worker `.autocontext-worker.json` descriptors (`id`, `type`, optional `label`, `command`, copied verbatim) |
 
 See [Resource manifests](#resource-manifests).
 
@@ -404,7 +406,7 @@ classes:
 | `AutoContext.Mcp.Server` (orchestrator + MCP/stdio + worker dispatch + registry) | Standalone process | **Same `autocontext-engine` binary, MCP-server-only role** (`--mcp-server with-stdio`). Reads workspace state directly from `.autocontext.json` (re-read per MCP request) and bundled side-car corpus; binds no daemon pipes and writes no registry entry, but spawns workers on demand for worker-backed tools (`analyze_*` / `read_*`) over private dispatch pipes, torn down on process exit. Concurrent daemon-role engine on the same workspace (when launched by a different host) is the writer; MCP-server role is a read-mostly view plus on-demand worker dispatch. |
 | `AutoContextConfigManager` (TS, extension) | Extension process | **Engine internal**: `ConfigFileService` (.NET) |
 | `InstructionsFilesManager` + `InstructionsFileContentProjector` + `instructions-files-metadata-generator` + client-side content trigram index | Extension process | **Engine internal**: `InstructionsManifestService` + `InstructionsBodyProjector` + the build-time `instructions-manifest-gen` generator (now runs **both** at build time — reading the curated `Resources/instructions-catalog.json` and the corpus to emit the `Resources/instructions-manifest.json` side-car — **and** at engine startup, where the engine merges catalog + manifest into an immutable snapshot, applies per-request projection against workspace state, and returns rows via `Instructions.List`) + `InstructionsFullTextSearchService` (replaces the client-side trigram index; built lazily in-memory over the projected bodies `InstructionsBodyProjector` returns) |
-| `servers.json` (TS-side worker/MCP-server inventory) + `mcp-workers-registry.json` (MCP-server–side worker dispatch table) | Extension `resources/` + `AutoContext.Mcp.Server/` | **Replaced** by build-generated `Resources/workers.json` (scan of `src/AutoContext.Worker.*/` projects, id derived by stripping `AutoContext.Worker.` and replacing `.` with `-`, entrypoint written from the actual published path) + `Resources/mcp-tools-registry.json` (renamed from `mcp-workers-registry.json`; a hand-authored flat `tools[]` dispatch table, each tool carrying a `workerId` FK) + `Resources/mcp-tools-registry.schema.json` (its JSON-schema) + the hand-authored `Resources/mcp-tools-catalog.json` UI catalog. The old `servers.json` mixed MCP-server identity with worker identity; the MCP server is gone (consolidated into the engine), so the worker-only file is what remains. |
+| `servers.json` (TS-side worker/MCP-server inventory) + `mcp-workers-registry.json` (MCP-server–side worker dispatch table) | Extension `resources/` + `AutoContext.Mcp.Server/` | **Replaced** by build-generated `Resources/workers.json` (aggregated from the per-worker `.autocontext-worker.json` descriptors under `src/` — carrying that descriptor is what makes a project a worker, and its `id`, `type`, optional `label`, and `command` are copied verbatim; the `AutoContext.Worker.*` name is a convention the generator keeps only as a lint, failing the build when such a project carries no descriptor) + `Resources/mcp-tools-registry.json` (renamed from `mcp-workers-registry.json`; a hand-authored flat `tools[]` dispatch table, each tool carrying a `workerId` FK) + `Resources/mcp-tools-registry.schema.json` (its JSON-schema) + the hand-authored `Resources/mcp-tools-catalog.json` UI catalog. The old `servers.json` mixed MCP-server identity with worker identity; the MCP server is gone (consolidated into the engine), so the worker-only file is what remains. |
 | `LogServer` (sideband pipe) | Extension process | **Engine internal**: the engine binds the `logs` pipe (one of the four pipes — see `### Lifecycle`) as a unified server-streaming sink that fans out engine-emitted records **and** worker-emitted records forwarded through `Engine.WriteLog`, distinguished by the `category` field. The engine also persists every record to `…\<workspaceHash>\<instanceId>\logs\engine.log` (P4 / P5); clients tail the pipe instead of inventing their own log-watcher. |
 | `HealthMonitorServer` (sideband pipe) | Extension process | **Engine internal**: the engine binds the `health` pipe (one of the four pipes — see `### Lifecycle`) as a passive readiness/heartbeat probe — cheap connect-and-read, no `Engine.Hello` required, never counts toward the idle-timeout keep-alive gate. Replaces the extension-side `HealthMonitorServer` that earlier topology had clients dialling back to. |
 | `WorkerControlServer` (sideband pipe) | Extension process | **Engine internal**: engine spawns workers via the same lazy gate |
@@ -471,22 +473,35 @@ four sub-projects, by namespace:
   pipe, the discriminated-union envelope base shapes (P2 — `ok` /
   `disabled` / `not-found` / `*-error`), and the per-RPC request
   / response DTOs that both engine handlers and typed dialer
-  clients marshal. All inert types; no behaviour. The
+  clients marshal, plus the pure address formatters
+  (`ServiceAddressFormatter` and the endpoint builder) that both
+  sides need to agree on a pipe name. Inert apart from that
+  formatting — no I/O, no transport dependency. The
   source-generated `System.Text.Json` context for every DTO ships
   in this project.
 - **`AutoContext.Workers.Core`** (renamed from the working name
-  `AutoContext.Framework.Services`) — the worker-side runtime. It
+  `AutoContext.Framework.Services`) — the worker-side runtime for
+  **.NET** workers. It
   references `Framework.Pipes` + `Engine.Protocol`; because it
   *dials the engine*, depending on the
   `Engine.Protocol` wire contract is correct (and is why it is not a
   `Framework.*` project). `WorkerHostOptions`,
   `WorkerTaskDispatcherService`, `WorkerHostBuilderExtensions`, and
-  `IMcpTask` are the hosting scaffold and contract every
-  `AutoContext.Worker.*` project already inherits — `IMcpTask` is the
-  contract a worker implements; `WorkerTaskDispatcherService` is the
-  `BackgroundService` that binds a worker-side pipe and dispatches
-  to `IMcpTask` instances; `WorkerHostBuilderExtensions` is the
-  DI extension that registers both. `WorkerHealthMonitorService` (the
+  `IMcpTask` are hosting scaffold, **not** the worker contract:
+  `WorkerTaskDispatcherService` is the `BackgroundService` that binds
+  a worker-side pipe and routes requests to whatever handlers the
+  worker registered, `IMcpTask` is the in-process handler shape those
+  registrations happen to use, and `WorkerHostBuilderExtensions` is
+  the DI extension that wires both. A worker is free to satisfy the
+  dispatch protocol some other way, and both alternatives exist in the
+  tree today: the Node worker uses its own TypeScript task type, and
+  the test-tree `AutoContext.Worker.Test.Driver` is a **.NET** worker
+  that references only `Framework.Pipes` + `Engine.Protocol`,
+  implements its own task interface and dispatcher, and never touches
+  this project at all.
+  What makes a process a worker is its descriptor plus the dispatch
+  wire protocol; everything in this paragraph is a convenience for
+  .NET workers that want it. `WorkerHealthMonitorService` (the
   renamed `HealthMonitorClient`) flips direction here: today it dials
   the extension's `HealthMonitorServer`; under the engine design the
   engine binds the `health` pipe (P4) and it becomes the **client** of
@@ -514,17 +529,20 @@ Framework.Pipes (leaf)              Engine.Protocol (leaf)
    (refs Pipes+       (refs Pipes+     (refs Pipes+
     Engine.Protocol)   Engine.Protocol) Engine.Protocol)
          ▲
-         │ (workers only)
+         │ (optional — .NET workers wanting the host scaffold;
+         │  a worker may reference the two leaves directly instead)
       Worker.*
 ```
 
 `Engine.Core` and `Client.Core` reference `Framework.Pipes` +
 `Engine.Protocol` directly and do **not** reference `Workers.Core`.
-`Worker.*` references `Workers.Core`, which transitively brings the
-rest. Engine and dialer libraries neither bind a worker-side pipe nor
-dial the engine's health probe; `IMcpTask`, the dispatcher, the
-`CorrelationScope` helper, and the worker→engine log sender live in
-`Workers.Core`.
+A .NET `Worker.*` **may** reference `Workers.Core`, which transitively
+brings the rest, or may skip it and implement the dispatch protocol
+directly against `Framework.Pipes` + `Engine.Protocol`; a worker on
+another runtime references none of it. Engine and
+dialer libraries neither bind a worker-side pipe nor dial the engine's
+health probe; the dispatcher, the `CorrelationScope` helper, and the
+worker→engine log sender live in `Workers.Core`.
 
 Net effect: today's `AutoContext.Framework` keeps every line of code
 it has, redistributed across sibling projects whose reference-graph
@@ -2035,7 +2053,7 @@ way to set it.
   validation the MCP/stdio path performs, sharing one validator to
   avoid drift. Cancellation piggy-backs on the pipe-RPC framing's
   per-request token (no separate `Cancel` RPC); the engine forwards
-  it to the worker, which honours it through the existing `IMcpTask`
+  it to the worker, which honours it through the dispatch protocol's
   cancellation parameter. Worker dispatch is engine-internal:
   callers never see workers, never spawn them, and never know which
   worker handles which tool — the mapping lives in the embedded
@@ -2069,7 +2087,7 @@ way to set it.
   CLI / host that wants the same "what's relevant for this prompt"
   signal; `RouteForTool` powers the `PreToolUse` hook by mapping a
   tool identity to the instruction files whose `applyTo` would
-  surface for that tool's domain (e.g. `analyze_csharp_code` →
+  surface for that tool's domain (e.g. `analyze_csharp_code_style` →
   the C# coding-standards files). The engine builds two indices
   from already-owned state — *category → MCP tools* (inverted from
   each tool's `categories` array in `McpTools.List`) and *file
@@ -2178,7 +2196,7 @@ handler):
 | Surface | Tool names | Why this shape |
 |---|---|---|
 | Engine pipe RPC | `Instructions.List`, `Instructions.SearchContent`, `Instructions.Get`, `Instructions.GetAlwaysAttached` | Dotted, namespaced — matches the rest of the engine RPC vocabulary (`Config.*`, `Workspace.*`, `Discovery.*`, `McpTools.*`, `Agent.*`). |
-| Engine MCP/stdio | `list_instructions`, `search_instructions_by_metadata`, `search_instructions_by_content`, `get_instructions` | snake_case, verb-first — consistent with the analyzer tools the engine already exposes (`analyze_csharp_code`, `read_editorconfig`, …) and with the verb-first LM-tool names. |
+| Engine MCP/stdio | `list_instructions`, `search_instructions_by_metadata`, `search_instructions_by_content`, `get_instructions` | snake_case, verb-first — consistent with the analyzer tools the engine already exposes (`analyze_csharp_code_style`, `read_editorconfig_rules`, …) and with the verb-first LM-tool names. |
 | VS Code LM tools | `list_autocontext_instructions_files`, `search_autocontext_instructions_files_by_metadata`, `search_autocontext_instructions_files_by_content`, `get_autocontext_instructions_file` | Verb-first, fully self-describing — the LM-tool name is what the model sees in its tool list, so it reads like documentation. |
 
 Breaking the LM-tool names would force migration of every
@@ -2403,7 +2421,7 @@ protocol event.
 | Discriminated-envelope `kind` literals (P2) | **kebab-case** wire strings | `ok`, `disabled`, `not-found`, `tool-error`, `schema-error`, `shutting-down`, `evicted` |
 | JSON field names (requests, responses, envelope payloads) | camelCase | `instanceId`, `workspaceHash`, `revision`, `isError`, `applyTo`, `contentHash` |
 | Endpoint kinds | lowercase, no separators | `rpc`, `events`, `health`, `logs` |
-| MCP tool names (stdio surface) | snake_case, verb-first verb-noun pair | `list_instructions`, `analyze_csharp_code`, `read_editorconfig` |
+| MCP tool names (stdio surface) | snake_case, verb-first verb-noun pair | `list_instructions`, `analyze_csharp_code_style`, `read_editorconfig_rules` |
 | VS Code LM tool names | snake_case, verb-first, fully self-describing | `list_autocontext_instructions_files`, `get_autocontext_instructions_file` |
 | CLI verbs | lowercase, space-separated `noun verb [args]` | `instructions list`, `config toggle`, `workspace info`, `engine logs` |
 | Log-category prefixes | Dotted; lowercase namespace, PascalCase tail when the tail mirrors an RPC name | `engine.rpc.Instructions.Get`, `engine.lifecycle`, `worker.dotnet.RoslynAnalyzer` |
@@ -3229,7 +3247,7 @@ project per binary that exists only to call `Main`:
    (refs Pipes+         (refs Pipes+        (refs Pipes+
     Engine.Protocol)     Engine.Protocol)    Engine.Protocol)
          ▲                   ▲                   ▲
-         │ (workers only)    │                   │
+         │ (optional)        │                   │
       Worker.*         Engine (binary)     CommandLine (binary)
                        → autocontext-engine[.exe] → autocontext[.exe]
 ```
@@ -3267,7 +3285,7 @@ do **not** reference `Workers.Core`. `Worker.*` references
   `Engine.Protocol`; does **not** reference
   `Workers.Core` (it binds the `health` pipe, never dials it,
   and it spawns workers as separate processes rather than hosting
-  `IMcpTask` instances).
+  their handlers in-process).
 - **`AutoContext.Client.Core`** is the **`autocontext` CLI as a
   library** — the embeddable home for every type the CLI binary
   uses internally (e.g. `EngineClient` for the typed RPC surface,
@@ -3285,7 +3303,7 @@ do **not** reference `Workers.Core`. `Worker.*` references
   extension and hook scripts, which is a different responsibility
   with a different consumer set; the fact that both happen to dial
   the engine's wire protocol does not make them parallel. See
-  [autocontext-cli.md](./autocontext-cli.md) for the full CLI-as-library
+  [autocontext-cli.md](./future/autocontext-cli.md) for the full CLI-as-library
   picture. References `Framework.Pipes`, `Engine.Protocol`;
   same reason as `Engine.Core` for not
   referencing `Workers.Core`.
@@ -3294,9 +3312,21 @@ do **not** reference `Workers.Core`. `Worker.*` references
   `AddAutoContextEngine(...)`, runs the host. Published per-RID as
   `autocontext-engine[.exe]` (see *Distribution*).
 - **`AutoContext.CommandLine` (binary)** is the CLI host. `Program.Main`
-  parses subcommands (see [autocontext-cli.md](./autocontext-cli.md)), calls
+  parses subcommands (see [autocontext-cli.md](./future/autocontext-cli.md)), calls
   `AddAutoContextClient(...)`, dispatches verbs. Published per-RID
   as `autocontext[.exe]`.
+- **Outside the pipe graph** sit three projects that carry no
+  transport dependency. `AutoContext.Instructions.Parser` is a plain
+  library — the single instructions-file parser (syntax layer plus
+  structured model) compiled into *both* the build-time generator and
+  the engine runtime, so one implementation backs manifest generation
+  and per-request projection. `AutoContext.Instructions.Manifest.Generator`
+  (`instructions-manifest-gen`) and
+  `AutoContext.Workers.Manifest.Generator` (`workers-manifest-gen`) are
+  build-time console tools that `AutoContext.Engine.csproj` imports as
+  `.targets` and sequences via `ReferenceOutputAssembly=false` project
+  references; they write into the binary's `Resources/` before compile
+  and ship nothing at runtime.
 
 **Neither `*.Core` library references the other.** `AutoContext.Engine.Core`
 binds pipes and serves RPCs; `AutoContext.Client.Core` dials
@@ -3317,15 +3347,21 @@ boundaries enforce direction-of-flow at the project graph level;
 they do not invite a third "shared logic" layer between the
 `Framework.*` substrate and the two halves.
 
-**Workers are unchanged in role.** Each `AutoContext.Worker.*` project
-adds a single `<ProjectReference>` to `AutoContext.Workers.Core`
+**Workers are unchanged in role.** A .NET `AutoContext.Worker.*`
+project that wants the worker-host scaffold adds a single
+`<ProjectReference>` to `AutoContext.Workers.Core`
 and picks up the substrate projects transitively
 (`Workers.Core` references `Framework.Pipes` +
 `Engine.Protocol`). The transitive set
-gives each worker `IMcpTask`, the worker-host scaffold, and
+gives it the worker-host scaffold and
 `AddEngineLoggerProvider()` from `Workers.Core`, the
 transport primitives from `Pipes`, and the wire DTOs from
-`Engine.Protocol`. Workers do not reference
+`Engine.Protocol`. That reference is optional: a worker may instead
+speak the dispatch protocol directly over `Framework.Pipes` +
+`Engine.Protocol` (as the test-tree `AutoContext.Worker.Test.Driver`
+does), or implement it on another runtime entirely (as the Node worker
+does).
+Workers do not reference
 `AutoContext.Engine.Core` (they are spawned *by* it, not hosted
 *in* it) and do not reference `AutoContext.Client.Core` (they
 speak a narrower wire than full RPC clients do).
@@ -4017,5 +4053,5 @@ Shape:
 
 ## Companion documents
 
-- [autocontext-cli.md](./autocontext-cli.md) — one pipe-RPC client of
+- [autocontext-cli.md](./future/autocontext-cli.md) — one pipe-RPC client of
   the engine, documented separately.

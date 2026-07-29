@@ -2,14 +2,12 @@
 
 ## Welcome to AutoContext
 
-AutoContext is a conformance assistant for GitHub Copilot. It ships curated **chat instructions** that guide Copilot's responses and registers an **MCP server** whose tools let Copilot verify its work against those same conventions on the spot — all manageable from dedicated sidebar panels.
+AutoContext helps your AI coding agent follow your project's conventions. It ships curated **coding guidelines** that shape the agent's answers, and **quality checks** it can run to verify its own work — all managed from the AutoContext sidebar.
 
 ### What you get
 
-- **Chat Instructions** — Curated Markdown guidelines covering .NET, TypeScript, web frameworks, scripting, Git, and more. Instructions are workspace-aware: only the ones relevant to your project are injected into Copilot's context. Individual rules can be disabled without turning off the entire file.
-- **Instruction Discovery Tools** — Four Language Model tools the extension contributes to Copilot's agent loop: `list_*`, `search_*_by_metadata`, `search_*_by_content`, and `get_*`. They let Copilot pull the right curated rules on demand — by file path, by topic, or by metadata predicate — beyond the always-attached set.
-- **MCP Tool Checks** — Tools Copilot can invoke in Agent mode to analyze source files, project manifests, and commit messages, and to resolve the effective `.editorconfig` for any path. Grouped by platform (.NET, Workspace, Web) and category, with each tool and the individual checks it bundles toggleable separately.
-- **EditorConfig-Driven Enforcement** — Checkers read `.editorconfig` properties and enforce whichever direction the project specifies rather than just skipping conflicting rules.
-- **Auto Configuration** — One command scans your workspace and enables only the instructions and tools that match the detected technologies.
-- **Server Health Monitoring** — The MCP server and its workers report their liveness via a named-pipe health protocol. Workers spawn lazily — only when a tool they own is invoked. The MCP Tools panel shows live status indicators and offers inline Start and Show Output actions.
-- **Sidebar Panels** — Dedicated Instructions and MCP Tools panels in the AutoContext activity bar, showing enabled/total counts and offering filters, export, and per-item toggling.
+- **Coding guidelines** — Curated guidance covering .NET, TypeScript, web frameworks, scripting, Git, and more. Only the guidance that matches your project is used, and you can switch off individual rules you disagree with.
+- **Quality checks** — Ask your agent to review a file, your project's dependencies, or a commit message, and it checks them against those same conventions and reports what it found.
+- **Follows your `.editorconfig`** — Where your project already states a preference, checks follow it rather than imposing their own.
+- **Set up for you** — AutoContext looks at your workspace and turns on what's relevant, so there is nothing to configure before you start.
+- **Yours to adjust** — Dedicated Instructions and Tools panels show what's active, let you turn anything on or off, and let you share your choices with your team.

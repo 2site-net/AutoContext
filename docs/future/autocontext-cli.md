@@ -21,7 +21,7 @@ The CLI is **not** an alternate state owner. It does not project
 instructions itself, does not read `.autocontext.json` directly for
 display, and does not bundle its own copy of the corpus for runtime
 use. Every read goes through the engine; every write is an RPC the
-engine validates. See [autocontext-engine.md](./autocontext-engine.md) for
+engine validates. See [autocontext-engine.md](../autocontext-engine.md) for
 the engine's design.
 
 ## CLI surface
@@ -95,7 +95,7 @@ these verbatim to `autocontext-engine` and never interprets them.
 
 | Flag | Forwards to | What it does |
 |---|---|---|
-| `--idle-timeout <seconds>` | `autocontext-engine --idle-timeout` | Sets the spawned engine's idle gate. Non-negative integer; `0` disables the gate and ties the engine's lifetime to explicit shutdown only. The CLI never passes `0` itself (it owns no long-lived launcher and wants its spawned engines to clean up after the verb completes), but accepts the value on the CLI surface for testing scenarios where the operator wants to keep the engine alive past the verb. See [autocontext-engine.md → Engine options](./autocontext-engine.md#engine-options-cli-surface). |
+| `--idle-timeout <seconds>` | `autocontext-engine --idle-timeout` | Sets the spawned engine's idle gate. Non-negative integer; `0` disables the gate and ties the engine's lifetime to explicit shutdown only. The CLI never passes `0` itself (it owns no long-lived launcher and wants its spawned engines to clean up after the verb completes), but accepts the value on the CLI surface for testing scenarios where the operator wants to keep the engine alive past the verb. See [autocontext-engine.md → Engine options](../autocontext-engine.md#engine-options-cli-surface). |
 | `--retention <duration>` | `autocontext-engine --retention` | Sets the spawned engine's housekeeping retention window for its own per-instance log subtree. Duration string (`<n>{s\|m\|h\|d}`; `0` = sweep immediately). |
 | `--log-level <level>` | `autocontext-engine --log-level` | Sets the minimum level a record must carry to be emitted. One of `trace`, `debug`, `information`, `warning`, `error`, `critical`, `none`. Omitted leaves the engine host's own logging configuration in force. |
 | `--log-rotation <size>` | `autocontext-engine --log-rotation` | Sets the spawned engine's log rotation thresholds; it does not change the log level. `small` rotates at 1,000 lines or 5 MB; `large` rotates at 5,000 lines or 25 MB. |
@@ -165,7 +165,7 @@ What each verb does, on the wire:
   as an empty list with a stderr warning; the next engine start
   re-seeds the file. This is the same registry the engine's own
   housekeeping sweep reads (see
-  [autocontext-engine.md → Housekeeping](./autocontext-engine.md#housekeeping));
+  [autocontext-engine.md → Housekeeping](../autocontext-engine.md#housekeeping));
   `engine list` is the read-only observability counterpart.
   Like `engine status` / `engine logs` / `engine stop`, it
   **never cold-spawns** — reading the registry to list engines
@@ -181,7 +181,7 @@ What each verb does, on the wire:
   workspace observe the change through their `FileSystemWatcher`
   and fan it out to their own clients within FS-watcher latency
   (see
-  [autocontext-engine.md → Reload coalescing](./autocontext-engine.md#reload-coalescing-debounce-and-batch)).
+  [autocontext-engine.md → Reload coalescing](../autocontext-engine.md#reload-coalescing-debounce-and-batch)).
   When multiple clients of the *same* engine (the extension's
   tree view, a hook, a future bulk-toggle verb) issue
   `Config.Toggle*` RPCs within tens of milliseconds, the engine
@@ -211,7 +211,7 @@ What each verb does, on the wire:
   frontmatter intact, `[INSTxxxx]` tags intact, no disabled-rule
   filter). The `--source` flag selects which on-disk file the
   bytes come from (see
-  [autocontext-engine.md → Instructions.GetRaw](./autocontext-engine.md#rpc-surface-initial)):
+  [autocontext-engine.md → Instructions.GetRaw](../autocontext-engine.md#rpc-surface-initial)):
   - `active` (default) — override if one exists, else bundled.
   - `bundled` — the bundled file even when an override exists.
   - `override` — the override file or `not-found`.
@@ -232,7 +232,7 @@ What each verb does, on the wire:
   one envelope per line: each envelope carries the engine's current
   `revision` plus a `changes[]` array listing every mutation in
   the batch (writer-mutex order, **not** a temporal claim — see
-  [autocontext-engine.md → Reload coalescing](./autocontext-engine.md#reload-coalescing-debounce-and-batch)).
+  [autocontext-engine.md → Reload coalescing](../autocontext-engine.md#reload-coalescing-debounce-and-batch)).
   Clients that need per-change handling iterate `changes[]`;
   clients that only need a "something changed" signal can read the
   `revision` field. A `reloaded` lifecycle event resubscribes
@@ -246,7 +246,7 @@ What each verb does, on the wire:
   (workspace, launcher-instance)-scoped — the CLI is its own
   launcher per invocation — so there is no "detect arbitrary path
   against an existing engine" mode. See
-  [autocontext-engine.md → Process scoping](./autocontext-engine.md#process-scoping-one-engine-per-launcher-instance-per-workspace).
+  [autocontext-engine.md → Process scoping](../autocontext-engine.md#process-scoping-one-engine-per-launcher-instance-per-workspace).
 - **`workspace info`** → `Workspace.Info`. Engine-process metadata
   (resolved workspace path, engine version,
   `(instanceId, revision)` pair, idle-timeout state) for the
@@ -293,7 +293,7 @@ What each verb does, on the wire:
   error if the id is unknown to the resolved engine. Records are
   emitted as NDJSON on stdout with the canonical envelope
   (`{ timestamp, category, level, eventId?, message, properties?, exception? }`,
-  see [autocontext-engine.md → Log categories](./autocontext-engine.md#log-categories));
+  see [autocontext-engine.md → Log categories](../autocontext-engine.md#log-categories));
   there is no pretty-print mode — `logs` is machine-readable by
   design.
 - **`engine stop`** → `Engine.Shutdown` over the engine's `rpc`
@@ -324,7 +324,7 @@ What each verb does, on the wire:
   [`autocontext engine list`](#what-each-verb-does-on-the-wire) or a brief
   poll on `engine status` if a script needs to observe the exit.
   See
-  [autocontext-engine.md → RPC surface (initial)](./autocontext-engine.md#rpc-surface-initial)
+  [autocontext-engine.md → RPC surface (initial)](../autocontext-engine.md#rpc-surface-initial)
   for the `Engine.Shutdown` contract — in particular, authorization
   is pipe-presence (any client with the right `<instanceId>` may
   call), and concurrent invocations idempotently ride the same
@@ -352,7 +352,7 @@ What is **deliberately not** in the CLI:
   `engine stop` with a follow-up verb that needs an engine if
   that is what you really want), and no `engine daemon`
   (workspace-scoping forbids machine-wide daemons — see
-  [autocontext-engine.md → Process scoping](./autocontext-engine.md#process-scoping-one-engine-per-launcher-instance-per-workspace)).
+  [autocontext-engine.md → Process scoping](../autocontext-engine.md#process-scoping-one-engine-per-launcher-instance-per-workspace)).
   `engine status` and `engine logs` are read-only observability
   surfaces dialling the engine's `health` and `logs` pipes;
   `engine stop` is the one lifecycle-affecting verb in the
@@ -361,7 +361,7 @@ What is **deliberately not** in the CLI:
 - **No `--clean` / housekeeping verb.** Per-instance subtree
   cleanup is the engine's own job, run on every engine startup and
   graceful shutdown against the shared liveness registry (see
-  [autocontext-engine.md → Housekeeping](./autocontext-engine.md#housekeeping));
+  [autocontext-engine.md → Housekeeping](../autocontext-engine.md#housekeeping));
   the design refuses to rely on a CLI subcommand the user has to
   remember to run. `autocontext engine list` is the observability
   counterpart — read-only over the same registry, never
@@ -392,7 +392,7 @@ What is **deliberately not** in the CLI:
   read/write — no `.Result`, no `.Wait()`, no
   `GetAwaiter().GetResult()` anywhere on the request path. The
   CLI mirrors the engine's P8 (see
-  [autocontext-engine.md → P8](./autocontext-engine.md#p8-async-io-end-to-end-no-sync-over-async-no-blocking-on-hot-paths)).
+  [autocontext-engine.md → P8](../autocontext-engine.md#p8-async-io-end-to-end-no-sync-over-async-no-blocking-on-hot-paths)).
   Streaming verbs (`instructions watch`, `engine logs --follow`,
   any `*.Subscribe` consumer) drain the wire stream with
   `await foreach` over an `IAsyncEnumerable<T>` of envelopes, emit
@@ -439,7 +439,7 @@ the same flow, dialling only the pipes that verb needs:
    `<kind>` ∈ {`rpc`, `events`, `health`, `logs`}, the hash is
    `sha256(normalisedWorkspacePath):0..16`, and `<instanceId>` is
    the UUIDv4 from step 2. Clients and engine agree byte-for-byte
-   (see [autocontext-engine.md → Lifecycle](./autocontext-engine.md#lifecycle)).
+   (see [autocontext-engine.md → Lifecycle](../autocontext-engine.md#lifecycle)).
 4. **Dial only the pipes the verb needs.** Workspace-state verbs
    (`config *`, `instructions *`, `workspace *`, `mcp *`, `route`)
    dial `rpc`. Long-running watch verbs additionally dial `events`.
@@ -461,7 +461,7 @@ the same flow, dialling only the pipes that verb needs:
    <normalisedPath>` and `--instance-id <uuid>` switches plus the
    `--instance-label "autocontext (vX.Y.Z); engine (vX.Y.Z)"`
    convention label (see
-   [autocontext-engine.md → Engine options](./autocontext-engine.md#engine-options-cli-surface)).
+   [autocontext-engine.md → Engine options](../autocontext-engine.md#engine-options-cli-surface)).
    Optional pass-through switches (`--idle-timeout`, `--retention`,
    `--log-level`, `--log-rotation`) are forwarded from the CLI's global-switch surface.
    The CLI uses `Process.Start` with `UseShellExecute = false` and
@@ -491,18 +491,18 @@ Two short-lived `autocontext` invocations against the same workspace
 each mint their own UUID and each spawn their own engine — they do
 **not** attach to each other (different `<instanceId>` = a
 different engine by construction, see
-[autocontext-engine.md → Process scoping](./autocontext-engine.md#process-scoping-one-engine-per-launcher-instance-per-workspace)).
+[autocontext-engine.md → Process scoping](../autocontext-engine.md#process-scoping-one-engine-per-launcher-instance-per-workspace)).
 This is the deliberate cost of "one launcher = one engine";
 engines are cheap and idle-shut themselves within the
 `--idle-timeout` window, and each engine's housekeeping sweep
 clears the previous CLI invocation's leftover subtree once its
 retention window elapses (see
-[autocontext-engine.md → Housekeeping](./autocontext-engine.md#housekeeping)).
+[autocontext-engine.md → Housekeeping](../autocontext-engine.md#housekeeping)).
 
 For long-running verbs (`instructions watch`, `engine logs
 --follow`), the CLI also subscribes to `Engine.Lifecycle` on the
 `events` pipe (see
-[autocontext-engine.md → Authority model](./autocontext-engine.md#authority-model-engine-owns-clients-cache)):
+[autocontext-engine.md → Authority model](../autocontext-engine.md#authority-model-engine-owns-clients-cache)):
 `reloaded` events trigger a fresh `Instructions.Subscribe`
 resubscription against the new revision, and a `shutting-down`
 event is the CLI's cue to exit cleanly with the same exit code as
@@ -520,7 +520,7 @@ platform — one VSIX per platform via `vsce package --target
 tarball per RID — so the per-RID segment that exists in build
 staging is **absent** from the shipped product (the inner engine
 tree is re-stated from
-[autocontext-engine.md → Distributed bundle layout](./autocontext-engine.md#distributed-bundle-layout)
+[autocontext-engine.md → Distributed bundle layout](../autocontext-engine.md#distributed-bundle-layout)
 so this doc is self-contained):
 
 ```
@@ -568,7 +568,7 @@ verb-parsing or output-formatting code that lives inside the
 `autocontext[.exe]` binary.
 
 - **One library, one binary** (see
-  [autocontext-engine.md → Project layout](./autocontext-engine.md#project-layout)
+  [autocontext-engine.md → Project layout](../autocontext-engine.md#project-layout)
   for the full three-library / two-binary picture).
   - `AutoContext.Client.Core` — the embeddable .NET wire
     client. Owns the four-pipe dial state machine (`rpc` /
@@ -628,7 +628,7 @@ seam registers.
 - **`IHostApplicationBuilder.AddAutoContextClient(Action<ClientOptions> configure)`**
   is `AutoContext.Client.Core`'s single public entry point
   (mirror of the engine's `AddAutoContextEngine` — see
-  [autocontext-engine.md → Composition contracts](./autocontext-engine.md#composition-contracts)).
+  [autocontext-engine.md → Composition contracts](../autocontext-engine.md#composition-contracts)).
   It registers the four-pipe dial state machine, the cold-start /
   attach resolver, the typed RPC client surface (one method per
   engine RPC), and the lifecycle / subscription plumbing.
@@ -679,7 +679,7 @@ and output formatting on top.
   governed by its idle timer and its other clients, not by the CLI
   invocation that happened to start it. The engine's housekeeping
   rules apply to its own leftover subtree the moment it exits (see
-  [autocontext-engine.md → Housekeeping](./autocontext-engine.md#housekeeping));
+  [autocontext-engine.md → Housekeeping](../autocontext-engine.md#housekeeping));
   the CLI does not need to clean up after the engine it spawned.
 - **`engine status` and `engine logs` never cold-spawn.** Both
   verbs observe an *existing* engine; absence of one is the answer,
@@ -703,7 +703,7 @@ and output formatting on top.
   A forgotten `autocontext engine logs --follow` in a terminal cannot
   prevent idle shutdown, will not back-pressure any other client,
   and will see a clean EOF when the engine's idle gate fires (see
-  [autocontext-engine.md → Lifecycle](./autocontext-engine.md#lifecycle)).
+  [autocontext-engine.md → Lifecycle](../autocontext-engine.md#lifecycle)).
   Embedders writing automated log scrapers must treat EOF as a
   normal lifecycle event and reconnect under the cold-start protocol
   if they need to observe the next engine.
@@ -744,7 +744,7 @@ and output formatting on top.
   revision to advance past the snapshot the toggle published.
   No CLI verb promises cross-engine read-after-write today; the
   engine doc's
-  [Process scoping](./autocontext-engine.md#process-scoping-one-engine-per-launcher-instance-per-workspace)
+  [Process scoping](../autocontext-engine.md#process-scoping-one-engine-per-launcher-instance-per-workspace)
   section (the *cross-instance `.autocontext.json`* bullet) is
   the authoritative reference.
 - **Quiet-mode contract for CI.** No `--quiet` flag — the contract
@@ -776,7 +776,7 @@ Shape:
   --version` works end-to-end. Sibling of the empty
   `AutoContext.Engine` binary and `AutoContext.Engine.Core`
   library skeletons defined in
-  [autocontext-engine.md → Project layout](./autocontext-engine.md#project-layout).
+  [autocontext-engine.md → Project layout](../autocontext-engine.md#project-layout).
 - **Verbs land alongside engine RPCs.** Each verb in this doc lands
   in the same release as the engine RPC it consumes, with the
   round-trip test that exercises both sides.
@@ -793,6 +793,6 @@ Shape:
 
 ## Companion documents
 
-- [autocontext-engine.md](./autocontext-engine.md) — the engine binary the
+- [autocontext-engine.md](../autocontext-engine.md) — the engine binary the
   CLI is a client of. Wire protocol, RPC surface, lifecycle,
   distribution layout, projection ownership.

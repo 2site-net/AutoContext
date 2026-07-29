@@ -1,516 +1,389 @@
 # Architecture
 
-## What Is AutoContext?
+## Purpose
 
-AutoContext is a **context toolkit for AI coding assistants**. It ships with curated instructions that shape how code is written and reviewed, bundled MCP tools that validate code against concrete rules, extension-native Language Model tools that let the assistant discover the right instructions for a given path or topic on demand, and a context orchestration layer that automatically wires the right guidance and checks into the model based on the workspace and environment.
+AutoContext curates the context an AI coding agent works with. It provides a
+corpus of instruction files describing how code should be written, and a set
+of analysis tools that check code against those same descriptions. Both are
+filtered to the workspace, so a repository sees only what applies to it.
 
-## Design Philosophy
+Implementation detail — option names, defaults, file layouts, the tool
+catalogue — changes without changing anything here.
 
-### Why Instructions + Tools?
+## The central decision
 
-Instructions alone give guidance but can't verify compliance. Tools alone can flag violations but without context they produce generic advice. Combining both means Copilot receives coding guidelines (instructions) and can then verify its own output against those guidelines (tools) — a feedback loop that catches mistakes before they leave the chat.
+**One process owns all AutoContext state.** That process is the engine.
 
-### Why EditorConfig-Driven Enforcement?
-
-Style rules vary between projects. Rather than hardcoding one opinion, checkers read `.editorconfig` properties and enforce whichever direction the project specifies. If a project uses tabs, the checker enforces tabs. If it uses spaces, it enforces spaces. Instructions provide sensible defaults, but EditorConfig always wins — so a team's existing configuration is never contradicted.
-
-### Why an Orchestrator + Workers?
-
-Copilot sees a single MCP server (`AutoContext.Mcp.Server`) that exposes every tool. Behind it, each tool is implemented as one or more **MCP Tasks** owned by a domain-specific worker process: `.NET` tasks live in `AutoContext.Worker.DotNet`, workspace tasks (Git, EditorConfig) live in `AutoContext.Worker.Workspace`, and TypeScript tasks live in `AutoContext.Worker.Web` (Node.js). The orchestrator embeds a registry that names every tool, its parameters, its tasks, and the worker that owns each task — and dispatches each call over a named pipe.
-
-This buys three things: (1) a stable, consolidated MCP surface for the client even as workers come and go; (2) language affinity — `.NET` analyzers run in .NET, the TypeScript analyzer runs in Node.js; (3) cheap, parallel sub-task fan-out — every task in a tool runs concurrently against its worker.
-
-### Why Per-Instruction Disable?
-
-A single instruction file may contain dozens of rules. Turning off the entire file because one rule conflicts with a project convention defeats the purpose. Per-instruction disable (via `.autocontext.json`) removes individual bullets from the normalized output so Copilot never sees them — without affecting the rest of the file.
-
----
-
-## How It All Connects
-
-AutoContext spans **five OS processes** at runtime when running inside VS Code, fed by **two manifests**: an embedded **workers registry** that drives orchestrator dispatch, and an extension-side **MCP tools manifest** that drives sidebar UI. The diagram shows what produces what, how data flows between components, and which messages cross process boundaries.
-
-```mermaid
-flowchart TB
-    subgraph build["Build Time"]
-        registrySrc["mcp-workers-registry.json"] -->|"embedded resource"| mcpServerBin["AutoContext.Mcp.Server (binary)"]
-        uiToolsSrc["resources/mcp-tools.json"] --> uiToolsLoad["McpToolsManifestLoader"]
-        uiConst["ui-constants"] --> chatGen["chat-instructions-manifest"]
-        instrFiles["instruction files"] --> chatGen
-        instrFiles --> metaGen["InstructionsFilesMetadata<br/>Generator"]
-        metaGen --> metaJson["resources/instructions-files.<br/>metadata.json"]
-        chatGen --> pkgJson["package.json<br/>(chatInstructions + when clauses)"]
-    end
-
-    subgraph ext["VS Code Extension Process"]
-        uiToolsLoad --> manifests["Manifests<br/>(Tools · Instructions · Servers)"]
-        metaJson --> metaLoad["InstructionsFiles<br/>MetadataLoader"]
-        metaLoad --> manifests
-        manifests --> trees["Tree Views + Tooltips"]
-
-        workspace["Workspace<br/>file scan"] --> detector["WorkspaceContext<br/>Detector"]
-        manifests --> detector
-        detector -->|"context keys"| serverProv["McpServerProvider"]
-        detector -->|"context keys + overrides"| whenEval["when-clause<br/>evaluation"]
-        pkgJson --> whenEval
-
-        trees -->|"enable/disable<br/>toggles"| cfgMgr["AutoContext<br/>ConfigManager"]
-        cfgMgr --> acJson[".autocontext.json"]
-        cfgMgr --> projector["AutoContext<br/>Projector"]
-        projector -->|"setContext keys<br/>(per tool/task/instruction)"| whenEval
-        cfgMgr --> cfgServer["AutoContextConfig<br/>Server (named pipe)"]
-
-        instrSrc["instruction<br/>source files"] --> instrWriter["InstructionsFiles<br/>Manager"]
-        acJson -->|"disabled IDs"| instrWriter
-        manifests --> instrWriter
-        instrWriter -->|"strip tags,<br/>drop disabled"| generated[".generated/"]
-
-        generated --> copilot(("Copilot"))
-        whenEval -->|"filter active files"| copilot
-
-        logServer["LogServer<br/>(named pipe)"] --> outputCh["AutoContext<br/>Output channels"]
-        healthMon["HealthMonitorServer<br/>(named pipe)"] -->|"client status"| trees
-        wcServer["WorkerControlServer<br/>(named pipe)"] -->|"EnsureRunning"| wm["WorkerManager"]
-        wm -.->|"lazy spawn"| workers
-        serverProv -->|"server definition<br/>(stdio + --instance-id<br/>+ --service log=…<br/>+ --service health-monitor=…<br/>+ --service worker-control=…<br/>+ --service extension-config=…)"| mcpHost["VS Code MCP Host"]
-    end
-
-    mcpHost -.->|"spawn (stdio)"| mcpServer
-
-    subgraph mcpServer["AutoContext.Mcp.Server (orchestrator)"]
-        registry["Embedded registry<br/>+ McpWorkersCatalog"] --> sdk["McpSdkAdapter"]
-        cfgClient["AutoContextConfig<br/>Client + Snapshot"] -->|"disabled tools"| sdk
-        cfgClient -->|"disabled tasks"| invoker
-        sdk --> invoker["ToolInvoker"]
-        invoker --> ecBatch["EditorConfigBatcher"]
-        invoker --> wc["WorkerClient"]
-    end
-
-    subgraph workers["AutoContext.Worker.* (per-domain processes)"]
-        dn["Worker.DotNet<br/>(C#, NuGet tasks)"]
-        ws["Worker.Workspace<br/>(Git, EditorConfig tasks)"]
-        web["Worker.Web<br/>(TypeScript task)"]
-    end
-
-    wc -.->|"TaskRequest /<br/>TaskResponse<br/>(named pipe per worker)"| workers
-    ecBatch -.->|"get_editorconfig_rules"| ws
-    workers -.->|"NDJSON log records"| logServer
-    mcpServer -.->|"NDJSON log records"| logServer
-    workers -.->|"workerId on connect"| healthMon
-    mcpServer -.->|"client id on connect"| healthMon
-    mcpServer -.->|"EnsureRunning(workerId)"| wcServer
-    cfgServer -.->|"DisabledSnapshot push"| cfgClient
-    sdk -.->|"ToolResultEnvelope (JSON)"| copilot
-```
-
-The diagram reads top-to-bottom: **build artifacts** feed into the **extension process**, which spawns and configures every `AutoContext.Worker.*` process directly (`WorkerManager`) and registers the MCP definition that VS Code's MCP host uses to spawn `AutoContext.Mcp.Server`. Dotted lines cross process boundaries. Key connections to follow:
-
-- **`AutoContext.Mcp.Server`** is the only MCP/stdio server Copilot ever talks to. At startup it deserializes its **embedded `mcp-workers-registry.json`** into `McpWorkersCatalog` (per-tool name, parameters, tasks, owning worker id) and registers every tool with the MCP SDK via `McpSdkAdapter`.
-- **`ToolInvoker`** orchestrates one `tools/call`: it (a) consults the latest disabled-task set from `AutoContextConfigSnapshot` and short-circuits with `AllTasksDisabled` when every task for the tool is off, (b) computes the union of EditorConfig keys across the tool's *enabled* tasks, (c) batches a single `get_editorconfig_rules` pipe call to `Worker.Workspace` via `EditorConfigBatcher`, (d) dispatches the enabled tasks in parallel via `WorkerClient`, and (e) composes the per-task responses into a uniform `ToolResultEnvelope` via `ToolResultComposer`.
-- **`WorkerClient`** opens one `NamedPipeClientStream` per task to `autocontext.worker-<id>#<instance-id>` (the per-window instance id keeps multiple VS Code windows isolated), writes a `TaskRequest`, and reads a `TaskResponse`. A 30-second wait deadline guards against hung workers; any IO/timeout/parse failure is mapped to a synthesized error response so partial results still flow back to Copilot.
-- **`WorkerManager`** (extension-side) spawns workers **lazily** through a single `ensureRunning(identity)` gate. The only spawn trigger in production is the orchestrator (`AutoContext.Mcp.Server`) sending an `EnsureRunning` request over the `autocontext.worker-control#<instance-id>` named pipe before dispatching a `tools/call` to a worker that owns the tool. The sidebar Start button is the manual escape hatch (pre-warm or recover from a failed spawn). `ensureRunning` reads the worker definition from `resources/servers.json`, passes `--instance-id` plus `--service log=…` and `--service health-monitor=…` (the worker self-formats its listen address from its compile-time worker id + the instance id), coalesces concurrent callers onto a single in-flight promise, and waits for the worker's `[<WorkerName>] Ready.` stderr marker before returning.
-- **Manifests** are the central UI hub — built from `resources/mcp-tools.json`, `resources/instructions-files.json`, `resources/servers.json`, and the `InstructionsFilesMetadataLoader` (which reads the build-time `resources/instructions-files.metadata.json` artifact), they feed into the tree views, the workspace context detector, the server provider, and the instructions writer.
-- **`WorkspaceContextDetector`** scans workspace files and sets context keys, which drive MCP server registration (`McpServerProvider`), instruction filtering (`when`-clause evaluation against `chatInstructions` in `package.json`), and tree views (detected state + override file versions for staleness comparison).
-- **`.autocontext.json`** is the single source of truth for user configuration. `AutoContextConfigManager` is the only writer; it persists per-tool / per-task disabled state, per-instruction disable, per-rule disable lists (`disabledInstructions`), and a `version` stamp per entry. Two separate flows project the file's state to consumers: (1) `AutoContextConfigProjector` translates it into `setContext` keys for VS Code (`autocontext.instructions.*`, `autocontext.mcpTools.*`) so tree icons and instruction `when` clauses react; (2) `AutoContextConfigServer` broadcasts a `disabledTools` / `disabledTasks` snapshot to `AutoContext.Mcp.Server` (see [Disabled-State Push Channel](#disabled-state-push-channel)). `McpServerProvider` still hides the MCP definition entirely when **every** tool is disabled — a fast path that skips spawning the orchestrator when the user has nothing left enabled.
-- **`.generated/`** files are what Copilot actually reads — they are the instruction source files with `[INSTxxxx]` tags stripped and disabled rules removed. VS Code's `when`-clause engine evaluates the context keys to decide which `.generated/` files are active for a given workspace.
-- **`HealthMonitorServer`** runs a named pipe (`autocontext.health-monitor#<instance-id>`) that every spawned process connects to on startup. The connecting process sends its stable id (`mcp-server` for the orchestrator, `dotnet`/`workspace`/`web` for the workers); the extension tracks active connections per id and exposes running/stopped status on tree view server nodes.
-- **`LogServer`** runs a separate named pipe (`autocontext.log#<instance-id>`) that every spawned process connects to. Each connection emits a JSON greeting with its `clientName` (e.g. `AutoContext.Worker.DotNet`), then NDJSON log records carrying category, level, message, and an optional per-`tools/call` correlation id. Records are fanned out to per-worker `LogOutputChannel`s under the AutoContext Output panel.
-- **`AutoContextConfigServer`** runs a fourth named pipe (`autocontext.extension-config#<instance-id>`) that pushes `.autocontext.json`'s disabled-state slice to subscribers (today only `AutoContext.Mcp.Server`). The orchestrator subscribes via `AutoContextConfigClient`, replaces its `AutoContextConfigSnapshot` on every frame, and emits an MCP `notifications/tools/list_changed` so VS Code's Quick Pick refreshes without restarting the server.
-
-The [Activation Flow](#activation-flow) section below describes the exact ordering and parallelism of the startup steps. The [Runtime Flow](#runtime-flow) section describes what happens when Copilot calls a tool. The [Disabled-State Push Channel](#disabled-state-push-channel) section describes how UI toggles reach the orchestrator.
-
----
-
-## Activation Flow
-
-Extension activation (see `src/AutoContext.VsCode/src/extension.ts` and the modules it dispatches into) is split into **four explicit phases** so the construction step stays VS Code-free and easy to test, while async work is concentrated at the end:
-
-### Phase 1 — Compose (`extension-composition.ts`)
-
-`ExtensionComposer.compose()` builds the entire object graph in one synchronous, side-effect-free pass:
-
-1. **Static manifests** — `InstructionsFilesMetadataLoader` reads the build-time `resources/instructions-files.metadata.json` artifact (description, version, optional `applyTo`, `hasChangelog`, `contentHash`, and pre-extracted section anchors) and projects it into a map keyed by file name. `McpToolsManifestLoader`, `InstructionsFilesManifestLoader`, and `ServersManifestLoader` build their respective manifests from `resources/mcp-tools.json`, `resources/instructions-files.json`, and `resources/servers.json`; the metadata map is passed into the instructions manifest loader so each entry is enriched. The result feeds tree views, the writer, the projector, and the server provider.
-2. **Core stateful services** — `AutoContextConfigManager`, `WorkspaceContextDetector`, `InstructionsFilesExporter`, `InstructionsFilesManager`, and `AutoContextConfigProjector` are constructed (no I/O yet).
-3. **Named-pipe servers** — a single 12-hex per-window `instanceId` is minted by `IdentifierFactory.createInstanceId()` and threaded into every server constructor: `LogServer`, `HealthMonitorServer`, `WorkerManager`, `WorkerControlServer`, and `AutoContextConfigServer`. The instance id keeps multiple VS Code windows fully isolated.
-4. **VS Code-facing providers** — `InstructionsViewerDocumentProvider`, `InstructionsViewerCodeLensProvider`, `InstructionsViewerDecorationManager`, `McpServerProvider`, `InstructionsFilesTreeProvider`, `McpToolsTreeProvider`, and `InstructionsFilesDiagnosticsReporter`.
-
-The phase returns a typed `ExtensionGraph` and a list of disposables for `context.subscriptions`. No `await`. No calls into `vscode.commands.*`.
-
-### Phase 2 — Bootstrap (in `activate()`)
-
-The minimum amount of async work needed before Phase 3 can register surfaces:
-
-1. `await graph.configManager.read()` — pre-read `.autocontext.json` so tree providers render with real state on first query.
-2. `graph.logServer.start()` — open the log pipe so subsequent processes have somewhere to connect.
-3. `graph.healthMonitor.start()` — open the health pipe.
-4. `graph.workerControlServer.start()` — open the worker-control pipe.
-5. `graph.autoContextConfigServer.start()` — open the extension-config pipe so `AutoContext.Mcp.Server` can subscribe to `.autocontext.json` changes the moment it spawns.
-
-No workers are spawned in this phase — they start lazily on first use (see [Worker Control](#worker-control)).
-
-### Phase 3 — Register (`extension-registrations.ts`)
-
-`ExtensionRegistrar.register()` is pure registration — no `await`, no I/O. It registers the MCP server provider (`vscode.lm.registerMcpServerDefinitionProvider('AutoContextProvider', mcpServerProvider)`), every command (auto-configure, toggle/reset/enable/disable instructions, export mode, delete override, show original / changelog / what's new, show/hide not detected, start MCP server, show MCP server output), document and code-lens providers for the instruction viewer, and listeners that forward `configManager.onDidChange` to the MCP provider's change emitter and to the instructions writer.
-
-The MCP provider is registered **before** workspace detection so tools appear in the picker immediately. The provider returns a `McpStdioServerDefinition` that points VS Code's MCP host at `AutoContext.Mcp.Server`'s binary with `--instance-id <id>` plus four repeatable `--service <role>=<address>` switches: `log`, `health-monitor`, `worker-control`, and `extension-config`. VS Code spawns the orchestrator over stdio when it queries the provider.
-
-### Phase 4 — Activate (`extension-activation.ts`)
-
-`ExtensionActivator.run()` runs the async startup work in four sub-phases. Phases are sequential when there is a true ordering dependency, parallel within a phase otherwise.
-
-- **Phase A — Workspace detection.** `WorkspaceContextDetector.detect()` scans the workspace for project files, `package.json` dependencies, and directory markers, sets the `setContext` keys (`hasDotNet`, `hasTypeScript`, …) the MCP provider keys off, and parses frontmatter from any `.github/instructions/*.instructions.md` overrides for staleness comparison (see [Override Staleness](#override-staleness)). Emits a single `didChangeEmitter.fire()` so VS Code re-queries the MCP provider with the now-known context keys.
-- **Phase B — Independent fan-out.** `Promise.all([projector.project(), instructionsWriter.removeOrphanedStagingDirs(), configManager.removeOrphanedIds()])` projects the current `.autocontext.json` to context keys, garbage-collects per-workspace staging dirs older than one hour that belong to other VS Code windows, and clears disabled-instruction IDs from `.autocontext.json` that no longer match any instruction in the current extension version.
-- **Phase C — Stale disabled-id clearing.** `configManager.clearStaleDisabledIds(catalogVersions)` compares the MAJOR.MINOR version stored alongside each file's disabled instruction IDs in `.autocontext.json` against the current manifest version. If the file's version has advanced, all disabled IDs for that file are cleared and the user is notified. Patch-only bumps are ignored because they preserve rule IDs. See [Versioning Semantics](#versioning-semantics).
-- **Phase D — First instructions write, version banner, diagnostics.** `instructionsWriter.write()` normalizes every instruction file into `instructions/.generated/`, stripping `[INSTxxxx]` tags and removing disabled rules. The activator's version-banner step compares the running version against `lastSeenVersion` in global state and sets a one-shot badge on the Instructions tree (`"New version available"`) plus the `HasWhatsNew` context key when a `CHANGELOG.md` ships. Finally, `diagnosticsReporter.report()` runs `InstructionsFilesDiagnosticsRunner` against every instruction file and logs warnings (e.g. missing `[INSTxxxx]` IDs) to the **AutoContext** Output channel.
-
-Workers (`Worker.Workspace`, `Worker.DotNet`, `Worker.Web`) are **not** spawned during activation. They are spawned on demand by the orchestrator's worker-control channel when a tool call needs them, or by the sidebar Start button. The extension itself reads `.autocontext.json` and writes instruction files in-process — no worker is required for activation to complete.
-
-Window focus changes and workspace-trust grants trigger an extra `instructionsWriter.write()` (registered as listeners in Phase 3) so normalized files stay current as the user moves between windows.
-
-## Runtime Flow
-
-When Copilot invokes an MCP tool (e.g. `analyze_csharp_code`):
-
-1. **Reception (orchestrator).** VS Code's MCP host forwards the `tools/call` request over stdio to `AutoContext.Mcp.Server`. The MCP SDK invokes the registered handler, which lives in `McpSdkAdapter`. The adapter mints an 8-character correlation id and resolves the matching `McpToolDefinition` from `McpWorkersCatalog`.
-2. **Disabled-task short-circuit.** `ToolInvoker.InvokeAsync()` consults `AutoContextConfigSnapshot` (kept current by `AutoContextConfigClient`) and filters out any tasks the user has disabled in the tree. If every task for the tool is disabled, the call returns immediately with an `AllTasksDisabled` error envelope so dispatch never touches a worker.
-3. **EditorConfig batching.** `ToolInvoker` walks the *enabled* tasks, computes the union of EditorConfig keys declared by those tasks, and — if any keys are required — issues a single batched `get_editorconfig_rules` pipe call to `AutoContext.Worker.Workspace` via `EditorConfigBatcher`. The result is sliced per-task: each task receives only the keys it asked for.
-4. **Parallel task dispatch.** For each enabled `McpTaskDefinition`, `ToolInvoker` calls `WorkerClient.InvokeAsync(role, request, ct)`. All tasks in the tool run **concurrently** via `Task.WhenAll(...)`. The role is `worker-<workerId>`, which `ServiceAddressOptions.Format` expands to `autocontext.worker-<workerId>#<instance-id>` (or the un-suffixed form when no instance id is configured — standalone runs / smoke tests); the request is a `TaskRequest` carrying the task name, the caller's input data, the EditorConfig slice for that task, and the correlation id.
-5. **Worker execution.** The worker process — `Worker.DotNet`, `Worker.Workspace`, or `Worker.Web` — accepts the connection, deserializes the `TaskRequest`, looks up the matching `IMcpTask` implementation (registered as a singleton via `WorkerHostBuilderExtensions.ConfigureWorkerHost`), and runs it under a `CorrelationScope` so every log record carries the same correlation id. The worker writes back a `TaskResponse` with `status: "ok" | "error"`, an `output` payload, and an optional `error` string.
-6. **Result composition.** `ToolResultComposer.Compose(toolName, entries, elapsedMs)` rolls every per-task `TaskResponse` into a uniform `ToolResultEnvelope` whose entries match the **declared** task order (not completion order). The status field summarizes the run: `ok` (all succeeded), `error` (all failed), or `partial` (mix). The envelope is serialized as JSON and returned to VS Code; VS Code forwards it to Copilot.
-
-`WorkerClient` enforces a 30-second wait deadline and never throws for IO/timeout/parse failures. Any such failure becomes an `error`-status `TaskResponse` for that one task, so the rest of the tool's tasks still complete and Copilot sees a partial-but-actionable result.
-
----
-
-## Disabled-State Push Channel
-
-The sidebar tree-view checkboxes are the user's primary mechanism for turning specific MCP tools and tasks on or off. Their state must reach `AutoContext.Mcp.Server` quickly enough that the next `tools/list` no longer advertises a disabled tool and the next `tools/call` skips a disabled task — without ever restarting the orchestrator. The disabled-state push channel makes that possible.
-
-- **Extension side — `AutoContextConfigServer`** (`src/autocontext-config-server.ts`) hosts `autocontext.extension-config#<instance-id>`. On each subscriber connection it pushes the current `disabledTools` / `disabledTasks` snapshot derived from `AutoContextConfig.getToolsDisabledSnapshot()`. On every `AutoContextConfigManager.onDidChange` it re-broadcasts the new snapshot to every live subscriber. Frames use the same 4-byte little-endian length prefix + UTF-8 JSON framing as every other AutoContext pipe (`LengthPrefixedFrameCodec` on the .NET side, `length-prefixed-frame-codec.ts` on the Node side), and snapshots are full and idempotent so reconnects are trivially safe.
-- **Orchestrator side — `AutoContextConfigClient`** (`AutoContext.Mcp.Server/Config/`) is a hosted service registered when `--service extension-config=<address>` is supplied. It connects to the pipe (5-second connect timeout), reads frames via `LengthPrefixedFrameCodec.ReadAsync`, deserialises each `AutoContextConfigSnapshotDto`, and calls `AutoContextConfigSnapshot.Update(...)` to atomically swap the in-memory state. When `Update` reports a real diff, the client resolves the `ModelContextProtocol.Server.McpServer` from DI and fires a `notifications/tools/list_changed` so VS Code's Quick Pick refreshes immediately.
-- **`AutoContextConfigSnapshot`** is a singleton holding `ImmutableHashSet<string> DisabledTools` plus `ImmutableDictionary<string, ImmutableHashSet<string>> DisabledTasks`. Reads are lock-free (`Volatile.Read` of the (tools, tasks) record), writes swap the whole record under `Volatile.Write`. `McpSdkAdapter` filters disabled tool names out of `tools/list`; `ToolInvoker` filters disabled task names out of dispatch (and short-circuits with `AllTasksDisabled` when nothing remains).
-- **Standalone fallback.** When the orchestrator is launched without `--service extension-config=...` (e.g. running `Mcp.Server` outside VS Code), the client never starts and the snapshot stays at its empty default — nothing is disabled, every tool surfaces, every task dispatches.
-
-`McpServerProvider` retains its own fast path: when **every** tool is disabled, it returns no MCP definitions and the orchestrator is never spawned. Once at least one tool is enabled, the orchestrator runs continuously and the push channel handles per-tool / per-task changes without restarts.
-
----
-
-## Health Monitoring
-
-Each spawned process — the orchestrator and every worker — connects to the extension's `HealthMonitorServer` on startup via a named pipe (`autocontext.health-monitor#<instance-id>`). The protocol is intentionally minimal:
-
-1. The extension creates a `net.createServer()` listening on the health pipe.
-2. Each process connects and writes its **stable id** as the first and only data message:
-   - `mcp-server` for `AutoContext.Mcp.Server` (declared as `Program.HealthClientId`).
-   - `dotnet`, `workspace`, `web` for the workers (declared as `Program.WorkerId` in each).
-3. The connection is kept alive for the lifetime of the process. When the process exits, the OS closes the socket and the extension detects disconnect.
-
-The extension tracks active connections per id and exposes `isRunning(id)` (true if at least one socket is open for that id). The `McpToolsTreeProvider` maps that result onto each server node's status in the sidebar:
-
-| Status | Shown When |
-|--------|------------|
-| **Running** | At least one client with the matching id is connected. |
-| **Stopped** | No client with that id is connected. |
-
-Inline actions on server nodes allow the user to **Start** the MCP server (when stopped) or **Show Output** for any server directly from the sidebar. These commands delegate to VS Code's built-in `workbench.mcp.startServer` and `workbench.mcp.showOutput` commands. Stop and Restart actions are intentionally not exposed: the MCP server's lifetime is owned by the VS Code MCP host, and worker lifetimes are owned by `WorkerManager` and gated by lazy spawn (see [Worker Control](#worker-control)).
-
-On the .NET side, `HealthMonitorClient` lives in `AutoContext.Framework/Hosting` and is consumed by both the orchestrator and every worker (registered as a hosted service in each `Program.Main`). Connection failures are non-fatal — health monitoring is a best-effort diagnostic, not a prerequisite for tool operation. The orchestrator's liveness is observed exclusively through the health pipe; workers additionally emit a `Ready.` marker to stderr from inside `WorkerTaskDispatcherService` once the pipe server is accepting connections, and `WorkerManager` uses that marker for its `ensureRunning()` barrier (independent of the health pipe).
-
----
-
-## Worker Control
-
-Workers are spawned **lazily**. Neither extension activation nor MCP server startup eagerly launches `Worker.DotNet`, `Worker.Workspace`, or `Worker.Web`. Instead, two cooperating components ensure a worker process exists exactly when it is needed:
-
-- **Extension side — `WorkerControlServer`** (`src/worker-control-server.ts`) hosts a per-window named pipe `autocontext.worker-control#<instance-id>`. It accepts a single request type, `EnsureRunning { workerId }`, looks up the worker definition in `resources/servers.json`, calls `WorkerManager.ensureRunning(identity)`, and replies once the worker's `Ready.` marker has been observed. Concurrent requests for the same worker are coalesced onto a single in-flight spawn promise, so a burst of `tools/call`s never starts more than one process per worker id.
-- **Orchestrator side — `WorkerControlClient`** (`AutoContext.Mcp.Server/Workers/Control`) connects to that pipe at startup using the `--service worker-control=<address>` switch passed in by `McpServerProvider`. Before `ToolInvoker` dispatches any task to a worker, it calls `EnsureRunningAsync(workerId)`, which round-trips a JSON `EnsureRunning` request over the pipe with a bounded deadline. If the orchestrator is launched without a `worker-control` service address (e.g., standalone runs outside the extension), the client degrades to a no-op so tools still dispatch to whatever worker is reachable.
-
-The single spawn entry point on the extension side is `WorkerManager.ensureRunning(identity: string): Promise<void>`. Its production callers are the worker-control server (orchestrator-driven) and the sidebar Start command (user-driven). There is no `WorkerManager.start()` and no eager startup loop. When a worker exits, `WorkerManager` clears the cached `readyPromise` so the next `ensureRunning(identity)` respawns it.
-
-The lazy model means a worker whose tools are all disabled in `.autocontext.json` is never spawned: the orchestrator never invokes a tool that would route to it, the worker-control channel is never asked to start it, and its sidebar server node stays **stopped**.
-
----
-
-## Incremental Workspace Detection
-
-After the initial full scan (`detect()`), `WorkspaceContextDetector` uses three file-system watchers to maintain detection state incrementally:
-
-- **Existence watcher** — watches for creation/deletion of source files by extension (e.g., `.ts`, `.cs`, `.razor`).
-- **Content watcher** — watches project manifests (`package.json`, `*.csproj`, etc.) for content changes that may add or remove framework dependencies.
-- **Override watcher** — watches `.github/instructions/*.instructions.md` for user overrides.
-
-When a watcher fires, the detector performs a targeted re-scan with 500ms debouncing:
-
-- Only re-globs flags affected by deletions.
-- Only re-scans npm or .NET content when their manifests change.
-- Re-uses cached base flags for unchanged categories.
-- Falls back to a full `detect()` if no prior scan exists.
-
-Window focus changes also trigger an `InstructionsFilesManager.write()` to ensure normalized instruction files are up to date when the user returns to a window.
-
----
-
-## Precedence
-
-When multiple sources disagree, the following precedence applies:
-
-| Priority | Source | Role |
-|----------|--------|------|
-| 1 | `.editorconfig` | Drives enforcement direction — tasks enforce whatever EditorConfig says. Instruction defaults yield to EditorConfig values. |
-| 2 | Instruction files | Provide default coding guidance. Style rules in instructions are fallback defaults, not absolutes. |
-| 3 | `.autocontext.json` | Controls which tools and instructions are active. |
-| 4 | Workspace context | Determines which servers, tools, and instructions are advertised at all. |
-
-See the "EditorConfig wins" rule in `copilot.instructions.md` for the user-facing statement of this precedence.
-
-### Resolved Per Tool Call
-
-EditorConfig values are pulled fresh on every `tools/call` (one batched pipe round-trip per invocation), so changes to `.editorconfig` take effect immediately — no extension reload required. Each task in the registry declares the keys it consumes; `ToolInvoker` unions them, asks `Worker.Workspace` for resolved values, and slices the response per task. A task with no declared keys gets an empty slice and runs against its instruction-only defaults.
-
-Tasks that consume EditorConfig keys today (declared in `mcp-workers-registry.json`):
-
-| Task | EditorConfig Keys |
-|------|-------------------|
-| `analyze_csharp_coding_style` | `csharp_prefer_braces`, `dotnet_sort_system_directives_first`, `csharp_style_expression_bodied_methods`, `csharp_style_expression_bodied_properties` |
-| `analyze_csharp_project_structure` | `csharp_style_namespace_declarations` |
-
----
-
-## Instructions
-
-AutoContext ships curated Markdown instruction files organized into categories — General, Languages, .NET, Web, and Tools. The full list is defined in `ui-constants.ts`. One always-on file (`copilot.instructions.md`) provides cross-cutting rules; the rest are toggleable.
-
-Each instruction file carries YAML frontmatter with a `name` (including an optional `(vX.Y.Z)` version suffix), `description`, and optional `applyTo` glob. The build-time `InstructionsFilesMetadataGenerator` extracts this frontmatter (plus section anchors and a content hash) into `resources/instructions-files.metadata.json`; `InstructionsFilesMetadataLoader` reads that artifact at activation time (see [Activation Flow](#activation-flow) Phase 1), and the metadata is surfaced as rich tooltips in the sidebar panel.
-
-Instructions are **workspace-aware** — they are only injected into Copilot's context when the workspace contains their technology (e.g., .NET instructions require a `.csproj` or `.sln` file). The always-on `copilot.instructions.md` is the only file that is attached unconditionally.
-
-### Toggling
-
-The **Instructions** sidebar panel groups instructions by category and lets you enable or disable each one via inline actions. Toggling an instruction off writes the disabled state to `.autocontext.json`, and the activation flow excludes it from the normalized output.
-
-### Per-Instruction Disable
-
-Each instruction file can contain dozens of individual rules. Click an instruction in the sidebar panel to open it in a virtual document where every rule is visible. CodeLens actions on each rule let you disable or re-enable it without turning off the entire file. Disabled rules are dimmed, tagged `[DISABLED]`, and written to `.autocontext.json`. The normalization step strips them from Copilot's context entirely.
-
-### Export
-
-Enter export mode from the Instructions panel header icon, check the instructions you want to export, and confirm. Files are copied to `.github/instructions/` for team sharing via source control. Exported instructions appear as **overridden** in the panel — the workspace-level file takes precedence over the built-in version. Delete the exported file to revert to the built-in version.
-
-### Override Staleness
-
-When an overridden instruction exists in `.github/instructions/`, `WorkspaceContextDetector` parses its frontmatter during workspace detection and extracts the version number. The tree view compares this override version against the bundled catalog version using `SemVer.isGreaterThan()`:
-
-- **Not outdated** — the override version is equal to or greater than the bundled version. The tree item shows `"overridden"` with a standard tooltip.
-- **Outdated** — the bundled version is newer. The tree item shows `"overridden (outdated)"` with a tooltip explaining that a newer version is available. Deleting the override shows a modal warning that includes both version numbers and confirms the user wants to upgrade to the latest built-in version.
-
-Instructions with no version in their frontmatter are treated as non-outdated — there is no version to compare.
-
-Inline actions on overridden items include **Show Original** (opens the bundled version in a virtual document for side-by-side comparison) and, when a `.CHANGELOG.md` companion file exists, **Show Changelog** (opens the version history in Markdown preview).
-
-### Normalization Pipeline
-
-Copilot never reads the raw instruction files. Three directories form a write-through pipeline:
-
-- **`instructions/`** — the authored source files. Each rule is tagged with an `[INSTxxxx]` identifier used for per-rule disable and CodeLens UI. These files are never served to Copilot directly.
-- **`instructions/.workspaces/<hash>/`** — per-workspace staging. Each VS Code window writes its own normalized copy here, keyed by a SHA-256 hash of the workspace root path. Normalization strips `[INSTxxxx]` tags and removes disabled rules entirely. The staging layer exists because multiple VS Code windows share a single extension directory — without it, windows with different configurations would overwrite each other's output. Orphaned staging directories (from closed windows, older than one hour) are garbage-collected on activation.
-- **`instructions/.generated/`** — the live output that Copilot's `chatInstructions` reads. After staging, files are promoted here with a content-comparison guard (`copyIfChanged`) so identical content is never rewritten. Each file has a `when` clause that combines the instruction's context key (projected from `.autocontext.json` by `AutoContextConfigProjector`) and the workspace context key — Copilot only sees files relevant to the current workspace.
-
-On activation (and on configuration or window-focus changes), `InstructionsFilesManager.write()` runs the full source → staging → promotion cycle. Content-comparison guards at both stages make re-runs essentially free when nothing changed.
-
-> **Future:** The three-directory pipeline exists because VS Code's `chatInstructions` contribution point is static — it can only reference files on disk. If the `chatPromptFiles` proposed API graduates to stable, `registerInstructionsProvider()` could serve normalized instruction content in-memory, eliminating the staging and generated directories entirely. Each window would provide its own content dynamically with no multi-window file conflicts. See [docs/future/dynamic-editorconfig-instructions.md](future/dynamic-editorconfig-instructions.md) for the current status of that API.
-
----
-
-## Instruction Discovery (LM Tools)
-
-`chatInstructions` is a one-shot attachment mechanism: VS Code injects every instruction file whose `applyTo` glob matches the active editor at chat-start, and that's it. Inside an agent loop the model may end up touching files the host never anticipated, ask topical questions ("does AutoContext require `ConfigureAwait`?"), or work in mixed-language workspaces where eager attachment of every file is wasteful. To close that gap the extension contributes four [Language Model tools](https://code.visualstudio.com/api/extension-guides/tools) — registered with `vscode.lm.registerTool` during Phase 3 of activation — that let Copilot **pull** instruction content on demand:
-
-| Tool | Input | Returns |
-|------|-------|---------|
-| `list_autocontext_instructions_files` | `applyTo?` (path or glob), `category?`, `includeSections?` | Listing rows: `name`, `key`, `description`, `version`, `applyTo`, `categories`, `hasChangelog`, optional `sections`. |
-| `search_autocontext_instructions_files_by_metadata` | `predicate` (object: `name`, `description`, `version`, `applyTo`, `categories`, `hasChangelog`, `sections.heading`, `sections.anchor`, `sections.parent`, `sections.level`), `includeSections?` | Listing rows + `matchedAnchors[]` whenever the predicate touched a `sections.*` field. |
-| `search_autocontext_instructions_files_by_content` | `query` (free text), `applyTo?`, `category?`, `limit?` (≤ 25, default 10) | Ranked hits with up to 3 `excerpts[]` each, every excerpt carrying its `section`, `sectionLevel`, and `anchor`. |
-| `get_autocontext_instructions_file` | `name` (exact filename), `sections?` (anchors) | Normalized markdown body or section slices in document order. Unknown anchors come back via `notFoundSections`. |
-
-The intended chained flow is: `list_*` or `search_*` to **discover** the relevant files, then `get_*` (optionally with `sections: matchedAnchors` from `_by_metadata` or `excerpts[].anchor` from `_by_content`) to **read** only what's needed. The always-attached `copilot.instructions.md` host file primes Copilot with this usage pattern so it actually invokes the tools at the right moments.
-
-### Implementation
-
-All four handlers live in `src/AutoContext.VsCode/src/instructions-files-lm-tools-*-handler.ts` and share a small set of building blocks:
-
-- **`InstructionsFileContentProjector`** — the single read-path for body + section index. Transparently honours workspace overrides (`.github/instructions/<file>`) and falls back to `instructions/.generated/<file>` (the post-normalization output, so disabled rules are already stripped). Awaits `InstructionsFilesManager.flush()` before reading bundled content to avoid racing the generator. Section indices come from `InstructionsFileSectionsCache` (LRU keyed by `sha256(body)`) so they always match the body returned.
-- **`InstructionsFilesLmToolsMetadataPredicate`** — generic predicate engine. Strings → case-insensitive regex (256-char cap; invalid pattern → `{ kind: 'error', error: 'invalid-regex', field, reason, recognizedFields }`). Numbers / booleans → exact equality. Array fields (`categories`, `sections.*`) → "any element matches". `applyTo` is the lone exception — handled as a glob, not regex, via `InstructionsFilesLmToolsApplyToMatcher`. AND across keys.
-- **`InstructionsFilesLmToolsApplyToMatcher`** — glob-vs-glob comparison via `vscode.workspace.findFiles` (capped enumeration with early-exit) + `vscode.languages.match` against each candidate. This mirrors how the editor itself decides which `chatInstructions` attach to a file, so the LM-tool surface stays consistent with passive attachment.
-- **`InstructionsFilesLmToolsContentSearch`** — eager full-text index over the 78-file corpus (built during composition). Identifier-aware tokenizer splits on `\W+`, camelCase/PascalCase boundaries, and `-`/`_`, lower-cases, drops 1-char pieces, and emits both whole tokens and split pieces. Per-file index = two `Map<token, count>` (one for `description`, one for `content`). A file matches iff every distinct query token appears in either map. Score = `Σ (descriptionHits × 2 + contentHits × 1)`; ties broken by `name` ascending. Excerpts are sliced from the raw body (not tokens), snapped to word boundaries, and attributed to a section via binary search over `charStart`/`charEnd`. The override watcher invalidates the per-file entry; next query rebuilds it on demand.
-
-`InstructionsFilesLmToolsListHandler` is a thin shim: it translates its `{ applyTo?, category?, includeSections? }` input into a metadata predicate and **delegates to `InstructionsFilesLmToolsSearchByMetadataHandler.handle`**. Both surfaces share one matching engine and stay equivalent by construction.
-
-### Disabled-File Visibility
-
-Every handler inlines the same disabled-file filter using `InstructionsFileEntry.resolveState().isActive()` (true for `Enabled` / `Overridden`). When a file is disabled in `.autocontext.json`, the LM tool returns the identity-only envelope `{ name, key, disabled: true }` — no body, no metadata leak. Per-rule disables are honoured automatically because `get_*` reads from `instructions/.generated/`, which already has disabled rules removed by `InstructionsFilesManager` during normalization. The discovery surface respects every user toggle uniformly.
-
-### Why Extension-Native (Not MCP)
-
-These tools are deliberately registered through `vscode.lm.registerTool`, **not** as MCP tools on `AutoContext.Mcp.Server`. The instruction listing, override resolution, and disabled-state are all in-process inside the extension; routing them through stdio + a worker pipe would add latency and a serialization boundary for no benefit. The MCP server stays focused on heavyweight code-quality tasks that genuinely belong in the workers.
-
----
-
-## Agent Plugin (Hooks)
-
-`chatInstructions` attaches files at chat-start, and `vscode.lm.registerTool` exposes discovery tools the model can pull — but both are **advisory**: in practice the model frequently ignores them, especially on turns it considers trivial. This is not specific to any one vendor; we've observed the same drift across Claude, GPT-5 Codex, and other models running inside VS Code Copilot. To make the always-attached rules and the discovery preamble **deterministic** — emitted at known lifecycle points whether the model would have picked them up on its own or not — AutoContext bundles a small **agent plugin** alongside the extension and exposes it via two lifecycle hooks: `SessionStart` and `UserPromptSubmit`.
-
-The plugin uses Anthropic's [Claude Code hooks](https://docs.anthropic.com/en/docs/claude-code/hooks) format (`hooks/hooks.json` + scripts), but it is **not Claude-only**. VS Code Copilot reads the same `hooks/hooks.json` directly and fires the hooks for whichever model the user has selected — we've validated it end-to-end against Claude and GPT-5 Codex inside VS Code Copilot, and the mechanism is host-driven, not model-driven. The plugin lives at `src/AutoContext.VsCode/plugin/` and ships in the published `.vsix` next to `instructions/` and `resources/`:
+Configuration, the instruction corpus and its projection, workspace
+detection, the tool registry, worker processes, and logs are engine state.
+Hosts do not read that state from disk and do not maintain their own copies.
+They connect to the engine and ask.
 
 ```
-plugin/
-  .claude-plugin/plugin.json                                  ← plugin manifest
-  hooks/hooks.json                                            ← hook registration
-  scripts/autocontext-session-start.cjs                       ← SessionStart hook impl
-  scripts/autocontext-user-prompt-submit.cjs                  ← UserPromptSubmit hook impl
+     editor extension        agent hooks        MCP clients        command line
+             │                    │                  │                  │
+             └────────────────────┴─────────┬────────┴──────────────────┘
+                                            │
+                                     client connections
+                                            │
+                                 ┌──────────▼──────────┐
+                                 │       engine        │
+                                 │                     │
+                                 │  configuration      │
+                                 │  instructions       │
+                                 │  workspace detection│
+                                 │  tools              │
+                                 │  worker supervision │
+                                 │  logs               │
+                                 └──────────┬──────────┘
+                                            │
+                          ┌─────────────────┼─────────────────┐
+                          │                 │                 │
+                       worker            worker            worker
 ```
 
-`hooks/hooks.json` registers two hooks, both with `matcher: "*"` and a 10 s timeout, each invoked as `node "${CLAUDE_PLUGIN_ROOT}/scripts/<script>.cjs"`. The hook scripts are authored as `.cts` (TypeScript compiled to CommonJS) so they keep working regardless of the extension's `"type": "module"` `package.json`. Both scripts read the on-disk manifests directly — they share no in-process state with the extension and run fresh per turn.
+Three consequences follow, and they shape everything below.
 
-### `SessionStart` — always-attached instructions
+**There is one reader.** State is read once, in one place. A host that
+cached its own copy would become a second source of truth, free to diverge —
+and divergence in a system whose whole job is *correct context* is not a
+cosmetic bug.
 
-Reads the two host files shipped under `<extension>/instructions/` (`copilot.instructions.md` and `autocontext.instructions.md`), strips their YAML frontmatter, and emits the bodies as a single `additionalContext` block on `hookSpecificOutput`. The agent treats the block as system context for the entire session. This makes the bundled rules apply to every turn — even ones the model would otherwise treat as trivial enough to skip the `chatInstructions` attachments. If neither file can be read the hook emits `{}` and the session continues silently.
+**The connection is the only seam.** The engine serves; clients consume.
+Nothing is shared between them except the message contract. There is no
+common library both sides program against, because such a library becomes a
+third place where behaviour lives and a channel through which the two halves
+can couple.
 
-### `UserPromptSubmit` — discovery + routing preamble
+**Hosts are interchangeable.** No host has privileged access. An editor
+extension, a hook script, a command-line tool, and a third-party integration
+all see the same surface. Adding a host is not an architectural change.
 
-Runs once per user turn before the prompt reaches the model. Loads three on-disk manifests — `resources/mcp-tools.json`, `resources/instructions-files.metadata.json`, and the extension's `package.json` (for `contributes.languageModelTools`) — and builds two indices:
+## Boundaries
 
-- **Category → MCP tools** — inverted from each tool's `categories` array.
-- **File extension → instruction files** — extracted from each instruction file's `applyTo` glob, including brace-expanded forms (`*.{cs,fs,vb}`).
+### The client/server asymmetry
 
-It then emits two `additionalContext` sections on `hookSpecificOutput`:
+The engine binds endpoints and answers; clients dial endpoints and ask. This
+asymmetry is deliberate and load-bearing. It is what makes the engine's
+authority enforceable rather than merely conventional: a client *cannot*
+serve state it does not own, because it has nothing to serve it on.
 
-1. **Static discovery block** — lists every LM-tool name and every MCP-tool name and reminds the model to re-anchor on the SessionStart-injected meta-instructions for this turn.
-2. **Routed block (conditional)** — runs a word-boundary literal scan of the user's prompt against the category index (e.g. `.net`, `workspace`) and a `\.[A-Za-z][A-Za-z0-9]{0,12}` regex against the extension index (e.g. `.cs`, `.ps1`). When either index matches, the block names the matched categories and extensions, the strongly-relevant MCP tools, and the strongly-relevant instruction files — and tells the model to call `get_autocontext_instructions_file` before writing code.
+It must not be softened. An abstraction that lets either side play either
+role would dissolve the distinction the architecture depends on.
 
-Both blocks are passive: the user's prompt itself is unmodified. The hook's purpose is to guarantee the model sees an "AutoContext exists, here's what it can do, here's what's relevant right now" preamble on every turn, without relying on the model to discover the LM tools on its own.
+### Endpoint roles
 
-> The hooks read manifests directly today because there is no per-workspace daemon to query. When the future `autocontext-engine` ships (see [docs/future/autocontext-engine.md](future/autocontext-engine.md)) the same routing logic and output shape will move to a thin RPC client; the hook contract with the host (Claude Code or VS Code Copilot) stays unchanged.
+Client connections are separated by role rather than multiplexed onto one
+channel, because the roles have genuinely different semantics:
 
----
+| Role | Nature |
+|---|---|
+| Request/response | Ask a question, get an answer; also carries long-lived subscriptions |
+| Event stream | Engine-initiated notifications the client did not ask for individually |
+| Health probe | Cheap liveness check requiring no session |
+| Log stream | Observability output |
 
-## Upgrade Detection
+The split matters most for **lifetime accounting**. Only the roles that
+represent a client actually *using* the engine keep it alive. Observability
+roles are passive: attaching a log viewer or a health poller must never be
+the reason a process continues to exist. Collapsing these onto one channel
+would make "is anyone using this?" unanswerable.
 
-AutoContext tracks version changes at two levels — the extension as a whole, and each individual instruction — so users are aware of new content without being interrupted.
+### Versioning the contract
 
-### Extension Upgrade Badge
+Every session begins with a handshake that exchanges a protocol version, and
+the match is exact — there is no negotiation and no partial compatibility.
 
-On activation, the extension compares its running version against `lastSeenVersion` stored in VS Code global state. When they differ (the extension was just updated), a numeric badge appears on the **Instructions** tree view with a `"New version available"` tooltip. The badge auto-dismisses the next time the user reveals the panel, at which point `lastSeenVersion` is updated to the current version. If the extension ships a `CHANGELOG.md`, the **Show What's New** command is available from the panel header menu, opening the release notes in Markdown preview.
+A mismatched client is refused rather than served degraded answers.
+Negotiation would mean the engine must implement every historical shape
+forever, and a client could silently receive something other than what it
+asked for. Refusal fails loudly at the boundary, which is where a version
+problem is cheapest to diagnose.
 
-### Stale Disabled-ID Clearing
+### Identity and isolation
 
-When an instruction's MAJOR.MINOR version advances, its `[INSTxxxx]` IDs may no longer map to the same rules. On activation, `clearStaleDisabledIds()` compares the MAJOR.MINOR stored in `.autocontext.json` against each instruction's current catalog version. If the version has advanced, all disabled IDs for that file are removed and the user sees an information message naming the affected files. Patch-only bumps preserve disabled IDs because the rule set is unchanged. See [Versioning Semantics](#versioning-semantics) for the full version-level contract.
+Endpoints are addressed by composing a **role**, a **workspace identity**
+derived from the workspace path, and an **instance identity** minted by
+whoever started the engine.
 
-### Per-Instruction Changelogs
+This yields isolation on two axes without any coordination protocol.
+Different workspaces cannot collide because their identities differ.
+Multiple windows on the same workspace cannot collide because their instance
+identities differ. Isolation falls out of naming rather than being enforced
+by a broker.
 
-Instruction files can ship with a companion `.CHANGELOG.md` (e.g., `lang-csharp.CHANGELOG.md`). `InstructionsFilesMetadataGenerator` probes for this file at build time and records `hasChangelog` on each metadata entry. When present, a **Show Changelog** inline action appears on the tree item, opening the version history in Markdown preview so users can see what changed between versions.
+## Lifecycle
 
----
+The engine is **on demand, not resident**. It exists while something needs
+it and stops when nothing does.
 
-## Metadata & Manifests
+**Attach or start.** A client never assumes an engine is running, and never
+assumes one is not. It attempts to connect; if nothing answers and the
+client is permitted to start one, it does so and retries. Concurrent first
+callers converge on a single engine rather than racing to create several.
+Readiness is proven by a successful connection — the engine accepts
+connections only once it is fully able to serve, so connecting *is* the
+readiness check. Nothing polls for a signal that could be reported before it
+is true.
 
-AutoContext is driven by **two separate manifests**, each owned by a different process and serving a different purpose. Both must agree on tool/task names — the build copies and validates them in lockstep.
+**Idle-bounded lifetime.** When the last using client disconnects, the
+engine waits, and if nothing reconnects, it stops itself. This is what keeps
+"on demand" from degrading into "resident forever": the common case of
+closing an editor window leaves nothing behind, while the common case of
+reopening one attaches to a warm process instead of paying a cold start.
 
-### `mcp-workers-registry.json` (orchestrator)
+**Supervision.** An engine started on behalf of a host can be bound to that
+host's lifetime, so it cannot outlive the thing it was started for. Orphaned
+processes are prevented structurally rather than cleaned up afterwards.
 
-`src/AutoContext.Mcp.Server/mcp-workers-registry.json` is **embedded as a resource** in the orchestrator binary. At startup, `RegistryEmbeddedResource` reads it from the assembly, `RegistryLoader.Parse` deserializes it into `McpWorkersCatalog`, and `RegistrySchemeValidator` validates structure against `mcp-workers-registry.schema.json` (also embedded). Each entry declares a worker's `id` plus the tools it owns, each tool's input parameters (used by `InputSchemaBuilder` to build the JSON Schema advertised to the MCP client), and each tool's tasks (with optional `editorconfig` keys for the EditorConfig batcher).
+**Announced shutdown.** Shutdown is published to subscribers before it
+happens, and a bounded drain period lets them observe it. Clients learn that
+an engine is going away by being told, not by discovering a broken
+connection and guessing why.
 
-This manifest is the **single source of truth for orchestrator dispatch** — no other file affects which tool calls go to which worker.
+**Liveness directory.** Live engines are discoverable through a shared
+registry, so any process can enumerate what is running without probing.
+Because a process can die without removing its entry, entries are validated
+against process identity rather than trusted — a directory of running
+processes must assume its own staleness.
 
-### `resources/mcp-tools.json` (extension UI)
+## State
 
-`src/AutoContext.VsCode/resources/mcp-tools.json` is loaded by `McpToolsManifestLoader` on extension activation. It carries the same tool/task names plus extension-only UI metadata: category grouping (`.NET`, `Workspace`, `Web`, `C#`, `NuGet`, `TypeScript`, `Git`, `EditorConfig`), `activationFlags` (e.g. `hasDotNet`), per-tool descriptions surfaced in tree-view tooltips, and the `workerId` that maps a category to the spawned worker.
+State divides by **who owns it and where it belongs**.
 
-### Instruction Frontmatter
+**Workspace state** is the user's decisions about their project: which
+instruction files apply, which individual rules within them are disabled,
+which tools are active. It lives in a file in the workspace, because it is
+per-project, belongs in source control, and should be reviewable and
+shareable like any other project configuration.
 
-Each instruction file carries YAML frontmatter (`name`, `description`, optional `applyTo`). The version is embedded as a suffix in the `name` field — e.g., `name: "lang-csharp (v1.0.0)"`. The build-time `InstructionsFilesMetadataGenerator` extracts the `<key>` and version via a strict `^([a-z0-9][a-z0-9-]*) \(v(\d+\.\d+\.\d+)\)$` pattern, validates the key matches the file basename, and emits the result to `resources/instructions-files.metadata.json`. At activation, `InstructionsFilesMetadataLoader` reads the artifact and `InstructionsFilesManifestLoader.load(metadata)` joins it into the in-memory `InstructionsFilesManifest`.
+**Machine-local state** is everything derived or incidental: logs, caches,
+the liveness registry. It lives outside the workspace, because it is neither
+shareable nor meaningful to anyone else.
 
-### Versioning Semantics
+The engine writes workspace state as well as reading it, which creates the
+classic hazard: a file watcher observing the writer's own change. The
+architecture resolves this by having the writer recognise its own
+modifications, so an echo is distinguishable from a genuine external edit.
+Without that, every write would trigger a reload of what was just written.
 
-Both instructions and tools carry semver version strings. The version levels have specific meanings:
+### Disable is granular
 
-**Instructions:**
+A user can disable a whole instruction file, or individual rules within a
+file that otherwise remains active. These are different operations at
+different granularities, and both must survive to the point of use — any
+component that serves instruction content has to honour rule-level
+decisions, not just file-level ones. A path that respects only the coarse
+setting silently returns guidance the user switched off.
 
-| Level | Meaning | Impact on disabled IDs |
-|-------|---------|----------------------|
-| Major | Complete replacement — rules renumbered, removed, or fundamentally changed. `[INSTxxxx]` IDs from the previous major are not comparable. | Clear all disabled IDs |
-| Minor | Rule set changed — IDs added, removed, or reordered. An existing `[INSTxxxx]` may now point to a different rule. | Clear all disabled IDs |
-| Patch | Wording refined — same rules, same IDs, same order. No behavioral change. | Keep disabled IDs as-is |
+### Curation and derived facts are separate
 
-When an instruction's MAJOR.MINOR version advances beyond the version stored alongside the user's disabled IDs, those IDs are automatically cleared and the user is notified. Patch-only bumps silently update the stored version.
+Instruction metadata comes from two sources, kept in separate artefacts:
 
-**Tools:**
+- **Curated** — human editorial judgement: how files are categorised, what
+  they are called, when they apply.
+- **Derived** — mechanically extracted from the corpus: structure, applicable
+  file types, versions, content hashes.
 
-| Level | Meaning |
-|-------|---------|
-| Major | Breaking — tools or tasks renamed, removed, or fundamentally changed |
-| Minor | New tools or tasks added; existing surface unchanged |
-| Patch | Bug fixes or refinements to existing tasks |
+They are separate because they have different authors and different
+lifecycles. Derived facts are regenerated whenever the corpus changes;
+editorial judgement is not, and must never be destroyed by regeneration.
+Merging them into one artefact would put a generator in a position to
+overwrite human decisions.
 
----
+### Stored form is not served form
 
-## MCP and Tools
+Instruction files are stored in one form and served in another. What a
+client receives is a **projection**: the stored content filtered by the
+user's decisions and narrowed to what was asked for.
 
-AutoContext exposes a single MCP/stdio server, `AutoContext.Mcp.Server`, that fronts every tool. Each tool is one or more **MCP Tasks** owned by a single worker process; the orchestrator dispatches per-task pipe calls in parallel. Tool, task, category, and worker mappings are all defined in `mcp-workers-registry.json` (orchestrator-side) and `resources/mcp-tools.json` (extension-side UI).
+Projection happens in the engine, not in clients, for the same reason state
+does: if each consumer projected for itself, each could get it subtly wrong,
+and there would be no single answer to "what does this workspace actually
+see?"
 
-Today's tool surface (one composite tool per category, plus tasks):
+Anything derived from instruction content must derive it from the
+*projected* form. Content search that indexed stored text would surface
+material the user disabled — technically present, but not part of their
+context. Indexing the projection makes that impossible by construction
+rather than by remembering to filter afterwards.
 
-| Category | Tool | Owning Worker |
-|----------|------|----------------|
-| .NET / C# | `analyze_csharp_code` (7 tasks: async, coding-style, member-ordering, naming, nullable, project-structure, test-style) | `Worker.DotNet` |
-| .NET / NuGet | `analyze_nuget_references` (1 task: hygiene) | `Worker.DotNet` |
-| Workspace / Git | `analyze_git_commit_message` (2 tasks: format, content) | `Worker.Workspace` |
-| Workspace / EditorConfig | `read_editorconfig` (1 task: `get_editorconfig_rules`) | `Worker.Workspace` |
-| Web / TypeScript | `analyze_typescript_code` (1 task: coding-style) | `Worker.Web` |
+### Overrides
 
-### Projects
+A workspace can supply its own version of an instruction file, shadowing the
+built-in one. Precedence is definite and one-directional: workspace beats
+built-in. The system does not merge the two, because merged guidance has no
+owner and no reviewable source.
 
-The .NET solution and one Node.js workspace make up the runtime side:
+### Activation is derived, not configured
 
-- **`AutoContext.Mcp.Abstractions`** — `IMcpTask` interface only. The contract every worker task implements; depended on by both the workers and (transitively) the orchestrator's registry.
-- **`AutoContext.Framework`** — Cross-cutting framework primitives shared by every .NET process:
-  - `Pipes/` — Layered named-pipe abstractions used by every `.NET` pipe endpoint. `PipeTransport` (Layer 1) is the client-side connect primitive. `LengthPrefixedFrameCodec` (Layer 2) is the 4-byte little-endian length-prefixed UTF-8 JSON framing used on every AutoContext pipe. `IPipeExchangeClient` (Layer 3) is the request/response contract with two implementations — `PipeTransientExchangeClient` (open-call-close, used by `WorkerClient`) and `PipePersistentExchangeClient` (one open pipe across calls, used by `WorkerControlClient`). `PipeStreamingClient<T>` (one-direction queued writer with caller-supplied serialization, used by `LoggingClient` to stream NDJSON log records) and `PipeKeepAliveClient` (long-lived signaling pipe, used by `HealthMonitorClient`) cover the non-RPC patterns. `PipeListener` / `BoundPipeListener` is the server-side accept-loop primitive used by `WorkerTaskDispatcherService`.
-  - `Hosting/` — `HealthMonitorClient` (the hosted service that connects to the extension's HealthMonitorServer pipe and announces this process's stable id; a no-op when no `health-monitor` service address was supplied).
-  - `Logging/` — `LoggingClient`, `PipeLoggerProvider`, `PipeLogger`, `JsonLogGreeting`/`JsonLogEntry`, `CorrelationScope` (the per-`tools/call` ambient correlation id).
-  - `Workers/` — `WorkerHostOptions`, `ServiceAddressFormatter` (formats `autocontext.<role>#<instance-id>` from a worker id + instance id), and `WorkerTaskDispatcherService` (the worker-side hosted service that opens its `BoundPipeListener`, accepts connections, frames each `TaskRequest`/`TaskResponse` via `LengthPrefixedFrameCodec`, routes each request to the matching `IMcpTask`, and emits the worker's `Ready.` stderr marker once it's listening).
-- **`AutoContext.Nodejs.Core`** — TypeScript counterpart of `AutoContext.Framework`. Provides the same pipe primitives (`length-prefixed-frame-codec.ts`, `pipe-listener.ts`, `pipe-streaming-client.ts`, `pipe-keep-alive-client.ts`, `pipe-transport.ts`) plus a small logger contract (`Logger`, `LoggerBase`, `LogLevel`, `LogCategory`, `NullLogger`). Consumed by both `AutoContext.Worker.Web` and the VS Code extension so the two stay wire-compatible with the .NET side and avoid a second hand-written framing implementation.
-- **`AutoContext.Worker.Shared`** — `Hosting/WorkerHostBuilderExtensions.ConfigureWorkerHost(args, readyMarker, workerId, ...)`. The single helper every .NET worker calls in `Program.Main` to parse `--instance-id` and the repeatable `--service <role>=<address>` switches, then wire logging (from `service log=…`), health monitoring (from `service health-monitor=…`), and the dispatcher pipe (self-formatted from the worker id + instance id via `ServiceAddressFormatter.Format`).
-- **`AutoContext.Mcp.Server`** — The MCP/stdio orchestrator. One process, one binary, one tool surface:
-  - `Registry/` — Embedded-resource loader, schema validator, strongly typed catalog (`McpWorkersCatalog`, `McpWorker`, `McpToolDefinition`, `McpTaskDefinition`, `McpToolParameter`), and `InputSchemaBuilder` (turns parameter declarations into the JSON Schema sent to the MCP client).
-  - `Tools/` — `McpSdkAdapter` (the bridge to the official ModelContextProtocol SDK), `Invocation/` (`ToolDelegateFactory`, `ToolHandler`, `ToolInvoker`), and `Results/` (`ToolResultEnvelope`, `ToolResultEntry`, `ToolResultSummary`, `ToolResultError`, `ToolResultComposer`).
-  - `Workers/` — `WorkerClient` (one pipe round-trip per task, composed over `PipeTransientExchangeClient`; 30 s deadline; never throws on IO/timeout/parse failure), `Control/WorkerControlClient` (composed over `PipePersistentExchangeClient`; sends `EnsureRunning` to the extension before dispatch), `Protocol/` (`TaskRequest`, `TaskResponse`, `WorkerJsonOptions`), `Transport/` (`ServiceAddressOptions` — holds the per-window `InstanceId` and resolves `autocontext.<role>#<instance-id>` addresses via `AutoContext.Framework.Workers.ServiceAddressFormatter`).
-  - `Config/` — `AutoContextConfigClient` (subscribes to the extension's `autocontext.extension-config` pipe), `AutoContextConfigSnapshot` (lock-free in-memory disabled-tool/disabled-task snapshot), `AutoContextConfigSnapshotDto` (wire DTO).
-  - `EditorConfig/` — `EditorConfigBatcher` (one pipe call per `tools/call` to `Worker.Workspace`'s `get_editorconfig_rules` task; results are sliced per task).
-- **`AutoContext.Worker.DotNet`** — .NET worker. Owns the `analyze_csharp_*` and `analyze_nuget_*` tasks (`Tasks/CSharp/` and `Tasks/NuGet/`). `Program.Main` registers each task as a singleton `IMcpTask` and starts `WorkerTaskDispatcherService`.
-- **`AutoContext.Worker.Workspace`** — .NET worker. Owns the `analyze_git_*` and `get_editorconfig_rules` tasks (`Tasks/Git/`, `Tasks/EditorConfig/`). `Hosting/WorkerOptions.WorkspaceRoot` is the per-window workspace root passed via `--workspace-root` (currently reserved for future workspace-scoped tasks).
-- **`AutoContext.Worker.Web`** — Node.js / TypeScript worker built on `AutoContext.Nodejs.Core`. Owns the `analyze_typescript_coding_style` task (`src/tasks/typescript/`). `src/index.ts` is the entry point — it parses `--instance-id` and `--service` switches, wires `LoggingClient` and `HealthMonitorClient`, registers each `McpTask`, and starts `WorkerTaskDispatcherService` (the Node sibling of the .NET hosted service of the same name).
+The engine inspects the workspace and derives a set of facts about it —
+which languages, frameworks, and tooling are present. Those facts gate what
+is offered: instruction files and tools declare what must hold for them to
+apply.
 
-### EditorConfig Resolution
+This is the mechanism behind the product's core promise. Relevance is
+computed from the workspace rather than curated per user, so it stays
+correct as a project changes, and a repository never sees guidance for
+technology it does not use.
 
-`.editorconfig` resolution lives in **one place**: `AutoContext.Worker.Workspace`'s `GetEditorConfigRulesTask`. Two paths reach it:
+## Capabilities
 
-| Caller | Path | Purpose |
-|--------|------|---------|
-| Copilot (directly) | `read_editorconfig` MCP tool → orchestrator → pipe → `GetEditorConfigRulesTask` | Lets the model ask "what `.editorconfig` rules apply to this file?" before generating code. |
-| Orchestrator (internally) | `ToolInvoker` → `EditorConfigBatcher.ResolveAsync` → pipe → `GetEditorConfigRulesTask` | Runs once per `tools/call` to gather every key declared by the tool's tasks in one round-trip. |
+The engine serves a small number of capability families: workspace
+configuration, instruction retrieval and search, workspace facts, tool
+listing and invocation, contextual routing, agent-lifecycle events, and log
+access. Some are request/response; some are subscriptions that deliver a
+snapshot and then updates.
 
-There is no shared in-process resolver and no `IEditorConfigFilter` abstraction — the orchestrator treats EditorConfig as just another worker capability. This keeps `Worker.Workspace` as the single owner of EditorConfig parsing and section cascading, and means the same code paths serve both Copilot calls and internal batching.
+Two properties of this surface are architectural rather than incidental.
 
-### Viewing Tool Invocation Logs
+**Expected outcomes are values, not failures.** "That is disabled", "that
+name does not exist", and "those arguments do not fit" are ordinary answers
+a caller must handle, and they are modelled as distinct results rather than
+raised as errors. Collapsing them into an error channel would merge domain
+answers with transport faults, discarding the distinction the caller needs
+to react correctly.
 
-Every `AutoContext.Worker.*` and `AutoContext.Mcp.Server` process connects to the extension-hosted `LogServer` over its dedicated named pipe, sending one greeting line followed by NDJSON log records. The extension routes records to per-process `LogOutputChannel`s under the **AutoContext** Output panel:
+**Slow consumers are dropped, not tolerated.** A subscriber that cannot keep
+up is disconnected with a terminal message telling it so. The alternative —
+unbounded buffering — lets one stalled client consume the engine's memory
+and eventually degrade service for everyone. Bounded buffers make
+backpressure explicit and its consequence honest.
 
-1. Open the **Output** panel (`Ctrl+Shift+U`).
-2. Select **AutoContext: \<process name\>** from the dropdown — e.g. `AutoContext: AutoContext.Worker.DotNet`, `AutoContext: AutoContext.Mcp.Server`.
+## Tools
 
-Every record carries a `category` (the .NET `ILogger` category), a `level` (`Trace`/`Debug`/`Information`/`Warning`/`Error`/`Critical`), a `message`, an optional `exception`, and — for records emitted inside a `tools/call` — a short `correlationId` minted by `McpSdkAdapter`. The same correlation id appears in records from the orchestrator and every worker that participated, so a single tool call is traceable end-to-end.
+Tool definitions are split by concern into two artefacts:
 
-If the LogServer pipe is unavailable (e.g. running a worker standalone outside VS Code), `LoggingClient` falls back to writing each record to stderr; `WorkerManager`'s stderr line-handler still surfaces those lines, just under its own subcategory rather than a per-worker channel.
+- **Execution** — what a tool is to a model, what arguments it takes, and
+  which worker performs it.
+- **Presentation and activation** — where a tool appears in the interface,
+  and which workspace facts must hold for it to be offered.
 
----
+Categories form a tree, and activation requirements accumulate down it: a
+tool is offered only when everything its category and that category's
+ancestors require is satisfied. Gating is therefore declared once at the
+level where it is true, rather than repeated on every tool.
 
-*This document provides an architectural overview. For build instructions and configuration, see the [README](../README.md).*
+The split exists because the two concerns change independently and are
+edited by different people. The model-facing contract can evolve without
+disturbing the interface, and gating can be revised without touching a
+single tool schema.
+
+Invocation validates arguments and applies the user's decisions *before* any
+worker is contacted. Rejecting a call for a disabled or unknown tool, or one
+with arguments that do not fit, is the engine's responsibility — a worker
+should never be started to discover that the request was never valid.
+
+## Workers
+
+Analysis runs in **separate processes** from the engine, one per capability
+area.
+
+Isolation is the point. Analysis means parsing untrusted source, loading
+language toolchains, and running third-party libraries; a crash, a memory
+leak, or a pathological input in that work must not take down the process
+that owns all state. The engine supervises workers; it does not host their
+code.
+
+**Workers declare themselves.** A component is a worker because it carries a
+descriptor saying so — not because of where it sits or what it is named.
+Identity is declared rather than inferred, so the roster is explicit and a
+component cannot be silently included or omitted by a naming accident.
+
+**Workers start on demand.** A worker process exists only after something it
+provides is actually requested. A workspace that never triggers a given
+analysis never pays for it.
+
+Because a cold start is genuinely slow — process creation, runtime warm-up,
+connection setup — the engine's willingness to wait must exceed any client's
+patience. A client that gives up before the engine does abandons a request
+that would have been answered, which is worse than waiting.
+
+**The contract is the wire, not a library.** A worker is defined by its
+descriptor and by the dispatch protocol it speaks over its pipe — nothing
+else. It need not share a runtime with the engine, and need not link any
+particular helper library. Shared worker-hosting scaffold exists as a
+convenience for workers that want it, but a worker that implements the
+protocol directly is equally valid. Keeping the boundary at the wire is what
+lets an analysis capability be written in whatever language suits it.
+
+Adding an analysis capability therefore means adding a worker or a task
+behind that contract, never extending the protocol between engine and
+workers.
+
+## Observability
+
+All log output converges on the engine. It records its own activity, and
+workers send theirs to the engine rather than writing independently. One
+stream carries everything, with records tagged by origin.
+
+The engine is the only process that spans the whole system; a viewer that
+had to assemble a picture from several independent sources would have to
+re-derive ordering and correlation that the engine already has. Workers
+having their own separate output channel would also make them
+independently observable but collectively incoherent.
+
+Logs are available both as bounded history and as a live stream, and
+consuming either is a passive act that does not keep the engine alive.
+
+## Module structure
+
+| Module | Responsibility |
+|---|---|
+| Transport substrate | Framing and connection primitives |
+| Protocol | The wire contract: message shapes and address composition. Inert |
+| Engine core | The engine as a library: state ownership, capability handlers, endpoint binding |
+| Engine host | The engine as a runnable process |
+| Client core | Connecting, consuming, and starting an engine |
+| Worker runtime | The task contract and worker-side hosting |
+| Instruction parser | Reading instruction files into a structured form |
+| Build-time generators | Producing derived artefacts from curated sources |
+| Workers | The analysis capabilities themselves |
+| Hosts | Editor extension, hooks, command line |
+
+The dependency rule is **one-way**. The transport substrate and the protocol
+are leaves: they depend on nothing else and are depended upon by everything.
+Engine core, client core, and worker runtime each build on those leaves and
+**never on each other**.
+
+This is the asymmetry from *Boundaries* expressed structurally. The engine
+serves, the client consumes, and workers provide — three roles that share a
+contract and nothing else. If any two of them referenced each other, the
+seam would stop being the wire and start being code, and the guarantee that
+hosts are interchangeable would quietly disappear.
+
+The instruction parser is deliberately dependency-free so that one
+implementation serves both the build-time generators and the engine at
+runtime. Two parsers would mean two interpretations of the same file, with
+generated metadata describing something other than what is served.
+
+## Distribution
+
+The engine ships **self-contained per platform**, carrying its own runtime,
+workers, instruction corpus, and generated artefacts.
+
+A host that bundles the engine can rely on it working without the user
+installing a runtime or the host discovering one. The engine resolves its
+resources relative to itself rather than to whoever launched it, so it
+behaves identically however it was started.
+
+Because platform-specific artefacts are built separately, packaging verifies
+what it produced: that binaries match their intended platform, and that
+content which should be identical everywhere actually is. A build that
+cannot check its own output is a build that ships whatever it happened to
+produce.
+
+## Invariants
+
+The rules above reduce to a handful of statements that must remain true:
+
+1. The engine is the only reader and writer of AutoContext state.
+2. Clients hold no authoritative copy of that state.
+3. The wire contract is the only thing shared between engine and clients.
+4. Engine, client, and worker modules never reference one another.
+5. Observability never extends a process's lifetime.
+6. Expected outcomes are values; only faults are errors.
+7. Content is served, searched, and indexed in projected form only.
+8. Human curation is never overwritten by generation.
+9. Analysis runs outside the process that owns state.
+10. No host is privileged.
