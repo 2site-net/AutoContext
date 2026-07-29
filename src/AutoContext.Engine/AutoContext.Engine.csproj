@@ -25,7 +25,7 @@
                       UndefineProperties="TargetFramework" />
     <!-- Build-time-only: the console generator the imported targets invoke to
          emit Resources/workers.json by aggregating the per-worker
-         .autocontext-worker.json descriptors under src/AutoContext.Worker.*.
+         .autocontext-worker.json descriptors under src/.
          ReferenceOutputAssembly=false keeps the generator off the
          engine's runtime reference set while still ordering its build before
          the engine's. -->
