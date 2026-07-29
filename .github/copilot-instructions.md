@@ -12,7 +12,7 @@
 
 - **Do** route all compilation, testing, linting, and packaging through the AutoContext build tooling — never bare `npx vitest`, `npx tsc`, `dotnet build`, `dotnet test`, etc. The tooling configures paths, aliases, manifests, npm-install gating, and compilation order that bare invocations miss.
 - **Do** use the orchestrator `build.ps1` from the repository root as the canonical entry point; consult the **Build Commands** table below for the command for each task.
-- **Do** run `.\build.ps1 -Help` for the targets and switches (`TS`, `DotNet`, `-Clean`, `-WhatIf`), and the `scripts/*.ps1` wrappers (e.g. `scripts/package.ps1 -Help`) for packaging/publishing/tagging options like `-Local`, `-RuntimeIdentifier`, `All`.
+- **Do** run `.\build.ps1 -Help` for the targets and switches (`TS`, `DotNet`, `-Clean`, `-WhatIf`). The `scripts/*.ps1` wrappers do **not** take `-Help`; read the `param()` block for their options (`-Local`, `-RuntimeIdentifier`, `All`, `-NoCompile`, `-Smoke`).
 - **Don't** invoke `npx vitest`, `npx tsc`, `dotnet build`, `dotnet test`, or any other build/test tool directly — go through `build.ps1` or a `scripts/*.ps1` wrapper.
 
 ### Two-tier workflow
@@ -59,9 +59,9 @@ Use the right tier for the job:
 
 Some AutoContext MCP tools are trained against production-code patterns and produce noisy or actively wrong findings when applied to test code (where the testing-specific instructions — `testing`, `dotnet-testing`, `dotnet-xunit`, `web-vitest`, etc. — apply instead).
 
-- **Don't** invoke `analyze_csharp_code` on anything under `tests/**` — that subtree holds all C# test code, including dedicated `<Project>.Tests.Support` projects and `Support/` folders inside `<Project>.Tests` projects. Validate those against the matching testing instructions (`testing`, `dotnet-testing`, `dotnet-xunit`) instead.
-- **Don't** invoke `analyze_typescript_code` on anything under `src/AutoContext.*/tests/**` — that subtree holds all TypeScript test code and test support. Validate those against the matching testing instructions (`testing`, `web-testing`, `web-vitest`, `web-mocha`, `web-playwright`) instead.
-- **Don't** assume new production-code-shaped MCP analyzers shipped from this repo are safe to run on test code. Apply the same scope rule, and when in doubt, read the tool's `description` in `src/AutoContext.Mcp.Server/mcp-tools-registry.json` to confirm scope before invoking.
+- **Don't** invoke the C# analyzers (`analyze_csharp_*`) on anything under `tests/**` — that subtree holds all C# test code, including dedicated `<Project>.Tests.Support` projects and `Support/` folders inside `<Project>.Tests` projects. Validate those against the matching testing instructions (`testing`, `dotnet-testing`, `dotnet-xunit`) instead.
+- **Don't** invoke the TypeScript analyzers (`analyze_typescript_*`) on anything under `src/AutoContext.*/tests/**` — that subtree holds all TypeScript test code and test support. Validate those against the matching testing instructions (`testing`, `web-testing`, `web-vitest`, `web-mocha`, `web-playwright`) instead.
+- **Don't** assume new production-code-shaped MCP analyzers shipped from this repo are safe to run on test code. Apply the same scope rule, and when in doubt, read the tool's `description` in `src/AutoContext.Engine/Resources/mcp-tools-registry.json` to confirm scope before invoking.
 
 ## Versioning
 
