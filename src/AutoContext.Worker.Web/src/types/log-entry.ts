@@ -1,17 +1,13 @@
 /**
- * Log severity levels. Names match the .NET `LogLevel` enum so the
- * extension-side LogServer can route both .NET and Node worker output
- * through the same `levelToMethod` mapper.
+ * Log severity levels. Names match the .NET `LogLevel` enum so both .NET
+ * and Node worker output route through the same mapper.
  */
 export type LogLevel = 'Trace' | 'Debug' | 'Information' | 'Warning' | 'Error' | 'Critical';
 
 /**
  * In-process record enqueued by every {@link PipeLogger} call. Drained
- * off-thread by `LoggingClient` and either sent over the pipe (the
- * extension is listening) or written to stderr (fallback).
- *
- * TypeScript counterpart of the C# `LogEntry` readonly struct in
- * `AutoContext.Worker.Logging`.
+ * off-thread by `LoggingClient` and either sent over the pipe (a
+ * listener is attached) or written to stderr (fallback).
  */
 export interface LogEntry {
     readonly category: string;
@@ -22,10 +18,9 @@ export interface LogEntry {
 }
 
 /**
- * Wire shape for one NDJSON log record streamed from a worker to the
- * extension's LogServer. Property names are intentionally lowercased
- * to keep the serialized payload compact and to match the
- * `AutoContext.Worker.Shared` C# `JsonLogEntry`.
+ * Wire shape for one NDJSON log record streamed from a worker. Property
+ * names are intentionally lowercased to keep the serialized payload
+ * compact and to match the .NET record shape.
  */
 export interface JsonLogEntry {
     readonly category: string;

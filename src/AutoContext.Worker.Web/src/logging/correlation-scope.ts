@@ -12,8 +12,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
  * nested promises and `await`s observe the same id, but unrelated
  * dispatches running concurrently each see their own.
  *
- * TypeScript counterpart of `CorrelationScope` in
- * `AutoContext.Worker.Shared`.
+ * TypeScript counterpart of the .NET `CorrelationScope`.
  */
 export class CorrelationScope {
     private static readonly storage = new AsyncLocalStorage<string>();

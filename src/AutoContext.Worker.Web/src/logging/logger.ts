@@ -6,9 +6,7 @@ import type { LogPoster } from '#types/log-poster.js';
 /**
  * Default {@link LoggerBase} implementation that hands every entry to
  * a {@link LogPoster} (typically `LoggingClient`, which delivers
- * entries over a named pipe with stderr fallback). TypeScript
- * counterpart of `PipeLogger` / `PipeLoggerProvider` in
- * `AutoContext.Worker.Shared`.
+ * entries over a named pipe with stderr fallback).
  *
  * A single per-tree cache keyed by category name is shared between
  * the root and every logger derived through {@link forCategory}, so
