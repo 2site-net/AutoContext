@@ -3,24 +3,26 @@ namespace AutoContext.Workers.Core;
 using System.Text.Json;
 
 /// <summary>
-/// A single MCP Task as executed by a worker process.
+/// A single tool-execution unit handled by a .NET worker process.
 /// </summary>
 /// <remarks>
-/// MCP Tasks are the worker-facing execution units. Each one is dispatched
-/// over a named pipe by <c>McpToolClient</c> (in <c>AutoContext.Mcp.Server</c>)
-/// when an MCP Tool that references it is invoked.
+/// This is an optional convenience for .NET workers, not the worker
+/// contract. A worker is defined by its <c>.autocontext-worker.json</c>
+/// descriptor and by the dispatch protocol it speaks over its pipe;
+/// implementing this interface is simply how <see cref="WorkerTaskDispatcherService"/>
+/// discovers in-process handlers. Workers on other runtimes satisfy the
+/// same dispatch protocol with their own types.
 /// <para>
-/// The contract is JSON-native end to end: <paramref name="data"/> is the
-/// payload Copilot supplied to the parent MCP Tool, and the return value
-/// is whatever JSON the task wants to surface (per-tool <c>outputSchema</c>
-/// in <c>resources/mcp-tools.json</c> documents the shape).
+/// The contract is JSON-native end to end: the request payload is the JSON
+/// supplied to the tool, and the return value is whatever JSON the
+/// task wants to surface.
 /// </para>
 /// </remarks>
 public interface IMcpTask
 {
     /// <summary>
-    /// Snake_case identifier matching the task's <c>name</c> in
-    /// <c>resources/mcp-tools.json</c>.
+    /// Snake_case identifier matching the tool's <c>name</c> in the engine's
+    /// tool registry.
     /// </summary>
     string TaskName { get; }
 
@@ -28,12 +30,12 @@ public interface IMcpTask
     /// Executes the task.
     /// </summary>
     /// <param name="data">
-    /// The JSON payload from the parent MCP Tool invocation. EditorConfig
-    /// values declared by the task in <c>resources/mcp-tools.json</c> are merged in
+    /// The JSON payload from the tool invocation. EditorConfig values the
+    /// tool declares in the registry are merged in
     /// as flat properties prefixed with <c>editorconfig.</c> (e.g.
     /// <c>data["editorconfig.indent_style"]</c>); missing keys are simply
     /// absent.
     /// </param>
-    /// <param name="cancellationToken">Cancellation token threaded from the MCP SDK through the pipe protocol.</param>
+    /// <param name="cancellationToken">Cancellation token threaded from the engine through the pipe protocol.</param>
     Task<JsonElement> ExecuteAsync(JsonElement data, CancellationToken cancellationToken);
 }
